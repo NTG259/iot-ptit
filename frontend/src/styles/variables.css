@@ -1,0 +1,13 @@
+/* Shared design tokens, defined as Tailwind v4 theme values so they generate real utility
+   classes (bg-primary, text-green, border-outline, ...) as well as plain CSS variables. */
+@theme {
+  --color-primary: #4880ff;
+  --color-text: #202224;
+  --color-green: #34c759;
+  --color-orange: #ff8d28;
+  --color-red: #ff3b30;
+  --color-canvas: #f5f6fa;
+  --color-outline: #ebebeb;
+
+  --font-sans: 'Nunito Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+}

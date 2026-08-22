@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+@import './styles/variables.css';
+
+/* Repeated across every card grid (Dashboard, Sensors); keeps callsites from repeating
+   the same long arbitrary grid-template-columns string. */
+@utility card-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
