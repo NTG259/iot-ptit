@@ -1,9 +1,15 @@
 import { apiClient } from './apiClient'
+import { updateUser } from './session'
 
-export function getProfile() {
-  return apiClient.get('/users/me')
+export async function getProfile() {
+  const user = await apiClient.get('/users/me')
+  updateUser(user)
+  return user
 }
 
-export function updateProfile(data) {
-  return apiClient.put('/users/me', data)
+// PUT replaces the whole profile, so send every field, not just the changed ones.
+export async function updateProfile(data) {
+  const user = await apiClient.put('/users/me', data)
+  updateUser(user)
+  return user
 }

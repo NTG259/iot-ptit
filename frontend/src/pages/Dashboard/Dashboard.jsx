@@ -1,46 +1,280 @@
-import thermometerIcon from '@/assets/icons/thermometer.svg'
-import raindropsIcon from '@/assets/icons/raindrops.svg'
-import sunIcon from '@/assets/icons/sun.svg'
+import { useState } from 'react'
 import AppShell from '@/components/layout/AppShell/AppShell'
-import StatCard from '@/components/common/StatCard/StatCard'
-import SensorStatusCard from '@/components/common/SensorStatusCard/SensorStatusCard'
-import RealtimeChart from '@/components/common/RealtimeChart/RealtimeChart'
+import MetricCard from '@/components/common/MetricCard/MetricCard'
+import TelemetryChart from '@/components/common/TelemetryChart/TelemetryChart'
+import LedDeviceCard from '@/components/common/LedDeviceCard/LedDeviceCard'
+import GreetingHeader from '@/components/common/GreetingHeader/GreetingHeader'
+import { deviceService, sensorService, session } from '@/services'
+import useApi from '@/hooks/useApi'
+import useNow from '@/hooks/useNow'
 
-const CHART_CATEGORIES = ['5k', '10k', '15k', '20k', '25k', '30k', '35k', '40k', '45k', '50k', '55k', '60k']
+// Series id -> sensor code as seeded by the backend (matches the ESP8266 payload keys).
+const SENSOR_CODES = { temperature: 'temp', humidity: 'humi', lux: 'light' }
 
-const CHART_SERIES = [
-  { id: 'temperature', label: 'Temperature (°C)', color: '#ff3b30', data: [30, 42, 38, 82, 48, 55, 30, 65, 78, 70, 82, 75] },
-  { id: 'humidity', label: 'Humidity (%)', color: '#34c759', data: [35, 48, 55, 62, 58, 65, 68, 72, 78, 75, 80, 82] },
-  { id: 'light', label: 'Light (Lx)', color: '#ff8d28', data: [28, 40, 45, 50, 52, 60, 65, 70, 74, 76, 80, 83] },
-]
+const COLORS = { temperature: '#10b981', humidity: '#0891b2', lux: '#d97706' }
+
+const HOUR_MS = 60 * 60 * 1000
+const RANGES = { '6H': 6 * HOUR_MS, '12H': 12 * HOUR_MS, '24H': 24 * HOUR_MS, '7D': 7 * 24 * HOUR_MS }
+
+// Chart slots per series; the backend averages the readings inside each slot.
+const SAMPLES = 25
+const LABEL_COUNT = 7
+
+// All series share one 0–50 axis: temperature as-is, humidity (0–100%) halved,
+// light (raw 0–1023 ADC reading) divided by 20.
+const Y_TICKS = [0, 10, 20, 30, 40, 50]
+const SCALE = { temperature: 1, humidity: 1 / 2, lux: 1 / 20 }
+
+// Progress-bar scale for a card whose sensor has no complete min/max threshold.
+const FALLBACK_MAX = { temperature: 50, humidity: 100, lux: 1023 }
+
+const SENSOR_POLL_MS = 2000
+const CHART_POLL_MS = 10_000
+// Slightly over the backend's 10s: an unconfirmed command then shows the real state again.
+const PENDING_TIMEOUT_MS = 12_000
+
+/** Places bucketed points into SAMPLES slots and fills gaps with the nearest known value. */
+function toSeries(points, from, to) {
+  const stepMs = (to - from) / SAMPLES
+  const slots = Array(SAMPLES).fill(null)
+  for (const p of points) {
+    const i = Math.min(SAMPLES - 1, Math.max(0, Math.floor((new Date(p.measuredAt) - from) / stepMs)))
+    slots[i] = p.value
+  }
+
+  const first = slots.find((v) => v != null)
+  if (first === undefined) return null
+  let last = first
+  return slots.map((v) => (v == null ? last : (last = v)))
+}
+
+function axisLabels(range, from, to) {
+  return Array.from({ length: LABEL_COUNT }, (_, i) => {
+    if (i === LABEL_COUNT - 1) return 'Now'
+    const date = new Date(from.getTime() + ((to - from) * i) / (LABEL_COUNT - 1))
+    return range === '7D'
+      ? date.toLocaleDateString('en-US', { weekday: 'short' })
+      : date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  })
+}
+
+function describeReading(value, threshold, fallbackMax, unit) {
+  const min = threshold?.minValue
+  const max = threshold?.maxValue
+  const hasMin = min != null
+  const hasMax = max != null
+  const rangeText = hasMin || hasMax ? `${hasMin ? min : '−∞'} – ${hasMax ? max : '∞'} ${unit}` : 'Not set'
+
+  if (value == null) {
+    return { status: 'No data', rangeText, progress: 0 }
+  }
+
+  let status = 'Normal'
+  if (hasMin && value < min) status = 'Too low'
+  else if (hasMax && value > max) status = 'Too high'
+  else if (!hasMin && !hasMax) status = 'No limit'
+
+  const progress = hasMin && hasMax && max > min ? ((value - min) / (max - min)) * 100 : (value / fallbackMax) * 100
+  return { status, rangeText, progress }
+}
+
+function PanelTitle({ children }) {
+  return <h2 className="m-0 text-lg font-semibold text-text">{children}</h2>
+}
 
 export default function Dashboard() {
+  const [range, setRange] = useState('24H')
+  // code -> { on, since }: commands sent but not yet confirmed by an LED status message.
+  const [pending, setPending] = useState({})
+  const [ledError, setLedError] = useState(null)
+  const now = useNow(1000)
+  const user = session.getUser()
+
+  const sensors = useApi(() => sensorService.getSensors({ size: 50 }), [], { intervalMs: SENSOR_POLL_MS })
+  const thresholds = useApi(
+    () => Promise.all(Object.values(SENSOR_CODES).map((code) => sensorService.getThreshold(code))),
+    [],
+  )
+  const devices = useApi(() => deviceService.getDevices(), [], { intervalMs: SENSOR_POLL_MS })
+  const history = useApi(
+    async () => {
+      const to = new Date()
+      const from = new Date(to.getTime() - RANGES[range])
+      const params = { from: from.toISOString(), to: to.toISOString(), buckets: SAMPLES }
+      const results = await Promise.all(Object.values(SENSOR_CODES).map((code) => sensorService.getSensorData(code, params)))
+      return { from, to, results }
+    },
+    [range],
+    { intervalMs: CHART_POLL_MS },
+  )
+
+  const sensorByCode = Object.fromEntries((sensors.data?.items ?? []).map((s) => [s.code, s]))
+  const thresholdByCode = Object.fromEntries((thresholds.data ?? []).map((t) => [t.sensorCode, t]))
+  const reading = Object.fromEntries(Object.entries(SENSOR_CODES).map(([id, code]) => [id, sensorByCode[code]?.lastValue ?? null]))
+  const fmt = (value, decimals) => (value == null ? '—' : value.toFixed(decimals))
+
+  const card = (id, unit) => describeReading(reading[id], thresholdByCode[SENSOR_CODES[id]], FALLBACK_MAX[id], unit)
+  const temperatureCard = card('temperature', '°C')
+  const humidityCard = card('humidity', '%')
+  const luxCard = card('lux', '')
+
+  const series = history.data
+    ? Object.keys(SENSOR_CODES)
+        .map((id, i) => {
+          const data = toSeries(history.data.results[i], history.data.from, history.data.to)
+          return data && { id, color: COLORS[id], data: data.map((v) => v * SCALE[id]) }
+        })
+        .filter(Boolean)
+    : []
+  const labels = history.data ? axisLabels(range, history.data.from, history.data.to) : Array(LABEL_COUNT).fill('')
+
+  const leds = (devices.data ?? []).map((device) => {
+    const confirmedOn = device.state === 'ON'
+    const p = pending[device.code]
+    const isPending = p != null && p.on !== confirmedOn && now.getTime() - p.since < PENDING_TIMEOUT_MS
+    return { code: device.code, name: device.name, on: isPending ? p.on : confirmedOn, pending: isPending }
+  })
+
+  const markPending = (codes, on) =>
+    setPending((prev) => ({ ...prev, ...Object.fromEntries(codes.map((code) => [code, { on, since: Date.now() }])) }))
+  const clearPending = (codes) =>
+    setPending((prev) => Object.fromEntries(Object.entries(prev).filter(([code]) => !codes.includes(code))))
+
+  async function sendCommand(codes, on, send) {
+    setLedError(null)
+    markPending(codes, on)
+    try {
+      const results = [].concat(await send())
+      const failed = results.filter((r) => r.status === 'FAILED').map((r) => r.deviceCode)
+      if (failed.length > 0) {
+        clearPending(failed)
+        setLedError(`Could not reach ${failed.join(', ')} — is the MQTT broker running?`)
+      }
+    } catch (err) {
+      clearPending(codes)
+      setLedError(err.message)
+    }
+    devices.reload()
+  }
+
+  const toggleLed = (code, on) => sendCommand([code], on, () => deviceService.control(code, on ? 'TURN_ON' : 'TURN_OFF'))
+  const allOff = () => sendCommand(leds.map((l) => l.code), false, () => deviceService.controlAll('TURN_OFF'))
+
+  const legend = [
+    { id: 'temperature', label: 'Temp (°C)', value: `${fmt(reading.temperature, 1)}°` },
+    { id: 'humidity', label: 'Humidity (%)', value: `${fmt(reading.humidity, 0)}%` },
+    { id: 'lux', label: 'Light', value: fmt(reading.lux, 0) },
+  ]
+
   return (
-    <AppShell title="Dashboard">
-      <div className="card-grid">
-        <StatCard label="Temperature" value="36.9°C" valueColor="#34c759" icon={<img src={thermometerIcon} alt="Temperature" />} />
-        <StatCard label="Humidity" value="80.05%" valueColor="#34c759" icon={<img src={raindropsIcon} alt="Humidity" />} />
-        <StatCard label="Light Sensor" value="29.5 Lx" valueColor="#ff8d28" icon={<img src={sunIcon} alt="Light" />} />
+    <AppShell>
+      <GreetingHeader name={user?.fullName} subtitle="Overview of real-time device status and climate" />
+
+      {sensors.error && (
+        <p className="m-0 shrink-0 px-4 py-2.5 rounded-lg bg-red/10 text-red text-sm">Could not load sensor readings: {sensors.error.message}</p>
+      )}
+
+      <div className="shrink-0 grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+        <MetricCard
+          label="Temperature"
+          status={temperatureCard.status}
+          value={fmt(reading.temperature, 1)}
+          unit="°C"
+          rangeLabel="Threshold"
+          rangeText={temperatureCard.rangeText}
+          progress={temperatureCard.progress}
+          tone="green"
+        />
+        <MetricCard
+          label="Moisture"
+          status={humidityCard.status}
+          value={fmt(reading.humidity, 0)}
+          unit="%"
+          rangeLabel="Threshold"
+          rangeText={humidityCard.rangeText}
+          progress={humidityCard.progress}
+          tone="cyan"
+        />
+        <MetricCard
+          label="Light"
+          status={luxCard.status}
+          value={fmt(reading.lux, 0)}
+          unit=""
+          rangeLabel="Threshold"
+          rangeText={luxCard.rangeText}
+          progress={luxCard.progress}
+          tone="orange"
+        />
       </div>
 
-      <section className="bg-white rounded-[14px] shadow-[6px_6px_54px_0_rgba(0,0,0,0.05)] px-8 py-7">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="m-0 text-2xl font-bold text-text">Data Realtime</h2>
-          <select
-            className="border-[0.6px] border-[#d5d5d5] rounded bg-[#fcfdfd] text-[rgba(43,48,52,0.6)] text-xs font-semibold px-2.5 py-1.5"
-            defaultValue="October"
-          >
-            <option>October</option>
-          </select>
+      <section className="panel flex-1 min-h-[16rem] px-5 py-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-4">
+          <PanelTitle>Telemetry Spectrum</PanelTitle>
+          <div className="flex gap-1 p-1 rounded-lg bg-canvas border border-outline" role="tablist">
+            {Object.keys(RANGES).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={range === key}
+                onClick={() => setRange(key)}
+                className={`px-4 py-1 rounded-md tabular-nums text-sm cursor-pointer transition-colors ${
+                  range === key ? 'bg-primary text-white' : 'text-muted hover:text-text'
+                }`}
+              >
+                {key}
+              </button>
+            ))}
+          </div>
         </div>
-        <RealtimeChart series={CHART_SERIES} categories={CHART_CATEGORIES} highlightSeriesId="temperature" />
+
+        <ul className="list-none m-0 p-0 flex flex-wrap gap-6 text-sm">
+          {legend.map(({ id, label, value }) => (
+            <li key={id} className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[id] }} />
+              <span className="text-text">{label}</span>
+              <span className="tabular-nums text-muted">{value}</span>
+            </li>
+          ))}
+          {history.data && series.length === 0 && <li className="text-muted">No readings in this range yet.</li>}
+        </ul>
+
+        <TelemetryChart
+          series={series}
+          labels={labels}
+          yTicks={Y_TICKS}
+          nowSummary={
+            <>
+              <span className="text-muted">Now:</span>
+              <span style={{ color: COLORS.temperature }}>{fmt(reading.temperature, 1)}°C</span>·
+              <span style={{ color: COLORS.humidity }}>{fmt(reading.humidity, 0)}% RH</span>·
+              <span style={{ color: COLORS.lux }}>{fmt(reading.lux, 0)} Light</span>
+            </>
+          }
+        />
       </section>
 
-      <div className="card-grid">
-        <SensorStatusCard label="Temperature Sensor" />
-        <SensorStatusCard label="Humidity Sensor" />
-        <SensorStatusCard label="Light Sensor" />
-      </div>
+      <section className="panel shrink-0 px-5 py-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <PanelTitle>Led Devices</PanelTitle>
+          <button
+            type="button"
+            onClick={allOff}
+            disabled={leds.length === 0}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-outline bg-canvas text-sm font-medium text-text cursor-pointer hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            All Off
+          </button>
+        </div>
+
+        {(ledError || devices.error) && <p className="m-0 px-3 py-2 rounded-lg bg-red/10 text-red text-sm">{ledError ?? devices.error.message}</p>}
+
+        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
+          {leds.map((led) => (
+            <LedDeviceCard key={led.code} name={led.name} on={led.on} pending={led.pending} onToggle={(on) => toggleLed(led.code, on)} />
+          ))}
+        </div>
+      </section>
     </AppShell>
   )
 }
