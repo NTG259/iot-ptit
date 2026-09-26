@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: backend
+  # Local overrides (DB password, MQTT credentials...) live in backend/.env, which is not committed.
+  # The second path covers IDE runs whose working directory is the repo root instead of backend/.
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:backend/.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/iot_ptit}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api
+
+app:
+  jwt:
+    # HS256 needs at least 32 bytes. The default is for local dev only; set JWT_SECRET elsewhere.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    expiration: ${JWT_EXPIRATION:24h}
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:123456}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  mqtt:
+    broker-url: ${MQTT_BROKER_URL:tcp://127.0.0.1:1888}
+    client-id: ${MQTT_CLIENT_ID:iot-ptit-backend}
+    username: ${MQTT_USERNAME:}
+    password: ${MQTT_PASSWORD:}
+    topics:
+      sensor: esp8266/sensor
+      led-status: esp8266/led/status
+      command: esp8266/command

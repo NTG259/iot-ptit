@@ -1,0 +1,7 @@
+package com.iot.backend.entity.enums;
+
+public enum ActionStatus {
+    PENDING,
+    SUCCESS,
+    FAILED
+}
