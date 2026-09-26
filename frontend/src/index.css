@@ -1,12 +1,17 @@
 @import 'tailwindcss';
 @import './styles/variables.css';
 
-/* Repeated across every card grid (Dashboard, Sensors); keeps callsites from repeating
-   the same long arbitrary grid-template-columns string. */
-@utility card-grid {
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+/* White bordered surface shared by every card and panel. */
+@utility panel {
+  background: #fff;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Everything is sized in rem, so this one value scales the whole UI. */
+html {
+  font-size: 87.5%;
 }
 
 body {

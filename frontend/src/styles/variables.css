@@ -1,13 +1,17 @@
 /* Shared design tokens, defined as Tailwind v4 theme values so they generate real utility
    classes (bg-primary, text-green, border-outline, ...) as well as plain CSS variables. */
 @theme {
-  --color-primary: #4880ff;
-  --color-text: #202224;
-  --color-green: #34c759;
-  --color-orange: #ff8d28;
-  --color-red: #ff3b30;
-  --color-canvas: #f5f6fa;
-  --color-outline: #ebebeb;
+  --color-primary: #059669;
+  --color-primary-soft: #ecfdf5;
+  --color-primary-line: #a7f3d0;
+  --color-text: #0f172a;
+  --color-muted: #64748b;
+  --color-green: #10b981;
+  --color-cyan: #06b6d4;
+  --color-orange: #f59e0b;
+  --color-red: #ef4444;
+  --color-canvas: #f8fafc;
+  --color-outline: #e2e8f0;
 
-  --font-sans: 'Nunito Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Be Vietnam Pro', system-ui, 'Segoe UI', Roboto, sans-serif;
 }

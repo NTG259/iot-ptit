@@ -1,21 +1,29 @@
 import Sidebar from '../Sidebar/Sidebar'
-import Topbar from '../Topbar/Topbar'
 
-const CURRENT_USER_NAME = 'Nguyen Truong Giang'
-const CURRENT_DATE_TIME = '8:47  17-08-2026'
-
-export default function AppShell({ title, children }) {
+export default function AppShell({ breadcrumb, title, subtitle, children }) {
   return (
-    <div className="flex min-h-screen bg-canvas">
+    <div className="flex h-screen overflow-hidden bg-canvas">
       <Sidebar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <Topbar userName={CURRENT_USER_NAME} dateTime={CURRENT_DATE_TIME} />
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        {breadcrumb && (
+          <div className="h-12 shrink-0 bg-white border-b border-outline flex items-center px-8 tabular-nums text-sm tracking-[0.1em]">
+            <span className="font-semibold text-primary">SYSTEM</span>
+            <span className="mx-3 text-slate-300">/</span>
+            <span className="text-text uppercase">{breadcrumb}</span>
+          </div>
+        )}
 
-        <div className="pt-8 px-10 pb-12 flex flex-col gap-6">
-          <h1 className="m-0 text-[32px] font-bold tracking-[-0.11px] text-text">{title}</h1>
+        {/* Pages fill the viewport; only a panel that opts in (tables, chart) absorbs the leftover height. */}
+        <main className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+          {title && (
+            <div>
+              <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-text">{title}</h1>
+              {subtitle && <p className="m-0 mt-0.5 text-sm text-muted">{subtitle}</p>}
+            </div>
+          )}
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )
