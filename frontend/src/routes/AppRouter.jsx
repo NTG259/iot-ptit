@@ -4,6 +4,7 @@ import Login from '@/pages/Login/Login'
 import Sensors from '@/pages/Sensors/Sensors'
 import History from '@/pages/History/History'
 import Profile from '@/pages/Profile/Profile'
+import Settings from '@/pages/Settings/Settings'
 import RequireAuth from './RequireAuth'
 import { ROUTES } from './paths'
 
@@ -16,6 +17,7 @@ const router = createBrowserRouter([
       { path: ROUTES.SENSORS, element: <Sensors /> },
       { path: ROUTES.HISTORY, element: <History /> },
       { path: ROUTES.PROFILE, element: <Profile /> },
+      { path: ROUTES.SETTINGS, element: <Settings /> },
     ],
   },
 ])

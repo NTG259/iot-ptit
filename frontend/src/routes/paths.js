@@ -5,4 +5,5 @@ export const ROUTES = {
   SENSORS: '/sensors',
   HISTORY: '/history',
   PROFILE: '/profile',
+  SETTINGS: '/settings',
 }
