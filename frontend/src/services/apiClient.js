@@ -44,6 +44,11 @@ async function request(path, { params, headers, ...options } = {}) {
   if (!res.ok || body?.success === false) {
     throw new ApiError(body?.message ?? `Request failed: ${res.status} ${res.statusText}`, res.status)
   }
+  // A 2xx without our JSON envelope (e.g. the dev server's index.html when the /api proxy is down)
+  // must fail loudly rather than hand callers a null they don't expect.
+  if (res.status !== 204 && body == null) {
+    throw new ApiError(`Unexpected response from ${path}: not JSON — is the backend reachable?`, res.status)
+  }
 
   return body?.data ?? null
 }
