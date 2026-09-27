@@ -31,10 +31,12 @@ function toSmoothPath(points) {
 }
 
 /**
- * series: [{ id, color, data }] where data is already mapped onto the y axis scale.
+ * series: [{ id, color, data, label, values, format }] where data is already mapped onto the
+ * y axis scale; label/values/format (real units) feed the hover tooltip.
  * labels: x-axis labels, spread evenly; the last one is highlighted as "now".
+ * pointLabels: one time label per sample, shown as the tooltip title.
  */
-export default function TelemetryChart({ series, labels, yTicks, nowSummary }) {
+export default function TelemetryChart({ series, labels, pointLabels = [], yTicks }) {
   const gradientPrefix = useId();
   const boxRef = useRef(null);
   const { width: VIEW_WIDTH, height: VIEW_HEIGHT } = useSize(boxRef);
@@ -46,6 +48,8 @@ export default function TelemetryChart({ series, labels, yTicks, nowSummary }) {
     PADDING.top + INNER_HEIGHT - ((v - min) / (max - min)) * INNER_HEIGHT;
   const baseline = PADDING.top + INNER_HEIGHT;
   const nowX = PADDING.left + INNER_WIDTH;
+  // Sample under the mouse; null means the cursor rests on "now" with no tooltip.
+  const [hoverIndex, setHoverIndex] = useState(null);
 
   const plotted = series.map((s) => ({
     ...s,
@@ -55,15 +59,45 @@ export default function TelemetryChart({ series, labels, yTicks, nowSummary }) {
     })),
   }));
 
+  const sampleCount = plotted[0]?.points.length ?? 0;
+  const cursorIndex = hoverIndex ?? sampleCount - 1;
+  const cursorX = plotted[0]?.points[cursorIndex]?.x ?? nowX;
+
+  const onMouseMove = (event) => {
+    if (sampleCount < 2) return;
+    const x = event.clientX - boxRef.current.getBoundingClientRect().left;
+    const i = Math.round(((x - PADDING.left) / INNER_WIDTH) * (sampleCount - 1));
+    setHoverIndex(Math.min(sampleCount - 1, Math.max(0, i)));
+  };
+
   return (
     <div
       ref={boxRef}
+      onMouseMove={onMouseMove}
+      onMouseLeave={() => setHoverIndex(null)}
       className="relative flex-1 min-h-0 border border-outline rounded-xl bg-canvas/60 overflow-hidden"
     >
-      {nowSummary && (
-        <div className="absolute top-3 right-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-outline shadow-sm tabular-nums text-sm">
-          <span className="w-2 h-2 rounded-full bg-green" />
-          {nowSummary}
+      {hoverIndex != null && (
+        <div
+          className="absolute z-10 pointer-events-none flex flex-col gap-1 px-3 py-2 rounded-lg bg-white border border-outline shadow-sm tabular-nums text-sm"
+          style={{
+            top: PADDING.top - 8,
+            // Keep the tooltip beside the cursor line, flipping to the left near the right edge.
+            ...(cursorX > VIEW_WIDTH / 2
+              ? { right: VIEW_WIDTH - cursorX + 12 }
+              : { left: cursorX + 12 }),
+          }}
+        >
+          <span className="font-semibold text-text">{pointLabels[cursorIndex]}</span>
+          {plotted.map((s) => (
+            <span key={s.id} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="text-muted">{s.label}</span>
+              <span className="ml-auto pl-3 font-medium" style={{ color: s.color }}>
+                {s.format(s.values[cursorIndex])}
+              </span>
+            </span>
+          ))}
         </div>
       )}
 
@@ -145,19 +179,19 @@ export default function TelemetryChart({ series, labels, yTicks, nowSummary }) {
           ))}
 
           <line
-            x1={nowX}
+            x1={cursorX}
             y1={PADDING.top - 10}
-            x2={nowX}
+            x2={cursorX}
             y2={baseline}
             stroke="var(--color-primary)"
             strokeWidth="1.5"
-            strokeDasharray="2 4"
+            strokeDasharray="4 4"
           />
           {plotted.map((s) => (
             <circle
-              key={`${s.id}-now`}
-              cx={nowX}
-              cy={s.points.at(-1).y}
+              key={`${s.id}-cursor`}
+              cx={cursorX}
+              cy={s.points[cursorIndex].y}
               r="5"
               fill={s.color}
               stroke="#fff"

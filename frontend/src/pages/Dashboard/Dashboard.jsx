@@ -13,8 +13,15 @@ const SENSOR_CODES = { temperature: 'temp', humidity: 'humi', lux: 'light' }
 
 const COLORS = { temperature: '#10b981', humidity: '#0891b2', lux: '#d97706' }
 
-const HOUR_MS = 60 * 60 * 1000
-const RANGES = { '6H': 6 * HOUR_MS, '12H': 12 * HOUR_MS, '24H': 24 * HOUR_MS, '7D': 7 * 24 * HOUR_MS }
+// Shown in the chart's hover tooltip, in each sensor's real unit (not the shared axis scale).
+const TOOLTIP = {
+  temperature: { label: 'Temp', format: (v) => `${v.toFixed(1)}°C` },
+  humidity: { label: 'Humidity', format: (v) => `${v.toFixed(0)}%` },
+  lux: { label: 'Light', format: (v) => v.toFixed(0) },
+}
+
+// The chart always shows the last 12 hours.
+const RANGE_MS = 12 * 60 * 60 * 1000
 
 // Chart slots per series; the backend averages the readings inside each slot.
 const SAMPLES = 25
@@ -29,6 +36,8 @@ const SCALE = { temperature: 1, humidity: 1 / 2, lux: 1 / 20 }
 const FALLBACK_MAX = { temperature: 50, humidity: 100, lux: 1023 }
 
 const SENSOR_POLL_MS = 2000
+// Faster device polling while a command awaits confirmation, so the switch settles right after the ESP replies.
+const PENDING_POLL_MS = 300
 const CHART_POLL_MS = 10_000
 // Slightly over the backend's 10s: an unconfirmed command then shows the real state again.
 const PENDING_TIMEOUT_MS = 12_000
@@ -48,13 +57,20 @@ function toSeries(points, from, to) {
   return slots.map((v) => (v == null ? last : (last = v)))
 }
 
-function axisLabels(range, from, to) {
+/** Time of each chart slot, for the hover tooltip; the last slot is "Now". */
+function slotLabels(from, to) {
+  return Array.from({ length: SAMPLES }, (_, i) => {
+    if (i === SAMPLES - 1) return 'Now'
+    const date = new Date(from.getTime() + ((to - from) * i) / (SAMPLES - 1))
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  })
+}
+
+function axisLabels(from, to) {
   return Array.from({ length: LABEL_COUNT }, (_, i) => {
     if (i === LABEL_COUNT - 1) return 'Now'
     const date = new Date(from.getTime() + ((to - from) * i) / (LABEL_COUNT - 1))
-    return range === '7D'
-      ? date.toLocaleDateString('en-US', { weekday: 'short' })
-      : date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   })
 }
 
@@ -83,7 +99,6 @@ function PanelTitle({ children }) {
 }
 
 export default function Dashboard() {
-  const [range, setRange] = useState('24H')
   // code -> { on, since }: commands sent but not yet confirmed by an LED status message.
   const [pending, setPending] = useState({})
   const [ledError, setLedError] = useState(null)
@@ -95,16 +110,17 @@ export default function Dashboard() {
     () => Promise.all(Object.values(SENSOR_CODES).map((code) => sensorService.getThreshold(code))),
     [],
   )
-  const devices = useApi(() => deviceService.getDevices(), [], { intervalMs: SENSOR_POLL_MS })
+  const awaiting = Object.values(pending).some((p) => now.getTime() - p.since < PENDING_TIMEOUT_MS)
+  const devices = useApi(() => deviceService.getDevices(), [], { intervalMs: awaiting ? PENDING_POLL_MS : SENSOR_POLL_MS })
   const history = useApi(
     async () => {
       const to = new Date()
-      const from = new Date(to.getTime() - RANGES[range])
+      const from = new Date(to.getTime() - RANGE_MS)
       const params = { from: from.toISOString(), to: to.toISOString(), buckets: SAMPLES }
       const results = await Promise.all(Object.values(SENSOR_CODES).map((code) => sensorService.getSensorData(code, params)))
       return { from, to, results }
     },
-    [range],
+    [],
     { intervalMs: CHART_POLL_MS },
   )
 
@@ -122,11 +138,12 @@ export default function Dashboard() {
     ? Object.keys(SENSOR_CODES)
         .map((id, i) => {
           const data = toSeries(history.data.results[i], history.data.from, history.data.to)
-          return data && { id, color: COLORS[id], data: data.map((v) => v * SCALE[id]) }
+          return data && { id, color: COLORS[id], ...TOOLTIP[id], values: data, data: data.map((v) => v * SCALE[id]) }
         })
         .filter(Boolean)
     : []
-  const labels = history.data ? axisLabels(range, history.data.from, history.data.to) : Array(LABEL_COUNT).fill('')
+  const labels = history.data ? axisLabels(history.data.from, history.data.to) : Array(LABEL_COUNT).fill('')
+  const pointLabels = history.data ? slotLabels(history.data.from, history.data.to) : []
 
   const leds = (devices.data ?? []).map((device) => {
     const confirmedOn = device.state === 'ON'
@@ -158,7 +175,7 @@ export default function Dashboard() {
   }
 
   const toggleLed = (code, on) => sendCommand([code], on, () => deviceService.control(code, on ? 'TURN_ON' : 'TURN_OFF'))
-  const allOff = () => sendCommand(leds.map((l) => l.code), false, () => deviceService.controlAll('TURN_OFF'))
+  const setAll = (on) => sendCommand(leds.map((l) => l.code), on, () => deviceService.controlAll(on ? 'TURN_ON' : 'TURN_OFF'))
 
   const legend = [
     { id: 'temperature', label: 'Temp (°C)', value: `${fmt(reading.temperature, 1)}°` },
@@ -208,25 +225,7 @@ export default function Dashboard() {
       </div>
 
       <section className="panel flex-1 min-h-[16rem] px-5 py-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <PanelTitle>Telemetry Spectrum</PanelTitle>
-          <div className="flex gap-1 p-1 rounded-lg bg-canvas border border-outline" role="tablist">
-            {Object.keys(RANGES).map((key) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={range === key}
-                onClick={() => setRange(key)}
-                className={`px-4 py-1 rounded-md tabular-nums text-sm cursor-pointer transition-colors ${
-                  range === key ? 'bg-primary text-white' : 'text-muted hover:text-text'
-                }`}
-              >
-                {key}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PanelTitle>Telemetry Spectrum</PanelTitle>
 
         <ul className="list-none m-0 p-0 flex flex-wrap gap-6 text-sm">
           {legend.map(({ id, label, value }) => (
@@ -239,32 +238,28 @@ export default function Dashboard() {
           {history.data && series.length === 0 && <li className="text-muted">No readings in this range yet.</li>}
         </ul>
 
-        <TelemetryChart
-          series={series}
-          labels={labels}
-          yTicks={Y_TICKS}
-          nowSummary={
-            <>
-              <span className="text-muted">Now:</span>
-              <span style={{ color: COLORS.temperature }}>{fmt(reading.temperature, 1)}°C</span>·
-              <span style={{ color: COLORS.humidity }}>{fmt(reading.humidity, 0)}% RH</span>·
-              <span style={{ color: COLORS.lux }}>{fmt(reading.lux, 0)} Light</span>
-            </>
-          }
-        />
+        <TelemetryChart series={series} labels={labels} pointLabels={pointLabels} yTicks={Y_TICKS} />
       </section>
 
       <section className="panel shrink-0 px-5 py-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <PanelTitle>Led Devices</PanelTitle>
-          <button
-            type="button"
-            onClick={allOff}
-            disabled={leds.length === 0}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-outline bg-canvas text-sm font-medium text-text cursor-pointer hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            All Off
-          </button>
+          <div className="flex gap-2">
+            {[
+              [true, 'All On'],
+              [false, 'All Off'],
+            ].map(([on, label]) => (
+              <button
+                key={label}
+                type="button"
+                onClick={() => setAll(on)}
+                disabled={leds.length === 0}
+                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-outline bg-canvas text-sm font-medium text-text cursor-pointer hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {(ledError || devices.error) && <p className="m-0 px-3 py-2 rounded-lg bg-red/10 text-red text-sm">{ledError ?? devices.error.message}</p>}

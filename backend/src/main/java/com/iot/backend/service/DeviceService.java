@@ -38,7 +38,7 @@ public class DeviceService {
         return deviceRepository.findAll(Sort.by("code"));
     }
 
-    /** Sends the action to every device (the dashboard's "all off"); one history row per device. */
+    /** Sends the action to every device (the dashboard's "All On" / "All Off"); one history row per device. */
     public List<ActionHistory> controlAll(DeviceAction action) {
         return findAll().stream().map(device -> control(device.getCode(), action)).toList();
     }

@@ -71,7 +71,7 @@ export default function Sensors() {
   return (
     <AppShell breadcrumb="Sensors" title="Sensor Management" subtitle="Monitor real-time environmental metrics across zones.">
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
-        <SearchInput value={query} onChange={withReset(setQuery)} placeholder="Search sensor by ID or name..." shortcut />
+        <SearchInput value={query} onChange={withReset(setQuery)} shortcut />
         <FilterMenu
           label={`Type: ${types.length === TYPE_OPTIONS.length ? 'All' : 'Custom'} (${types.length})`}
           options={TYPE_OPTIONS}

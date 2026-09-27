@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { LuSearch } from 'react-icons/lu'
 
 /** Toolbar search box. With `shortcut`, Ctrl/⌘+K focuses it from anywhere on the page. */
-export default function SearchInput({ value, onChange, placeholder, shortcut = false }) {
+export default function SearchInput({ value, onChange, placeholder = 'Search', shortcut = false }) {
   const inputRef = useRef(null)
 
   useEffect(() => {

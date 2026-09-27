@@ -82,7 +82,7 @@ export default function History() {
       subtitle="Real-time audit telemetry and automated action dispatch log across mesh nodes."
     >
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
-        <SearchInput value={query} onChange={withReset(setQuery)} placeholder="Search LED by code or name..." />
+        <SearchInput value={query} onChange={withReset(setQuery)} />
         <FilterMenu
           label={`Status: ${labelOf(STATUS_OPTIONS, status)}`}
           options={STATUS_OPTIONS}
