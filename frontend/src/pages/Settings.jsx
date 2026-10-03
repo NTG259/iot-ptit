@@ -1,32 +1,24 @@
 import { useState } from 'react'
+import { Button, InputNumber } from 'antd'
 import AppShell from '@/components/layout/AppShell'
 import Badge from '@/components/common/Badge'
-import Input from '@/components/common/Input'
 import { sensorService } from '@/services'
 import useApi from '@/hooks/useApi'
 
 const TYPE_TONES = { TEMPERATURE: 'green', HUMIDITY: 'cyan', LIGHT: 'orange' }
 
-// Inputs hold strings; an empty box means "no limit on this side".
-const toText = (value) => (value == null ? '' : String(value))
-const toNumber = (text) => (text.trim() === '' ? null : Number(text))
+// An empty box (null) means "no limit on this side".
+const LABEL_CLASS = 'block mb-1.5 text-[0.8125rem] font-semibold text-text/70'
 
 function ThresholdCard({ sensor, threshold }) {
   const [saved, setSaved] = useState({ min: threshold.minValue, max: threshold.maxValue })
-  const [min, setMin] = useState(toText(threshold.minValue))
-  const [max, setMax] = useState(toText(threshold.maxValue))
+  const [min, setMin] = useState(threshold.minValue)
+  const [max, setMax] = useState(threshold.maxValue)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
 
-  const minValue = toNumber(min)
-  const maxValue = toNumber(max)
-  const error =
-    Number.isNaN(minValue) || Number.isNaN(maxValue)
-      ? 'Enter a number.'
-      : minValue != null && maxValue != null && minValue > maxValue
-        ? 'Min must not be greater than max.'
-        : null
-  const dirty = minValue !== saved.min || maxValue !== saved.max
+  const error = min != null && max != null && min > max ? 'Min must not be greater than max.' : null
+  const dirty = min !== saved.min || max !== saved.max
 
   async function save(nextMin, nextMax) {
     setSaving(true)
@@ -34,8 +26,8 @@ function ThresholdCard({ sensor, threshold }) {
     try {
       const result = await sensorService.updateThreshold(sensor.code, { minValue: nextMin, maxValue: nextMax })
       setSaved({ min: result.minValue, max: result.maxValue })
-      setMin(toText(result.minValue))
-      setMax(toText(result.maxValue))
+      setMin(result.minValue)
+      setMax(result.maxValue)
       setMessage({ tone: 'ok', text: 'Saved.' })
     } catch (err) {
       setMessage({ tone: 'error', text: err.message })
@@ -59,7 +51,7 @@ function ThresholdCard({ sensor, threshold }) {
       className="panel px-5 py-4 flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault()
-        if (!error && dirty) save(minValue, maxValue)
+        if (!error && dirty) save(min, max)
       }}
     >
       <div className="flex items-center gap-3">
@@ -86,45 +78,30 @@ function ThresholdCard({ sensor, threshold }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Input
-          id={`${sensor.code}-min`}
-          label={`Min${sensor.unit ? ` (${sensor.unit})` : ''}`}
-          type="number"
-          step="any"
-          placeholder="No limit"
-          value={min}
-          onChange={(e) => setMin(e.target.value)}
-        />
-        <Input
-          id={`${sensor.code}-max`}
-          label={`Max${sensor.unit ? ` (${sensor.unit})` : ''}`}
-          type="number"
-          step="any"
-          placeholder="No limit"
-          value={max}
-          onChange={(e) => setMax(e.target.value)}
-        />
+        {[
+          ['min', 'Min', min, setMin],
+          ['max', 'Max', max, setMax],
+        ].map(([key, label, value, setValue]) => (
+          <div key={key}>
+            <label htmlFor={`${sensor.code}-${key}`} className={LABEL_CLASS}>
+              {label}
+              {sensor.unit ? ` (${sensor.unit})` : ''}
+            </label>
+            <InputNumber id={`${sensor.code}-${key}`} placeholder="No limit" value={value} onChange={setValue} className="!w-full" />
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center gap-3">
         <p className={`m-0 text-sm ${error || message?.tone === 'error' ? 'text-red' : 'text-primary'}`}>
           {error ?? message?.text}
         </p>
-        <button
-          type="button"
-          disabled={saving || (saved.min == null && saved.max == null)}
-          onClick={() => save(null, null)}
-          className="ml-auto h-10 px-4 rounded-lg border border-outline bg-white text-[0.9375rem] text-text cursor-pointer hover:bg-canvas disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button className="ml-auto" disabled={saving || (saved.min == null && saved.max == null)} onClick={() => save(null, null)}>
           Clear
-        </button>
-        <button
-          type="submit"
-          disabled={saving || !dirty || error != null}
-          className="h-10 px-5 rounded-lg bg-primary text-white text-[0.9375rem] font-semibold cursor-pointer hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+        </Button>
+        <Button type="primary" htmlType="submit" loading={saving} disabled={!dirty || error != null}>
+          Save
+        </Button>
       </div>
     </form>
   )

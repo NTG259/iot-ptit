@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { notification } from 'antd'
+import { Button, notification } from 'antd'
 import AppShell from '@/components/layout/AppShell'
 import MetricCard from '@/components/common/MetricCard'
 import TelemetryChart from '@/components/common/TelemetryChart'
@@ -266,15 +266,9 @@ export default function Dashboard() {
               [true, 'All On'],
               [false, 'All Off'],
             ].map(([on, label]) => (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setAll(on)}
-                disabled={leds.length === 0}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-lg border border-outline bg-canvas text-sm font-medium text-text cursor-pointer hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <Button key={label} onClick={() => setAll(on)} disabled={leds.length === 0}>
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>

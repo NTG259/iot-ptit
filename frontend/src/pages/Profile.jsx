@@ -25,14 +25,13 @@ function CopyField({ label, value, valueClass = 'text-text' }) {
         <p className="m-0 tabular-nums text-sm tracking-[0.12em] uppercase text-slate-400">{label}</p>
         <p className={`m-0 mt-1 truncate text-base ${valueClass}`}>{value}</p>
       </div>
-      <button
-        type="button"
+      <Button
+        type="text"
         onClick={copy}
         aria-label={`Copy ${label}`}
-        className={`ml-auto p-2 rounded-lg cursor-pointer hover:bg-white ${copied ? 'text-primary' : 'text-slate-400 hover:text-text'}`}
-      >
-        {copied ? <LuCheck className="w-5 h-5" /> : <LuCopy className="w-5 h-5" />}
-      </button>
+        icon={copied ? <LuCheck className="w-5 h-5" /> : <LuCopy className="w-5 h-5" />}
+        className={`ml-auto ${copied ? '!text-primary' : '!text-slate-400'}`}
+      />
     </div>
   )
 }

@@ -16,13 +16,9 @@ export default function CheckboxFilter({ label, options, value, onChange }) {
       popupRender={() => (
         <div className="min-w-[12rem] px-3 py-3 flex flex-col bg-white border border-outline rounded-xl shadow-lg">
           <div className="flex px-2 pb-3 mb-2 border-b border-outline">
-            <button
-              type="button"
-              onClick={() => onChange(options.map((o) => o.value))}
-              className="tabular-nums text-sm font-semibold text-primary cursor-pointer hover:opacity-80"
-            >
+            <Button type="link" size="small" onClick={() => onChange(options.map((o) => o.value))} className="!p-0 font-semibold">
               Select All
-            </button>
+            </Button>
           </div>
           <ConfigProvider theme={THEME}>
             {options.map((o) => (

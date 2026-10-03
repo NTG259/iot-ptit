@@ -1,4 +1,4 @@
-import Switch from './Switch'
+import { Switch } from 'antd'
 
 // `pending`: a command was sent and we're waiting for the ESP8266 to confirm the new state.
 export default function LedDeviceCard({ name, on, pending = false, onToggle }) {
@@ -13,7 +13,7 @@ export default function LedDeviceCard({ name, on, pending = false, onToggle }) {
         {pending ? '…' : on ? 'ON' : 'OFF'}
       </span>
       <span className="ml-auto">
-        <Switch checked={on} onChange={onToggle} disabled={pending} label={`Toggle ${name}`} />
+        <Switch checked={on} onChange={onToggle} loading={pending} aria-label={`Toggle ${name}`} />
       </span>
     </div>
   )

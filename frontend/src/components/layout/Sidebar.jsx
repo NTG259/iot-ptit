@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Avatar, Button, Dropdown } from 'antd'
 import { LuLayoutDashboard, LuNetwork, LuScrollText, LuLogOut, LuUser, LuSlidersHorizontal } from 'react-icons/lu'
 import { ROUTES } from '@/routes/paths'
 import { authService, session } from '@/services'
@@ -18,22 +18,17 @@ const USER_MENU_ITEMS = [
 
 export default function Sidebar() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const user = session.getUser()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef(null)
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const close = (event) => {
-      if (event.type === 'keydown' ? event.key === 'Escape' : !menuRef.current?.contains(event.target)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    document.addEventListener('keydown', close)
-    return () => {
-      document.removeEventListener('mousedown', close)
-      document.removeEventListener('keydown', close)
-    }
-  }, [menuOpen])
+  const userMenu = {
+    items: USER_MENU_ITEMS.map(({ label, icon: Icon, path }) => ({
+      key: path,
+      icon: <Icon className="w-4 h-4" />,
+      label: <Link to={path}>{label}</Link>,
+    })),
+    selectedKeys: [pathname],
+  }
 
   const logout = () => {
     authService.logout()
@@ -54,7 +49,7 @@ export default function Sidebar() {
       <p className="mt-6 mb-3 px-4 tabular-nums text-xs tracking-[0.14em] text-muted">NAVIGATION</p>
 
       <nav className="flex flex-col gap-2">
-        {NAV_ITEMS.map(({ key, label, icon: Icon, path, end, badge }) => (
+        {NAV_ITEMS.map(({ key, label, icon: Icon, path, end }) => (
           <NavLink
             key={key}
             to={path}
@@ -69,54 +64,23 @@ export default function Sidebar() {
           >
             <Icon className="w-5 h-5 shrink-0" />
             {label}
-            {badge != null && (
-              <span className="ml-auto px-2 py-0.5 rounded-full bg-canvas border border-outline tabular-nums text-xs text-muted">
-                {badge}
-              </span>
-            )}
           </NavLink>
         ))}
       </nav>
 
-      <div ref={menuRef} className="relative mt-auto flex items-center gap-3 px-2 pt-5 border-t border-outline">
-        {menuOpen && (
-          <div role="menu" className="absolute left-0 right-0 bottom-full mb-2 z-20 p-2 border border-outline rounded-xl bg-white shadow-lg">
-            {USER_MENU_ITEMS.map(({ label, icon: Icon, path }) => (
-              <NavLink
-                key={path}
-                to={path}
-                role="menuitem"
-                onClick={() => setMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-md text-[0.9375rem] no-underline ${
-                    isActive ? 'bg-primary-soft text-primary font-semibold' : 'text-text hover:bg-canvas'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </NavLink>
-            ))}
-          </div>
-        )}
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
-          className="flex items-center gap-3 min-w-0 -m-1 p-1 rounded-lg text-left cursor-pointer hover:bg-canvas"
-        >
-          <span className="grid place-items-center w-10 h-10 shrink-0 rounded-full bg-primary text-white text-sm font-semibold">
-            {initialsOf(user?.fullName)}
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-text">{user?.fullName}</span>
-            <span className="block truncate tabular-nums text-xs text-muted">@{user?.username}</span>
-          </span>
-        </button>
-        <button type="button" onClick={logout} aria-label="Log out" className="ml-auto p-2 rounded-lg text-muted cursor-pointer hover:text-text hover:bg-canvas">
-          <LuLogOut className="w-5 h-5" />
-        </button>
+      <div className="mt-auto flex items-center gap-2 px-1 pt-5 border-t border-outline">
+        <Dropdown menu={userMenu} trigger={['click']} placement="topLeft">
+          <Button type="text" className="!h-auto !p-1 !justify-start min-w-0 flex-1 text-left">
+            <Avatar className="!bg-primary shrink-0" size={40}>
+              {initialsOf(user?.fullName)}
+            </Avatar>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-medium text-text">{user?.fullName}</span>
+              <span className="block truncate tabular-nums text-xs text-muted">@{user?.username}</span>
+            </span>
+          </Button>
+        </Dropdown>
+        <Button type="text" onClick={logout} aria-label="Log out" icon={<LuLogOut className="w-5 h-5" />} className="!text-muted" />
       </div>
     </aside>
   )
