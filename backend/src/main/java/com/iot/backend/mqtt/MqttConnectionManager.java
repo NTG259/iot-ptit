@@ -13,7 +13,8 @@ import org.springframework.util.StringUtils;
 
 /**
  * Keeps the client connected: connects at startup and reconnects (and re-subscribes)
- * whenever the broker drops, so the app still starts when the broker is down.
+ * whenever the broker drops, so the app still starts when the broker is down. After each
+ * connect it asks the ESP8266 for its LED states, so the stored device states are re-synced.
  */
 @Slf4j
 @Component
@@ -23,6 +24,7 @@ public class MqttConnectionManager {
     private final MqttClient client;
     private final MqttProperties properties;
     private final MqttMessageHandler messageHandler;
+    private final MqttPublisher mqttPublisher;
 
     @Scheduled(fixedDelay = 5000)
     public void ensureConnected() {
@@ -36,6 +38,17 @@ public class MqttConnectionManager {
             log.info("Connected to MQTT broker {}", properties.brokerUrl());
         } catch (MqttException e) {
             log.warn("Cannot connect to MQTT broker {}, retrying in 5s: {}", properties.brokerUrl(), e.getMessage());
+            return;
+        }
+        requestLedStatus();
+    }
+
+    /** LED states may have changed while we were offline; the ESP8266 answers on the LED status topic. */
+    private void requestLedStatus() {
+        try {
+            mqttPublisher.publishCommand("GET_STATUS");
+        } catch (MqttException e) {
+            log.warn("Failed to request LED status: {}", e.getMessage());
         }
     }
 

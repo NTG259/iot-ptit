@@ -35,6 +35,9 @@ mosquitto_pub -h 10.99.105.124 -p 1888 -u "NguyenTruongGiang" -P "B23DCCN259" -t
 mosquitto_pub -h 10.99.105.124 -p 1888 -u "NguyenTruongGiang" -P "B23DCCN259" -t "esp8266/command" -m "SENSOR_ON"
 mosquitto_pub -h 10.99.105.124 -p 1888 -u "NguyenTruongGiang" -P "B23DCCN259" -t "esp8266/command" -m "SENSOR_OFF"
 
+# Hỏi trạng thái hiện tại của 3 LED (ESP trả lời trên esp8266/led/status)
+mosquitto_pub -h 10.99.105.124 -p 1888 -u "NguyenTruongGiang" -P "B23DCCN259" -t "esp8266/command" -m "GET_STATUS"
+
 
 
 sudo mosquitto_passwd -b /etc/mosquitto/passwd NguyenTruongGiang 123456

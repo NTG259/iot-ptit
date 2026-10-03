@@ -111,6 +111,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     else if (message == "SENSOR_ON")  isReadingSensor = true;
     else if (message == "SENSOR_OFF") isReadingSensor = false;
 
+    // Backend hoi trang thai LED (khi no khoi dong / ket noi lai broker)
+    else if (message == "GET_STATUS") ledStateChanged = true;
+
     if (ledStateChanged) {
       publishLedStatus();
     }
@@ -128,6 +131,8 @@ void reconnectMQTT() {
     if (ok) {
       Serial.println(" Thanh cong!");
       client.subscribe(topic_sub_cmd);
+      // Bao trang thai LED ngay khi ket noi, de backend biet ESP vua khoi dong lai (LED ve OFF)
+      publishLedStatus();
     } else {
       Serial.printf(" Loi rc=%d. Thu lai sau 3s...\n", client.state());
       delay(3000);
