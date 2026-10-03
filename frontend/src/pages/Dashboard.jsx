@@ -161,8 +161,6 @@ export default function Dashboard() {
   const labels = history.data ? axisLabels(history.data.from, history.data.to) : Array(LABEL_COUNT).fill('')
   const pointLabels = history.data ? slotLabels(history.data.from, history.data.to) : []
 
-  // The backend reports whether the ESP8266 is reachable; commands are refused at once while it is not.
-  const espOffline = devices.data?.length > 0 && !devices.data[0].online
   const leds = (devices.data ?? []).map((device) => {
     const confirmedOn = device.state === 'ON'
     const p = pending[device.code]
@@ -282,11 +280,6 @@ export default function Dashboard() {
         </div>
 
         {devices.error && <p className="m-0 px-3 py-2 rounded-lg bg-red/10 text-red text-sm">{devices.error.message}</p>}
-        {espOffline && (
-          <p className="m-0 px-3 py-2 rounded-lg bg-slate-100 text-muted text-sm">
-            The ESP8266 is not connected, so the LEDs show their last known state and commands can't be sent.
-          </p>
-        )}
 
         <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
           {leds.map((led) => (
