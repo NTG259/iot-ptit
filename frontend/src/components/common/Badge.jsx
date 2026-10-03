@@ -8,17 +8,12 @@ const TONES = {
   orange: { box: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500' },
 }
 
-/** Pill with a status dot (`dot`), or a squarer chip with a leading icon (`icon`). */
-export default function Badge({ tone = 'gray', dot = false, icon: Icon, children }) {
+/** Pill, optionally with a leading status dot (`dot`). */
+export default function Badge({ tone = 'gray', dot = false, children }) {
   const t = TONES[tone]
   return (
-    <span
-      className={`inline-flex items-center gap-2 border tabular-nums text-sm whitespace-nowrap ${t.box} ${
-        Icon ? 'px-2.5 py-1 rounded-md' : 'px-3.5 py-1.5 rounded-full'
-      }`}
-    >
+    <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 border rounded-full tabular-nums text-sm whitespace-nowrap ${t.box}`}>
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />}
-      {Icon && <Icon className="w-3.5 h-3.5" />}
       {children}
     </span>
   )
