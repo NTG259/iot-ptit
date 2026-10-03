@@ -1,0 +1,1762 @@
+{
+  "info": {
+    "name": "IoT PTIT API",
+    "description": "REST API của backend Spring Boot (dashboard IoT ESP8266: 3 LED + cảm biến nhiệt độ, độ ẩm, ánh sáng).\n\n## Bắt đầu\n1. Import collection này và environment `IoT-PTIT.local.postman_environment.json`, rồi chọn environment.\n2. Chạy **Auth → Login**: token được lưu tự động vào biến `token`.\n3. Mọi request khác dùng `Authorization: Bearer {{token}}` (kế thừa từ collection).\n\n## Định dạng response\nMọi response đều có dạng `{ success, message, data }`:\n- Thành công: `{ \"success\": true, \"data\": ... }`\n- Lỗi: `{ \"success\": false, \"message\": \"...\" }` với HTTP status 400 / 401 / 404 / 500.\n\nDanh sách phân trang: `{ items, page, size, totalItems, totalPages }`, `page` bắt đầu từ 1.\n\nBase URL: `http://localhost:8080/api` (context path `/api`).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "token",
+      "value": "",
+      "description": "Tự điền sau khi chạy Login"
+    },
+    {
+      "key": "deviceCode",
+      "value": "LED1"
+    },
+    {
+      "key": "sensorCode",
+      "value": "temp"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Đăng nhập lấy JWT. Đây là endpoint duy nhất không cần token.",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Đăng nhập bằng username/password, trả về JWT (HS256) và thông tin user.\n\n- `expiresIn`: số giây token còn hiệu lực (mặc định 24h, cấu hình `JWT_EXPIRATION`).\n- Script *Tests* tự lưu `accessToken` vào biến collection `token`.\n- Sai username hoặc password đều trả cùng một thông báo, để không dò được username.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Đăng nhập bằng username/password, trả về JWT (HS256) và thông tin user.\n\n- `expiresIn`: số giây token còn hiệu lực (mặc định 24h, cấu hình `JWT_EXPIRATION`).\n- Script *Tests* tự lưu `accessToken` vào biến collection `token`.\n- Sai username hoặc password đều trả cùng một thông báo, để không dò được username.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"eyJhbGciOiJIUzI1NiJ9...\",\n    \"tokenType\": \"Bearer\",\n    \"expiresIn\": 86400,\n    \"user\": {\n      \"id\": 1,\n      \"username\": \"admin\",\n      \"fullName\": \"Nguyễn Trường Giang\",\n      \"email\": null,\n      \"studentId\": \"B23DCCN259\",\n      \"role\": \"Software Engineering & IoT Student\",\n      \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n      \"githubUrl\": \"https://github.com/NTG259\",\n      \"figmaUrl\": null\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Sai thông tin đăng nhập",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Đăng nhập bằng username/password, trả về JWT (HS256) và thông tin user.\n\n- `expiresIn`: số giây token còn hiệu lực (mặc định 24h, cấu hình `JWT_EXPIRATION`).\n- Script *Tests* tự lưu `accessToken` vào biến collection `token`.\n- Sai username hoặc password đều trả cùng một thông báo, để không dò được username.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid username or password\"\n}"
+            },
+            {
+              "name": "400 Thiếu trường",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Đăng nhập bằng username/password, trả về JWT (HS256) và thông tin user.\n\n- `expiresIn`: số giây token còn hiệu lực (mặc định 24h, cấu hình `JWT_EXPIRATION`).\n- Script *Tests* tự lưu `accessToken` vào biến collection `token`.\n- Sai username hoặc password đều trả cùng một thông báo, để không dò được username.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"password: must not be blank; username: must not be blank\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Lưu accessToken vào biến collection để các request khác dùng (Bearer {{token}}).",
+                  "const body = pm.response.json();",
+                  "pm.test('Login thành công', () => pm.expect(body.success).to.be.true);",
+                  "if (body.success) pm.collectionVariables.set('token', body.data.accessToken);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Hồ sơ của user đang đăng nhập (xác định qua `sub` trong JWT).",
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Lấy hồ sơ của user đang đăng nhập."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "description": "Lấy hồ sơ của user đang đăng nhập."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"fullName\": \"Nguyễn Trường Giang\",\n    \"email\": null,\n    \"studentId\": \"B23DCCN259\",\n    \"role\": \"Software Engineering & IoT Student\",\n    \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n    \"githubUrl\": \"https://github.com/NTG259\",\n    \"figmaUrl\": null\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "description": "Lấy hồ sơ của user đang đăng nhập."
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Ghi đè **toàn bộ** hồ sơ: trường nào bỏ trống sẽ thành `null`, nên luôn gửi đủ mọi trường.\n\n- `fullName`: bắt buộc.\n- `email`: phải đúng định dạng email nếu có.\n- `username` không đổi được.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Trường Giang\",\n  \"email\": \"giang@example.com\",\n  \"studentId\": \"B23DCCN259\",\n  \"role\": \"Software Engineering & IoT Student\",\n  \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n  \"githubUrl\": \"https://github.com/NTG259\",\n  \"figmaUrl\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "description": "Ghi đè **toàn bộ** hồ sơ: trường nào bỏ trống sẽ thành `null`, nên luôn gửi đủ mọi trường.\n\n- `fullName`: bắt buộc.\n- `email`: phải đúng định dạng email nếu có.\n- `username` không đổi được.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nguyễn Trường Giang\",\n  \"email\": \"giang@example.com\",\n  \"studentId\": \"B23DCCN259\",\n  \"role\": \"Software Engineering & IoT Student\",\n  \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n  \"githubUrl\": \"https://github.com/NTG259\",\n  \"figmaUrl\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"username\": \"admin\",\n    \"fullName\": \"Nguyễn Trường Giang\",\n    \"email\": \"giang@example.com\",\n    \"studentId\": \"B23DCCN259\",\n    \"role\": \"Software Engineering & IoT Student\",\n    \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n    \"githubUrl\": \"https://github.com/NTG259\",\n    \"figmaUrl\": null\n  }\n}"
+            },
+            {
+              "name": "400 Validation",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/users/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "users",
+                    "me"
+                  ]
+                },
+                "description": "Ghi đè **toàn bộ** hồ sơ: trường nào bỏ trống sẽ thành `null`, nên luôn gửi đủ mọi trường.\n\n- `fullName`: bắt buộc.\n- `email`: phải đúng định dạng email nếu có.\n- `username` không đổi được.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Nguyễn Trường Giang\",\n  \"email\": \"giang@example.com\",\n  \"studentId\": \"B23DCCN259\",\n  \"role\": \"Software Engineering & IoT Student\",\n  \"school\": \"Học viện Công nghệ Bưu chính Viễn thông (PTIT)\",\n  \"githubUrl\": \"https://github.com/NTG259\",\n  \"figmaUrl\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"fullName: must not be blank\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "description": "Điều khiển 3 LED trên ESP8266 qua MQTT.\n\nLuồng: API lưu `ActionHistory` với `status = PENDING` → publish `LED1_ON`/`LED1_OFF` lên `esp8266/command` → ESP trả trạng thái trên `esp8266/led/status` → backend cập nhật `state` và chuyển PENDING thành `SUCCESS`. Không có phản hồi sau 10s thì thành `FAILED`; không publish được (broker down) thì `FAILED` ngay.\n\nEnum: `action` = `TURN_ON` | `TURN_OFF`; `state` = `ON` | `OFF`; `type` = `SMART_LED`.",
+      "item": [
+        {
+          "name": "List devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/devices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices"
+              ]
+            },
+            "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/devices",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices"
+                  ]
+                },
+                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"code\": \"LED1\",\n      \"name\": \"Led 1\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    },\n    {\n      \"id\": 2,\n      \"code\": \"LED2\",\n      \"name\": \"Led 2\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    },\n    {\n      \"id\": 3,\n      \"code\": \"LED3\",\n      \"name\": \"Led 3\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/devices",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices"
+                  ]
+                },
+                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unauthorized\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Control device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices",
+                "{{deviceCode}}",
+                "control"
+              ]
+            },
+            "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 PENDING",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "{{deviceCode}}",
+                    "control"
+                  ]
+                },
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 39,\n    \"deviceCode\": \"LED1\",\n    \"deviceName\": \"Led 1\",\n    \"deviceType\": \"SMART_LED\",\n    \"action\": \"TURN_ON\",\n    \"status\": \"PENDING\",\n    \"createdAt\": \"2026-10-03T10:20:00.123Z\"\n  }\n}"
+            },
+            {
+              "name": "200 FAILED (broker không kết nối)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "{{deviceCode}}",
+                    "control"
+                  ]
+                },
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 40,\n    \"deviceCode\": \"LED1\",\n    \"deviceName\": \"Led 1\",\n    \"deviceType\": \"SMART_LED\",\n    \"action\": \"TURN_ON\",\n    \"status\": \"FAILED\",\n    \"createdAt\": \"2026-10-03T10:20:05.456Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Không có thiết bị",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "{{deviceCode}}",
+                    "control"
+                  ]
+                },
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Device not found: LED9\"\n}"
+            },
+            {
+              "name": "400 Action sai",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "{{deviceCode}}",
+                    "control"
+                  ]
+                },
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Malformed request body\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Control all devices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/devices/control-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices",
+                "control-all"
+              ]
+            },
+            "description": "Gửi cùng một action cho mọi thiết bị (nút *All On* / *All Off* trên Dashboard). Mỗi thiết bị một bản ghi lịch sử.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_OFF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/control-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "control-all"
+                  ]
+                },
+                "description": "Gửi cùng một action cho mọi thiết bị (nút *All On* / *All Off* trên Dashboard). Mỗi thiết bị một bản ghi lịch sử.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_OFF\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 41,\n      \"deviceCode\": \"LED1\",\n      \"deviceName\": \"Led 1\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    },\n    {\n      \"id\": 42,\n      \"deviceCode\": \"LED2\",\n      \"deviceName\": \"Led 2\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    },\n    {\n      \"id\": 43,\n      \"deviceCode\": \"LED3\",\n      \"deviceName\": \"Led 3\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sensors",
+      "description": "Cảm biến DHT11 + quang trở trên ESP8266, gửi lên `esp8266/sensor` mỗi 2s.\n\nMã cảm biến: `temp` (°C), `humi` (%), `light` (Lux, giá trị ADC thô 0–1023).\n\nEnum: `type` = `TEMPERATURE` | `HUMIDITY` | `LIGHT`; `status` = `ACTIVE` | `STANDBY` | `OFFLINE`.\nTham số thời gian là ISO-8601 có múi giờ, ví dụ `2026-10-03T00:00:00Z` hoặc `2026-10-03T07:00:00+07:00` (nhớ mã hoá `+` thành `%2B`). Response luôn trả thời gian UTC (đuôi `Z`).",
+      "item": [
+        {
+          "name": "Search sensors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors?page=1&size=8",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "temp",
+                  "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
+                  "disabled": true
+                },
+                {
+                  "key": "types",
+                  "value": "TEMPERATURE,HUMIDITY",
+                  "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "description": "ACTIVE | STANDBY | OFFLINE",
+                  "disabled": true
+                },
+                {
+                  "key": "updatedSince",
+                  "value": "2026-10-03T00:00:00Z",
+                  "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
+                  "disabled": true
+                },
+                {
+                  "key": "newestFirst",
+                  "value": "true",
+                  "description": "Mặc định true",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Mặc định 1",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "8",
+                  "description": "Mặc định 8",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors?page=1&size=8",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "temp",
+                      "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "types",
+                      "value": "TEMPERATURE,HUMIDITY",
+                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "ACTIVE",
+                      "description": "ACTIVE | STANDBY | OFFLINE",
+                      "disabled": true
+                    },
+                    {
+                      "key": "updatedSince",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
+                      "disabled": true
+                    },
+                    {
+                      "key": "newestFirst",
+                      "value": "true",
+                      "description": "Mặc định true",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Mặc định 1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "size",
+                      "value": "8",
+                      "description": "Mặc định 8",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"code\": \"temp\",\n        \"name\": \"Temperature\",\n        \"type\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 34.5,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 2,\n        \"code\": \"humi\",\n        \"name\": \"Humidity\",\n        \"type\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 59.2,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 3,\n        \"code\": \"light\",\n        \"name\": \"Light\",\n        \"type\": \"LIGHT\",\n        \"unit\": \"Lux\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 512.0,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 8,\n    \"totalItems\": 3,\n    \"totalPages\": 1\n  }\n}"
+            },
+            {
+              "name": "400 Enum sai",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors?page=1&size=8",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "temp",
+                      "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "types",
+                      "value": "TEMPERATURE,HUMIDITY",
+                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "ACTIVE",
+                      "description": "ACTIVE | STANDBY | OFFLINE",
+                      "disabled": true
+                    },
+                    {
+                      "key": "updatedSince",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
+                      "disabled": true
+                    },
+                    {
+                      "key": "newestFirst",
+                      "value": "true",
+                      "description": "Mặc định true",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Mặc định 1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "size",
+                      "value": "8",
+                      "description": "Mặc định 8",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid value 'BAD' for parameter 'status'\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get sensor data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "{{sensorCode}}",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2026-10-03T00:00:00Z",
+                  "description": "Mặc định: `to` − 24h",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-03T12:00:00Z",
+                  "description": "Mặc định: hiện tại",
+                  "disabled": true
+                },
+                {
+                  "key": "buckets",
+                  "value": "25",
+                  "description": "Số khoảng để tính trung bình",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
+          },
+          "response": [
+            {
+              "name": "200 OK (buckets)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "data"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Mặc định: `to` − 24h",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-10-03T12:00:00Z",
+                      "description": "Mặc định: hiện tại",
+                      "disabled": true
+                    },
+                    {
+                      "key": "buckets",
+                      "value": "25",
+                      "description": "Số khoảng để tính trung bình",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"value\": 30.8,\n      \"measuredAt\": \"2026-10-03T00:00:00Z\"\n    },\n    {\n      \"value\": 31.6,\n      \"measuredAt\": \"2026-10-03T00:28:48Z\"\n    },\n    {\n      \"value\": 32.1,\n      \"measuredAt\": \"2026-10-03T00:57:36Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "400 buckets < 1",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "data"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Mặc định: `to` − 24h",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-10-03T12:00:00Z",
+                      "description": "Mặc định: hiện tại",
+                      "disabled": true
+                    },
+                    {
+                      "key": "buckets",
+                      "value": "25",
+                      "description": "Số khoảng để tính trung bình",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"buckets must be at least 1\"\n}"
+            },
+            {
+              "name": "404 Không có cảm biến",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "data"
+                  ],
+                  "query": [
+                    {
+                      "key": "from",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Mặc định: `to` − 24h",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-10-03T12:00:00Z",
+                      "description": "Mặc định: hiện tại",
+                      "disabled": true
+                    },
+                    {
+                      "key": "buckets",
+                      "value": "25",
+                      "description": "Số khoảng để tính trung bình",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Sensor not found: nope\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get threshold",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "{{sensorCode}}",
+                "threshold"
+              ]
+            },
+            "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "threshold"
+                  ]
+                },
+                "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"sensorCode\": \"temp\",\n    \"minValue\": 20.0,\n    \"maxValue\": 40.0\n  }\n}"
+            },
+            {
+              "name": "404 Không có cảm biến",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "threshold"
+                  ]
+                },
+                "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Sensor not found: nope\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update threshold",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "{{sensorCode}}",
+                "threshold"
+              ]
+            },
+            "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "threshold"
+                  ]
+                },
+                "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"sensorCode\": \"temp\",\n    \"minValue\": 20.0,\n    \"maxValue\": 40.0\n  }\n}"
+            },
+            {
+              "name": "400 min > max",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensors",
+                    "{{sensorCode}}",
+                    "threshold"
+                  ]
+                },
+                "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"minValue must not be greater than maxValue\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sensor Data",
+      "description": "Lịch sử mọi lần đo của tất cả cảm biến (trang *Sensors* trên frontend, tự làm mới mỗi 2s).",
+      "item": [
+        {
+          "name": "Search sensor data",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensor-data?search=16:15&from=2026-09-27T00:00:00+07:00&to=2026-09-27T23:59:59.999+07:00&page=1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensor-data"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "16:15",
+                  "description": "Ngày giờ hoặc giờ trong ngày (giờ Việt Nam), giá trị, hoặc mã/tên cảm biến",
+                  "disabled": false
+                },
+                {
+                  "key": "types",
+                  "value": "TEMPERATURE,HUMIDITY",
+                  "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-09-27T00:00:00+07:00",
+                  "description": "Từ thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                  "disabled": false
+                },
+                {
+                  "key": "to",
+                  "value": "2026-09-27T23:59:59.999+07:00",
+                  "description": "Đến thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                  "disabled": false
+                },
+                {
+                  "key": "newestFirst",
+                  "value": "true",
+                  "description": "Mặc định true",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Mặc định 1",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Mặc định 10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Danh sách các lần đo, có lọc và phân trang (`page` bắt đầu từ 1). Mặc định mới nhất trước (sắp theo `measuredAt`, rồi `id`).\n\n`search` được hiểu theo thứ tự:\n1. **Ngày giờ (giờ Việt Nam, UTC+7)**: `2026-10-03` (cả ngày), `2026-10-03 17` (cả giờ), `2026-10-03 17:20` (cả phút), `2026-10-03 17:20:05` (đúng giây đó). Có thể dùng `T` thay dấu cách.\n2. **Giờ trong ngày (giờ Việt Nam)**: `17:20` (cả phút) hoặc `17:20:05` (đúng giây), trên mọi ngày. Kết hợp `from`/`to` của một ngày để tìm giờ đó trong ngày đó (cách trang Sensors làm).\n3. **Số**: khớp đúng giá trị đo, ví dụ `34.5`.\n4. **Còn lại**: tìm theo mã hoặc tên cảm biến, ví dụ `humi`.\n\nCó thể kết hợp với `from`/`to` (ISO-8601 UTC) để lọc theo khoảng thời gian."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensor-data?search=16:15&from=2026-09-27T00:00:00+07:00&to=2026-09-27T23:59:59.999+07:00&page=1&size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensor-data"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "16:15",
+                      "description": "Ngày giờ hoặc giờ trong ngày (giờ Việt Nam), giá trị, hoặc mã/tên cảm biến",
+                      "disabled": false
+                    },
+                    {
+                      "key": "types",
+                      "value": "TEMPERATURE,HUMIDITY",
+                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from",
+                      "value": "2026-09-27T00:00:00+07:00",
+                      "description": "Từ thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-09-27T23:59:59.999+07:00",
+                      "description": "Đến thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "newestFirst",
+                      "value": "true",
+                      "description": "Mặc định true",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Mặc định 1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "size",
+                      "value": "10",
+                      "description": "Mặc định 10",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Danh sách các lần đo, có lọc và phân trang (`page` bắt đầu từ 1). Mặc định mới nhất trước (sắp theo `measuredAt`, rồi `id`).\n\n`search` được hiểu theo thứ tự:\n1. **Ngày giờ (giờ Việt Nam, UTC+7)**: `2026-10-03` (cả ngày), `2026-10-03 17` (cả giờ), `2026-10-03 17:20` (cả phút), `2026-10-03 17:20:05` (đúng giây đó). Có thể dùng `T` thay dấu cách.\n2. **Giờ trong ngày (giờ Việt Nam)**: `17:20` (cả phút) hoặc `17:20:05` (đúng giây), trên mọi ngày. Kết hợp `from`/`to` của một ngày để tìm giờ đó trong ngày đó (cách trang Sensors làm).\n3. **Số**: khớp đúng giá trị đo, ví dụ `34.5`.\n4. **Còn lại**: tìm theo mã hoặc tên cảm biến, ví dụ `humi`.\n\nCó thể kết hợp với `from`/`to` (ISO-8601 UTC) để lọc theo khoảng thời gian."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 974,\n        \"sensorCode\": \"humi\",\n        \"sensorName\": \"Humidity\",\n        \"sensorType\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"value\": 59.0,\n        \"measuredAt\": \"2026-09-27T09:15:58.412Z\"\n      },\n      {\n        \"id\": 973,\n        \"sensorCode\": \"temp\",\n        \"sensorName\": \"Temperature\",\n        \"sensorType\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"value\": 34.4,\n        \"measuredAt\": \"2026-09-27T09:15:58.412Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 10,\n    \"totalItems\": 90,\n    \"totalPages\": 9\n  }\n}"
+            },
+            {
+              "name": "400 Type sai",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/sensor-data?search=16:15&from=2026-09-27T00:00:00+07:00&to=2026-09-27T23:59:59.999+07:00&page=1&size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "sensor-data"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "16:15",
+                      "description": "Ngày giờ hoặc giờ trong ngày (giờ Việt Nam), giá trị, hoặc mã/tên cảm biến",
+                      "disabled": false
+                    },
+                    {
+                      "key": "types",
+                      "value": "TEMPERATURE,HUMIDITY",
+                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from",
+                      "value": "2026-09-27T00:00:00+07:00",
+                      "description": "Từ thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-09-27T23:59:59.999+07:00",
+                      "description": "Đến thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
+                      "disabled": false
+                    },
+                    {
+                      "key": "newestFirst",
+                      "value": "true",
+                      "description": "Mặc định true",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Mặc định 1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "size",
+                      "value": "10",
+                      "description": "Mặc định 10",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Danh sách các lần đo, có lọc và phân trang (`page` bắt đầu từ 1). Mặc định mới nhất trước (sắp theo `measuredAt`, rồi `id`).\n\n`search` được hiểu theo thứ tự:\n1. **Ngày giờ (giờ Việt Nam, UTC+7)**: `2026-10-03` (cả ngày), `2026-10-03 17` (cả giờ), `2026-10-03 17:20` (cả phút), `2026-10-03 17:20:05` (đúng giây đó). Có thể dùng `T` thay dấu cách.\n2. **Giờ trong ngày (giờ Việt Nam)**: `17:20` (cả phút) hoặc `17:20:05` (đúng giây), trên mọi ngày. Kết hợp `from`/`to` của một ngày để tìm giờ đó trong ngày đó (cách trang Sensors làm).\n3. **Số**: khớp đúng giá trị đo, ví dụ `34.5`.\n4. **Còn lại**: tìm theo mã hoặc tên cảm biến, ví dụ `humi`.\n\nCó thể kết hợp với `from`/`to` (ISO-8601 UTC) để lọc theo khoảng thời gian."
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid value 'BAD' for parameter 'types'\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Action Histories",
+      "description": "Lịch sử điều khiển thiết bị. Enum: `status` = `PENDING` | `SUCCESS` | `FAILED`.",
+      "item": [
+        {
+          "name": "Search action histories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/action-histories?page=1&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "action-histories"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "LED1",
+                  "description": "Tìm theo mã hoặc tên thiết bị",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "SUCCESS,FAILED",
+                  "description": "PENDING | SUCCESS | FAILED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "TURN_ON",
+                  "description": "TURN_ON | TURN_OFF; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "disabled": true
+                },
+                {
+                  "key": "deviceType",
+                  "value": "SMART_LED",
+                  "description": "SMART_LED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-10-03T00:00:00Z",
+                  "description": "Từ thời điểm (ISO-8601 UTC)",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-10-03T23:59:59Z",
+                  "description": "Đến thời điểm (ISO-8601 UTC)",
+                  "disabled": true
+                },
+                {
+                  "key": "newestFirst",
+                  "value": "true",
+                  "description": "Mặc định true; false để cũ nhất trước",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Mặc định 1",
+                  "disabled": false
+                },
+                {
+                  "key": "size",
+                  "value": "10",
+                  "description": "Mặc định 10",
+                  "disabled": false
+                }
+              ]
+            },
+            "description": "Lịch sử có lọc và phân trang (`page` bắt đầu từ 1), mặc định mới nhất trước."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/action-histories?page=1&size=10",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "action-histories"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "LED1",
+                      "description": "Tìm theo mã hoặc tên thiết bị",
+                      "disabled": true
+                    },
+                    {
+                      "key": "status",
+                      "value": "SUCCESS,FAILED",
+                      "description": "PENDING | SUCCESS | FAILED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "action",
+                      "value": "TURN_ON",
+                      "description": "TURN_ON | TURN_OFF; nhiều giá trị ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "deviceType",
+                      "value": "SMART_LED",
+                      "description": "SMART_LED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                      "disabled": true
+                    },
+                    {
+                      "key": "from",
+                      "value": "2026-10-03T00:00:00Z",
+                      "description": "Từ thời điểm (ISO-8601 UTC)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "to",
+                      "value": "2026-10-03T23:59:59Z",
+                      "description": "Đến thời điểm (ISO-8601 UTC)",
+                      "disabled": true
+                    },
+                    {
+                      "key": "newestFirst",
+                      "value": "true",
+                      "description": "Mặc định true; false để cũ nhất trước",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Mặc định 1",
+                      "disabled": false
+                    },
+                    {
+                      "key": "size",
+                      "value": "10",
+                      "description": "Mặc định 10",
+                      "disabled": false
+                    }
+                  ]
+                },
+                "description": "Lịch sử có lọc và phân trang (`page` bắt đầu từ 1), mặc định mới nhất trước."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 38,\n        \"deviceCode\": \"LED3\",\n        \"deviceName\": \"Led 3\",\n        \"deviceType\": \"SMART_LED\",\n        \"action\": \"TURN_OFF\",\n        \"status\": \"SUCCESS\",\n        \"createdAt\": \"2026-09-27T09:16:50.630037Z\"\n      },\n      {\n        \"id\": 37,\n        \"deviceCode\": \"LED2\",\n        \"deviceName\": \"Led 2\",\n        \"deviceType\": \"SMART_LED\",\n        \"action\": \"TURN_OFF\",\n        \"status\": \"SUCCESS\",\n        \"createdAt\": \"2026-09-27T09:16:50.627999Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 10,\n    \"totalItems\": 38,\n    \"totalPages\": 4\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
