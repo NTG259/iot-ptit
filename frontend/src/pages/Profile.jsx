@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LuCopy, LuCheck, LuGithub, LuFigma } from 'react-icons/lu'
-import AppShell from '@/components/layout/AppShell/AppShell'
+import AppShell from '@/components/layout/AppShell'
 import { session, userService } from '@/services'
 import useApi from '@/hooks/useApi'
 import { initialsOf } from '@/utils/user'

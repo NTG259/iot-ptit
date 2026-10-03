@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import Input from '@/components/common/Input/Input'
-import Button from '@/components/common/Button/Button'
+import Input from '@/components/common/Input'
+import Button from '@/components/common/Button'
 import { authService, session } from '@/services'
 import { ROUTES } from '@/routes/paths'
 

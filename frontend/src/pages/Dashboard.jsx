@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import AppShell from '@/components/layout/AppShell/AppShell'
-import MetricCard from '@/components/common/MetricCard/MetricCard'
-import TelemetryChart from '@/components/common/TelemetryChart/TelemetryChart'
-import LedDeviceCard from '@/components/common/LedDeviceCard/LedDeviceCard'
-import GreetingHeader from '@/components/common/GreetingHeader/GreetingHeader'
+import AppShell from '@/components/layout/AppShell'
+import MetricCard from '@/components/common/MetricCard'
+import TelemetryChart from '@/components/common/TelemetryChart'
+import LedDeviceCard from '@/components/common/LedDeviceCard'
+import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
 import useNow from '@/hooks/useNow'
@@ -203,7 +203,7 @@ export default function Dashboard() {
           tone="green"
         />
         <MetricCard
-          label="Moisture"
+          label="Humidity"
           status={humidityCard.status}
           value={fmt(reading.humidity, 0)}
           unit="%"

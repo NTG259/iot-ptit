@@ -1,17 +1,16 @@
 const pad = (n) => String(n).padStart(2, '0')
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+// Vietnam time is UTC+7 all year (no daylight saving), so a fixed offset is exact.
+const VN_OFFSET_MS = 7 * 60 * 60 * 1000
 
-/** "Oct 24, 2023 · 14:32:05 UTC" */
-export function formatUtcLong(date) {
-  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()} · ${formatUtcTime(date)} UTC`
-}
-
-/** "2025-05-18 14:32:05 UTC" */
-export function formatUtcIso(date) {
-  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${formatUtcTime(date)} UTC`
-}
-
-function formatUtcTime(date) {
-  return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`
+/**
+ * "2025-05-18 14:32:05" in Vietnam time, whatever the browser's own time zone — the one timestamp
+ * format used across the tables, and the same format the search box understands.
+ */
+export function formatDateTime(date) {
+  const vn = new Date(date.getTime() + VN_OFFSET_MS)
+  return (
+    `${vn.getUTCFullYear()}-${pad(vn.getUTCMonth() + 1)}-${pad(vn.getUTCDate())} ` +
+    `${pad(vn.getUTCHours())}:${pad(vn.getUTCMinutes())}:${pad(vn.getUTCSeconds())}`
+  )
 }

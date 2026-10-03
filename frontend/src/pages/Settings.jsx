@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import AppShell from '@/components/layout/AppShell/AppShell'
-import Badge from '@/components/common/Badge/Badge'
-import Input from '@/components/common/Input/Input'
+import AppShell from '@/components/layout/AppShell'
+import Badge from '@/components/common/Badge'
+import Input from '@/components/common/Input'
 import { sensorService } from '@/services'
 import useApi from '@/hooks/useApi'
 

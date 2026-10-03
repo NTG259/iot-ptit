@@ -1,5 +1,8 @@
+/* antd sits between Tailwind's reset and its utilities, so utility classes can still adjust antd components. */
+@layer theme, base, antd, components, utilities;
+
 @import 'tailwindcss';
-@import './styles/variables.css';
+@import './variables.css';
 
 /* White bordered surface shared by every card and panel. */
 @utility panel {

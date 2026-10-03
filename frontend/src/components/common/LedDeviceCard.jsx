@@ -1,4 +1,4 @@
-import Switch from '../Switch/Switch'
+import Switch from './Switch'
 
 // `pending`: a command was sent and we're waiting for the ESP8266 to confirm the new state.
 export default function LedDeviceCard({ name, on, pending = false, onToggle }) {
