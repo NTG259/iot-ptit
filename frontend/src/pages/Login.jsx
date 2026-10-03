@@ -73,15 +73,10 @@ export default function Login() {
           required
         />
 
-        <div className="flex items-center justify-between text-[0.8125rem]">
-          <label className="inline-flex items-center gap-1.5 text-text/80">
-            <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} />
-            Remember me
-          </label>
-          <a href="#forgot-password" className="text-primary no-underline font-semibold">
-            Forgot password?
-          </a>
-        </div>
+        <label className="inline-flex items-center gap-1.5 text-[0.8125rem] text-text/80">
+          <input type="checkbox" name="remember" checked={form.remember} onChange={handleChange} />
+          Remember me
+        </label>
 
         <Button type="submit" loading={submitting}>
           Login
