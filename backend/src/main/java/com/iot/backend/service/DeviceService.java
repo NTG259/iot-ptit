@@ -86,7 +86,16 @@ public class DeviceService {
     @Transactional
     public void failTimedOutActions() {
         Instant cutoff = Instant.now().minus(PENDING_TIMEOUT);
-        actionHistoryRepository.findByStatusAndCreatedAtBefore(ActionStatus.PENDING, cutoff)
-                .forEach(history -> history.setStatus(ActionStatus.FAILED));
+        List<ActionHistory> timedOut = actionHistoryRepository.findByStatusAndCreatedAtBefore(ActionStatus.PENDING, cutoff);
+        timedOut.forEach(history -> history.setStatus(ActionStatus.FAILED));
+        if (!timedOut.isEmpty()) {
+            // The ESP8266 may have switched the LED and only its QoS 0 status reply got lost: ask for the real
+            // states again so the stored ones (what the dashboard shows) never stay out of date.
+            try {
+                mqttPublisher.publishCommand("GET_STATUS");
+            } catch (MqttException e) {
+                log.warn("Failed to request LED status after timed-out actions: {}", e.getMessage());
+            }
+        }
     }
 }
