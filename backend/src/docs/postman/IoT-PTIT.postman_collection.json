@@ -1615,7 +1615,7 @@
                 {
                   "key": "search",
                   "value": "LED1",
-                  "description": "Tìm theo mã hoặc tên thiết bị",
+                  "description": "Ngày giờ (`2026-10-03 17:27`) hoặc giờ trong ngày (`17:27:11`) theo giờ Việt Nam, hoặc mã/tên thiết bị",
                   "disabled": true
                 },
                 {
@@ -1688,7 +1688,7 @@
                     {
                       "key": "search",
                       "value": "LED1",
-                      "description": "Tìm theo mã hoặc tên thiết bị",
+                      "description": "Ngày giờ (`2026-10-03 17:27`) hoặc giờ trong ngày (`17:27:11`) theo giờ Việt Nam, hoặc mã/tên thiết bị",
                       "disabled": true
                     },
                     {

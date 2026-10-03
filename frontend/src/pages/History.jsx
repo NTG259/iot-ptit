@@ -105,7 +105,7 @@ export default function History() {
       subtitle="Real-time audit telemetry and automated action dispatch log across mesh nodes."
     >
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
-        <SearchInput value={query} onChange={withReset(setQuery)} />
+        <SearchInput value={query} onChange={withReset(setQuery)} placeholder="Device or time (HH:mm:ss)" />
         <CheckboxFilter label="Status" options={STATUS_OPTIONS} value={statuses} onChange={withReset(setStatuses)} />
         <CheckboxFilter label="Action" options={ACTION_OPTIONS} value={actions} onChange={withReset(setActions)} />
         <CheckboxFilter
