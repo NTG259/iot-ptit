@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,6 +29,11 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class SensorService {
+
+    /** The ESP8266 publishes every 2s: a reading this recent means the sensor is live. */
+    private static final Duration ACTIVE_WINDOW = Duration.ofSeconds(10);
+    /** Readings are late but may resume; older than this (or none at all) means offline. */
+    private static final Duration STANDBY_WINDOW = Duration.ofSeconds(60);
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
@@ -106,6 +112,21 @@ public class SensorService {
         threshold.setMinValue(request.minValue());
         threshold.setMaxValue(request.maxValue());
         return ThresholdResponse.from(sensorThresholdRepository.save(threshold));
+    }
+
+    /** Keeps each sensor's status in line with how long ago its last reading arrived. */
+    @Scheduled(fixedDelay = 5000)
+    @Transactional
+    public void refreshStatuses() {
+        Instant now = Instant.now();
+        sensorRepository.findAll().forEach(sensor -> sensor.setStatus(statusAt(sensor.getLastReadingAt(), now)));
+    }
+
+    static SensorStatus statusAt(Instant lastReadingAt, Instant now) {
+        if (lastReadingAt == null || lastReadingAt.isBefore(now.minus(STANDBY_WINDOW))) {
+            return SensorStatus.OFFLINE;
+        }
+        return lastReadingAt.isBefore(now.minus(ACTIVE_WINDOW)) ? SensorStatus.STANDBY : SensorStatus.ACTIVE;
     }
 
     private Sensor findSensor(String code) {

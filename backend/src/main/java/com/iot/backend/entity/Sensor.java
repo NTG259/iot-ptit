@@ -27,7 +27,8 @@ public class Sensor extends BaseEntity {
     private SensorType type;
 
     @Enumerated(EnumType.STRING)
-    private SensorStatus status = SensorStatus.ACTIVE;
+    // No readings yet; SensorService#refreshStatuses keeps this in line with lastReadingAt.
+    private SensorStatus status = SensorStatus.OFFLINE;
 
     private Double lastValue;
     private Instant lastReadingAt;
