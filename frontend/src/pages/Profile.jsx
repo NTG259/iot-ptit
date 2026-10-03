@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { LuCopy, LuCheck, LuGithub, LuFigma } from 'react-icons/lu'
+import { Alert, Button, Form, Input, Modal } from 'antd'
+import { LuCopy, LuCheck, LuGithub, LuFigma, LuPencil } from 'react-icons/lu'
 import AppShell from '@/components/layout/AppShell'
 import { session, userService } from '@/services'
 import useApi from '@/hooks/useApi'
@@ -36,18 +37,75 @@ function CopyField({ label, value, valueClass = 'text-text' }) {
   )
 }
 
+// Editable fields, in form order. `username` is the login name and cannot change.
+const FIELDS = [
+  { name: 'fullName', label: 'Full name', rules: [{ required: true, whitespace: true, message: 'Full name is required.' }] },
+  { name: 'studentId', label: 'Mã sinh viên' },
+  { name: 'email', label: 'Email', rules: [{ type: 'email', message: 'Enter a valid email.' }] },
+  { name: 'role', label: 'Role' },
+  { name: 'school', label: 'School' },
+  { name: 'githubUrl', label: 'GitHub URL', rules: [{ type: 'url', message: 'Enter a full URL (https://…).' }] },
+  { name: 'figmaUrl', label: 'Figma URL', rules: [{ type: 'url', message: 'Enter a full URL (https://…).' }] },
+]
+
+function EditProfileModal({ user, open, onClose, onSaved }) {
+  const [form] = Form.useForm()
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+
+  async function save(values) {
+    setSaving(true)
+    setError(null)
+    try {
+      // PUT replaces the whole profile: send every field, with blanks as null.
+      const body = Object.fromEntries(FIELDS.map(({ name }) => [name, values[name]?.trim() || null]))
+      onSaved(await userService.updateProfile(body))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title="Edit profile"
+      open={open}
+      onCancel={onClose}
+      onOk={form.submit}
+      okText="Save"
+      confirmLoading={saving}
+      destroyOnHidden
+      afterOpenChange={(visible) => visible && form.setFieldsValue(user)}
+    >
+      <Form form={form} layout="vertical" onFinish={save} requiredMark={false} className="mt-4">
+        {FIELDS.map(({ name, label, rules }) => (
+          <Form.Item key={name} name={name} label={label} rules={rules} className="mb-3">
+            <Input />
+          </Form.Item>
+        ))}
+      </Form>
+      {error && <Alert type="error" showIcon title={error} />}
+    </Modal>
+  )
+}
+
 const LINK_CLASS =
   'flex items-center justify-center gap-2 h-11 rounded-lg border border-outline bg-canvas/60 text-base font-medium text-text no-underline hover:bg-white'
 
 export default function Profile() {
   // Show the cached user immediately, then refresh from the API.
-  const { data, error } = useApi(() => userService.getProfile(), [])
+  const { data, error, reload } = useApi(() => userService.getProfile(), [])
   const user = data ?? session.getUser() ?? {}
+  const [editing, setEditing] = useState(false)
 
   return (
     <AppShell breadcrumb="User Profile">
       <div className="flex-1 grid place-items-center">
-        <section className="panel w-full max-w-[38rem] px-8 py-6 shadow-lg">
+        <section className="panel relative w-full max-w-[38rem] px-8 py-6 shadow-lg">
+          <Button icon={<LuPencil className="w-4 h-4" />} onClick={() => setEditing(true)} className="!absolute top-5 right-5">
+            Edit profile
+          </Button>
           <div className="flex flex-col items-center text-center">
             <div className="relative grid place-items-center w-20 h-20 rounded-full bg-primary-soft border-2 border-primary-line text-3xl font-semibold text-primary">
               {initialsOf(user.fullName)}
@@ -85,6 +143,16 @@ export default function Profile() {
 
           {error && <p className="m-0 mt-4 text-sm text-red">Could not refresh profile: {error.message}</p>}
         </section>
+
+        <EditProfileModal
+          user={user}
+          open={editing}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false)
+            reload()
+          }}
+        />
       </div>
     </AppShell>
   )
