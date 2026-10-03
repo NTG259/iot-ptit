@@ -6,6 +6,7 @@ import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
 import com.iot.backend.exception.ResourceNotFoundException;
+import com.iot.backend.mqtt.EspPresence;
 import com.iot.backend.mqtt.MqttPublisher;
 import com.iot.backend.repository.ActionHistoryRepository;
 import com.iot.backend.repository.DeviceRepository;
@@ -33,6 +34,7 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final ActionHistoryRepository actionHistoryRepository;
     private final MqttPublisher mqttPublisher;
+    private final EspPresence espPresence;
 
     public List<Device> findAll() {
         return deviceRepository.findAll(Sort.by("code"));
@@ -40,14 +42,24 @@ public class DeviceService {
 
     /** Sends the action to every device (the dashboard's "All On" / "All Off"); one history row per device. */
     public List<ActionHistory> controlAll(DeviceAction action) {
-        return findAll().stream().map(device -> control(device.getCode(), action)).toList();
+        espPresence.ensureOnline();
+        return findAll().stream().map(device -> send(device.getCode(), action)).toList();
+    }
+
+    /**
+     * Checks the ESP8266 is reachable first, so an offline board is reported at once (DeviceOfflineException,
+     * nothing logged) rather than as a PENDING action that only fails after the timeout.
+     */
+    public ActionHistory control(String deviceCode, DeviceAction action) {
+        espPresence.ensureOnline();
+        return send(deviceCode, action);
     }
 
     /**
      * Logs the action as PENDING, then publishes the command. Intentionally not
      * transactional: the PENDING row must be committed before the ESP8266 replies.
      */
-    public ActionHistory control(String deviceCode, DeviceAction action) {
+    private ActionHistory send(String deviceCode, DeviceAction action) {
         Device device = deviceRepository.findByCode(deviceCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Device", deviceCode));
 

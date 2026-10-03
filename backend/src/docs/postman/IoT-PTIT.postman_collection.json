@@ -440,7 +440,7 @@
                 "devices"
               ]
             },
-            "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+            "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất; `online` cho biết ESP8266 có đang kết nối không (nghe thấy nó trong 5s gần nhất)."
           },
           "response": [
             {
@@ -457,7 +457,7 @@
                     "devices"
                   ]
                 },
-                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất; `online` cho biết ESP8266 có đang kết nối không (nghe thấy nó trong 5s gần nhất)."
               },
               "status": "OK",
               "code": 200,
@@ -468,7 +468,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"code\": \"LED1\",\n      \"name\": \"Led 1\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    },\n    {\n      \"id\": 2,\n      \"code\": \"LED2\",\n      \"name\": \"Led 2\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    },\n    {\n      \"id\": 3,\n      \"code\": \"LED3\",\n      \"name\": \"Led 3\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 1,\n      \"code\": \"LED1\",\n      \"name\": \"Led 1\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\",\n      \"online\": true\n    },\n    {\n      \"id\": 2,\n      \"code\": \"LED2\",\n      \"name\": \"Led 2\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\",\n      \"online\": true\n    },\n    {\n      \"id\": 3,\n      \"code\": \"LED3\",\n      \"name\": \"Led 3\",\n      \"type\": \"SMART_LED\",\n      \"state\": \"OFF\",\n      \"online\": true\n    }\n  ]\n}"
             },
             {
               "name": "401 Unauthorized",
@@ -484,7 +484,7 @@
                     "devices"
                   ]
                 },
-                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất."
+                "description": "Danh sách thiết bị, sắp theo `code`. `state` là trạng thái ESP xác nhận gần nhất; `online` cho biết ESP8266 có đang kết nối không (nghe thấy nó trong 5s gần nhất)."
               },
               "status": "Unauthorized",
               "code": 401,
@@ -520,7 +520,7 @@
                 "control"
               ]
             },
-            "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+            "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"action\": \"TURN_ON\"\n}",
@@ -553,7 +553,7 @@
                     "control"
                   ]
                 },
-                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"action\": \"TURN_ON\"\n}",
@@ -596,7 +596,7 @@
                     "control"
                   ]
                 },
-                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"action\": \"TURN_ON\"\n}",
@@ -639,7 +639,7 @@
                     "control"
                   ]
                 },
-                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"action\": \"TURN_ON\"\n}",
@@ -662,6 +662,49 @@
               "body": "{\n  \"success\": false,\n  \"message\": \"Device not found: LED9\"\n}"
             },
             {
+              "name": "503 ESP8266 chưa kết nối",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "{{deviceCode}}",
+                    "control"
+                  ]
+                },
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_ON\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"The ESP8266 is not connected. Check its power and Wi-Fi, then try again.\"\n}"
+            },
+            {
               "name": "400 Action sai",
               "originalRequest": {
                 "method": "POST",
@@ -682,7 +725,7 @@
                     "control"
                   ]
                 },
-                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.",
+                "description": "Bật/tắt một LED (`deviceCode`: `LED1`, `LED2`, `LED3`). Trả về bản ghi lịch sử mới, thường là `PENDING`; poll `GET /devices` hoặc `GET /action-histories` để xem kết quả cuối.\n\nTrước khi gửi lệnh, backend kiểm tra ESP8266: nếu 5s gần nhất không nghe thấy nó thì gửi `GET_STATUS` và chờ tối đa 1s. Không có trả lời thì trả **503** ngay, không gửi lệnh và không ghi lịch sử.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"action\": \"TURN_ON\"\n}",
@@ -779,6 +822,48 @@
                 }
               ],
               "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 41,\n      \"deviceCode\": \"LED1\",\n      \"deviceName\": \"Led 1\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    },\n    {\n      \"id\": 42,\n      \"deviceCode\": \"LED2\",\n      \"deviceName\": \"Led 2\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    },\n    {\n      \"id\": 43,\n      \"deviceCode\": \"LED3\",\n      \"deviceName\": \"Led 3\",\n      \"deviceType\": \"SMART_LED\",\n      \"action\": \"TURN_OFF\",\n      \"status\": \"PENDING\",\n      \"createdAt\": \"2026-10-03T10:21:00.000Z\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "503 ESP8266 chưa kết nối",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/devices/control-all",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "devices",
+                    "control-all"
+                  ]
+                },
+                "description": "Gửi cùng một action cho mọi thiết bị (nút *All On* / *All Off* trên Dashboard). Mỗi thiết bị một bản ghi lịch sử.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"action\": \"TURN_OFF\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"message\": \"The ESP8266 is not connected. Check its power and Wi-Fi, then try again.\"\n}"
             }
           ]
         }

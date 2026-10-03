@@ -4,6 +4,7 @@ import com.iot.backend.dto.ActionHistoryResponse;
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.DeviceControlRequest;
 import com.iot.backend.dto.DeviceResponse;
+import com.iot.backend.mqtt.EspPresence;
 import com.iot.backend.service.DeviceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +23,19 @@ import java.util.List;
 public class DeviceController {
 
     private final DeviceService deviceService;
+    private final EspPresence espPresence;
 
     @GetMapping
     public ApiResponse<List<DeviceResponse>> list() {
-        return ApiResponse.ok(deviceService.findAll().stream().map(DeviceResponse::from).toList());
+        // All LEDs hang off the one ESP8266, so they share its online flag.
+        boolean online = espPresence.isOnline();
+        return ApiResponse.ok(deviceService.findAll().stream().map(d -> DeviceResponse.from(d, online)).toList());
     }
 
-    /** Returns the new action as PENDING; its final status comes from the ESP8266's LED status reply. */
+    /**
+     * Returns the new action as PENDING; its final status comes from the ESP8266's LED status reply.
+     * Answers 503 at once, without logging an action, when the board is not connected.
+     */
     @PostMapping("/{code}/control")
     public ApiResponse<ActionHistoryResponse> control(@PathVariable String code,
                                                       @Valid @RequestBody DeviceControlRequest request) {

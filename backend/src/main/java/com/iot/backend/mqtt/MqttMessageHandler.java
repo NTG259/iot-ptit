@@ -35,6 +35,7 @@ public class MqttMessageHandler implements IMqttMessageListener {
     private final JsonMapper jsonMapper;
     private final SensorDataService sensorDataService;
     private final DeviceService deviceService;
+    private final EspPresence espPresence;
 
     @Override
     public void messageArrived(String topic, MqttMessage message) {
@@ -46,6 +47,8 @@ public class MqttMessageHandler implements IMqttMessageListener {
             } else if (topic.equals(properties.topics().ledStatus())) {
                 deviceService.syncStates(jsonMapper.readValue(payload, LED_STATUS_PAYLOAD));
             }
+            // After handling, so a command waiting on this reply sees the refreshed LED states.
+            espPresence.seen();
         } catch (Exception e) {
             log.error("Failed to handle MQTT message on {}: {}", topic, payload, e);
         }
