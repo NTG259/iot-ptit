@@ -35,8 +35,10 @@ function toSmoothPath(points) {
  * y axis scale; label/values/format (real units) feed the hover tooltip.
  * labels: x-axis labels, spread evenly; the last one is highlighted as "now".
  * pointLabels: one time label per sample, shown as the tooltip title.
+ * current: { label, items: [{ id, color, text }] } — latest readings, pinned at the "now" line while
+ * the mouse is not over the chart (e.g. "Now: 23.8°C · 48% RH · 540").
  */
-export default function TelemetryChart({ series, labels, pointLabels = [], yTicks }) {
+export default function TelemetryChart({ series, labels, pointLabels = [], yTicks, current }) {
   const gradientPrefix = useId();
   const boxRef = useRef(null);
   const { width: VIEW_WIDTH, height: VIEW_HEIGHT } = useSize(boxRef);
@@ -77,6 +79,24 @@ export default function TelemetryChart({ series, labels, pointLabels = [], yTick
       onMouseLeave={() => setHoverIndex(null)}
       className="relative flex-1 min-h-0 border border-outline rounded-xl bg-canvas/60 overflow-hidden"
     >
+      {hoverIndex == null && current && VIEW_WIDTH > 0 && (
+        <div
+          className="absolute z-10 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-outline shadow-sm tabular-nums text-sm whitespace-nowrap"
+          style={{ top: 12, right: Math.max(8, VIEW_WIDTH - nowX - 12) }}
+        >
+          <span className="w-2 h-2 rounded-full bg-primary" />
+          <span className="text-muted">{current.label}:</span>
+          {current.items.map((item, i) => (
+            <span key={item.id} className="flex items-center gap-2">
+              {i > 0 && <span className="text-slate-300">·</span>}
+              <span className="font-medium" style={{ color: item.color }}>
+                {item.text}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
       {hoverIndex != null && (
         <div
           className="absolute z-10 pointer-events-none flex flex-col gap-1 px-3 py-2 rounded-lg bg-white border border-outline shadow-sm tabular-nums text-sm"

@@ -7,6 +7,7 @@ import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
 import useNow from '@/hooks/useNow'
+import { formatDateTime, formatTime } from '@/utils/format'
 
 // Series id -> sensor code as seeded by the backend (matches the ESP8266 payload keys).
 const SENSOR_CODES = { temperature: 'temp', humidity: 'humi', lux: 'light' }
@@ -39,6 +40,8 @@ const SENSOR_POLL_MS = 2000
 // Faster device polling while a command awaits confirmation, so the switch settles right after the ESP replies.
 const PENDING_POLL_MS = 300
 const CHART_POLL_MS = 10_000
+// The ESP8266 publishes every 2s; a newer reading than this counts as "now" in the chart's summary.
+const FRESH_MS = 30_000
 // Slightly over the backend's 10s: an unconfirmed command then shows the real state again.
 const PENDING_TIMEOUT_MS = 12_000
 
@@ -61,16 +64,14 @@ function toSeries(points, from, to) {
 function slotLabels(from, to) {
   return Array.from({ length: SAMPLES }, (_, i) => {
     if (i === SAMPLES - 1) return 'Now'
-    const date = new Date(from.getTime() + ((to - from) * i) / (SAMPLES - 1))
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    return formatTime(new Date(from.getTime() + ((to - from) * i) / (SAMPLES - 1)))
   })
 }
 
 function axisLabels(from, to) {
   return Array.from({ length: LABEL_COUNT }, (_, i) => {
     if (i === LABEL_COUNT - 1) return 'Now'
-    const date = new Date(from.getTime() + ((to - from) * i) / (LABEL_COUNT - 1))
-    return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    return formatTime(new Date(from.getTime() + ((to - from) * i) / (LABEL_COUNT - 1)))
   })
 }
 
@@ -133,6 +134,19 @@ export default function Dashboard() {
   const temperatureCard = card('temperature', '°C')
   const humidityCard = card('humidity', '%')
   const luxCard = card('lux', '')
+
+  // Summary pinned at the chart's "Now" line: the latest reading of each sensor in its real unit.
+  const lastAt = Math.max(0, ...Object.values(SENSOR_CODES).map((code) => Date.parse(sensorByCode[code]?.lastReadingAt ?? '') || 0))
+  const current = lastAt
+    ? {
+        label: now.getTime() - lastAt < FRESH_MS ? 'Now' : `Last ${formatDateTime(new Date(lastAt))}`,
+        items: [
+          { id: 'temperature', text: `${fmt(reading.temperature, 1)}°C` },
+          { id: 'humidity', text: `${fmt(reading.humidity, 0)}% RH` },
+          { id: 'lux', text: fmt(reading.lux, 0) },
+        ].map((item) => ({ ...item, color: COLORS[item.id] })),
+      }
+    : null
 
   const series = history.data
     ? Object.keys(SENSOR_CODES)
@@ -238,7 +252,7 @@ export default function Dashboard() {
           {history.data && series.length === 0 && <li className="text-muted">No readings in this range yet.</li>}
         </ul>
 
-        <TelemetryChart series={series} labels={labels} pointLabels={pointLabels} yTicks={Y_TICKS} />
+        <TelemetryChart series={series} labels={labels} pointLabels={pointLabels} yTicks={Y_TICKS} current={current} />
       </section>
 
       <section className="panel shrink-0 px-5 py-4 flex flex-col gap-3">

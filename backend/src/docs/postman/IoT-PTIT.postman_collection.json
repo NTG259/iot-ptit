@@ -786,7 +786,7 @@
     },
     {
       "name": "Sensors",
-      "description": "Cảm biến DHT11 + quang trở trên ESP8266, gửi lên `esp8266/sensor` mỗi 2s.\n\nMã cảm biến: `temp` (°C), `humi` (%), `light` (Lux, giá trị ADC thô 0–1023).\n\nEnum: `type` = `TEMPERATURE` | `HUMIDITY` | `LIGHT`; `status` = `ACTIVE` | `STANDBY` | `OFFLINE`.\nTham số thời gian là ISO-8601 có múi giờ, ví dụ `2026-10-03T00:00:00Z` hoặc `2026-10-03T07:00:00+07:00` (nhớ mã hoá `+` thành `%2B`). Response luôn trả thời gian UTC (đuôi `Z`).",
+      "description": "Cảm biến DHT11 + quang trở trên ESP8266, gửi lên `esp8266/sensor` mỗi 2s.\n\nMã cảm biến: `temp` (°C), `humi` (%), `light` (giá trị ADC thô 0–1023 của quang trở, không có đơn vị: `unit` = ).\n\nEnum: `type` = `TEMPERATURE` | `HUMIDITY` | `LIGHT`; `status` = `ACTIVE` | `STANDBY` | `OFFLINE`.\nTham số thời gian là ISO-8601 có múi giờ, ví dụ `2026-10-03T00:00:00Z` hoặc `2026-10-03T07:00:00+07:00` (nhớ mã hoá `+` thành `%2B`). Response luôn trả thời gian UTC (đuôi `Z`).",
       "item": [
         {
           "name": "Search sensors",
@@ -918,7 +918,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"code\": \"temp\",\n        \"name\": \"Temperature\",\n        \"type\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 34.5,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 2,\n        \"code\": \"humi\",\n        \"name\": \"Humidity\",\n        \"type\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 59.2,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 3,\n        \"code\": \"light\",\n        \"name\": \"Light\",\n        \"type\": \"LIGHT\",\n        \"unit\": \"Lux\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 512.0,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 8,\n    \"totalItems\": 3,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"code\": \"temp\",\n        \"name\": \"Temperature\",\n        \"type\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 34.5,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 2,\n        \"code\": \"humi\",\n        \"name\": \"Humidity\",\n        \"type\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 59.2,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 3,\n        \"code\": \"light\",\n        \"name\": \"Light\",\n        \"type\": \"LIGHT\",\n        \"unit\": \"\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 512.0,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 8,\n    \"totalItems\": 3,\n    \"totalPages\": 1\n  }\n}"
             },
             {
               "name": "400 Enum sai",

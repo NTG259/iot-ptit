@@ -41,12 +41,12 @@ export default function Login() {
         className="w-full max-w-[23.75rem] bg-white rounded-2xl shadow-[6px_6px_54px_0_rgba(0,0,0,0.05)] px-9 py-10 flex flex-col gap-4 text-center"
         onSubmit={handleSubmit}
       >
-        <p className="m-0 mb-2 text-[1.375rem] font-extrabold text-text">
-          <span className="text-primary">Viet</span>Farm
+        <p className="m-0 mb-2 text-[1.375rem] font-semibold text-text">
+          Lumen <span className="text-outline">/</span> Sense
         </p>
 
         <h1 className="m-0 text-2xl font-bold text-text">Welcome back</h1>
-        <p className="m-0 mb-2 text-sm text-text/60">Log in to monitor your farm sensors.</p>
+        <p className="m-0 mb-2 text-sm text-text/60">Log in to monitor your IoT sensors and devices.</p>
 
         {error && <p className="m-0 px-3 py-2.5 rounded-lg bg-red/10 text-red text-[0.8125rem] text-left">{error}</p>}
 

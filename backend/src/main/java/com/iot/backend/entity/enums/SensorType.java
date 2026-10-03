@@ -8,7 +8,8 @@ import lombok.RequiredArgsConstructor;
 public enum SensorType {
     TEMPERATURE("°C"),
     HUMIDITY("%"),
-    LIGHT("Lux");
+    // Raw 0–1023 ADC reading of the light-dependent resistor, not a calibrated lux value, so no unit.
+    LIGHT("");
 
     private final String unit;
 }
