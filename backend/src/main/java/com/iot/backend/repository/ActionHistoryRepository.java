@@ -8,10 +8,13 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Long>, JpaSpecificationExecutor<ActionHistory> {
 
     List<ActionHistory> findByDeviceAndStatus(Device device, ActionStatus status);
 
     List<ActionHistory> findByStatusAndCreatedAtBefore(ActionStatus status, Instant cutoff);
+
+    Optional<ActionHistory> findFirstByDeviceOrderByIdDesc(Device device);
 }

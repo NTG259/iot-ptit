@@ -29,12 +29,15 @@ public class DeviceController {
     public ApiResponse<List<DeviceResponse>> list() {
         // All LEDs hang off the one ESP8266, so they share its online flag.
         boolean online = espPresence.isOnline();
-        return ApiResponse.ok(deviceService.findAll().stream().map(d -> DeviceResponse.from(d, online)).toList());
+        return ApiResponse.ok(deviceService.findAll().stream()
+                .map(d -> DeviceResponse.from(d, online, deviceService.pendingAction(d)))
+                .toList());
     }
 
     /**
      * Returns the new action as PENDING; its final status comes from the ESP8266's LED status reply.
-     * Answers 503 at once, without logging an action, when the board is not connected.
+     * Answers 503 at once, without logging an action, when the board is not connected, and 503 as well
+     * (the action logged as FAILED) when the MQTT broker rejects the command.
      */
     @PostMapping("/{code}/control")
     public ApiResponse<ActionHistoryResponse> control(@PathVariable String code,

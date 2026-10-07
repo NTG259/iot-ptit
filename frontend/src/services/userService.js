@@ -1,15 +1,20 @@
-import { apiClient } from './apiClient'
-import { updateUser } from './session'
+import { khachApi } from './apiClient'
+import { capNhatNguoiDung } from './session'
 
-export async function getProfile() {
-  const user = await apiClient.get('/users/me')
-  updateUser(user)
-  return user
+/** Lấy hồ sơ người dùng đang đăng nhập và cập nhật bản lưu trong phiên. */
+export async function layHoSo() {
+  const nguoiDung = await khachApi.get('/users/me')
+  capNhatNguoiDung(nguoiDung)
+  return nguoiDung
 }
 
-// PUT replaces the whole profile, so send every field, not just the changed ones.
-export async function updateProfile(data) {
-  const user = await apiClient.put('/users/me', data)
-  updateUser(user)
-  return user
+/**
+ * Lưu hồ sơ người dùng đang đăng nhập và cập nhật bản lưu trong phiên.
+ * PUT thay toàn bộ hồ sơ, nên phải gửi đủ mọi trường chứ không chỉ trường đã sửa; trường bỏ trống gửi null.
+ * fullName bắt buộc, email phải đúng định dạng.
+ */
+export async function luuHoSo({ fullName, email, studentId, role, school, githubUrl, figmaUrl }) {
+  const nguoiDung = await khachApi.put('/users/me', { fullName, email, studentId, role, school, githubUrl, figmaUrl })
+  capNhatNguoiDung(nguoiDung)
+  return nguoiDung
 }

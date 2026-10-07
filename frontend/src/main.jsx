@@ -3,11 +3,11 @@ import { createRoot } from 'react-dom/client'
 import { StyleProvider } from '@ant-design/cssinjs'
 import { ConfigProvider } from 'antd'
 import './index.css'
-import App from './App.jsx'
+import AppRouter from '@/routes/AppRouter'
 
-// Ant Design reads the same palette as the Tailwind tokens in variables.css. Sizes are in px:
-// the root font is 14px (index.css), so 35px matches the h-10 toolbar controls.
-const THEME = {
+// Ant Design dùng cùng bảng màu với các biến Tailwind trong variables.css. Kích thước tính bằng px:
+// font gốc là 14px (index.css) nên 35px khớp với chiều cao h-10 của các nút trên thanh công cụ.
+const CHU_DE = {
   token: {
     colorPrimary: '#059669',
     colorText: '#0f172a',
@@ -26,7 +26,7 @@ const THEME = {
       headerBg: '#f8fafc',
       headerColor: '#475569',
       rowHoverBg: 'rgba(248, 250, 252, 0.6)',
-      // The sorted column (Timestamp) keeps the same background as the others instead of antd's grey tint.
+      // Cột đang sắp xếp (Timestamp) giữ cùng màu nền với các cột khác, không bị antd tô xám.
       bodySortBg: 'transparent',
       headerSortActiveBg: '#f8fafc',
       headerSortHoverBg: '#f1f5f9',
@@ -36,10 +36,10 @@ const THEME = {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {/* `layer` puts antd's styles in @layer antd, ordered below Tailwind utilities in index.css. */}
+    {/* `layer` đặt style của antd vào @layer antd, xếp dưới các lớp tiện ích Tailwind trong index.css. */}
     <StyleProvider layer>
-      <ConfigProvider theme={THEME}>
-        <App />
+      <ConfigProvider theme={CHU_DE}>
+        <AppRouter />
       </ConfigProvider>
     </StyleProvider>
   </StrictMode>,

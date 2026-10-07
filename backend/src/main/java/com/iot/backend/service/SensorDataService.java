@@ -8,7 +8,6 @@ import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.entity.enums.SensorType;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
-import com.iot.backend.repository.SensorThresholdRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -29,7 +28,6 @@ public class SensorDataService {
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
-    private final SensorThresholdRepository sensorThresholdRepository;
 
     /** Stores one MQTT sensor message; each key is a sensor code ("temp", "humi", "light"). */
     @Transactional
@@ -50,18 +48,6 @@ public class SensorDataService {
         sensor.setLastValue(value);
         sensor.setLastReadingAt(measuredAt);
         sensor.setStatus(SensorStatus.ACTIVE);
-
-        checkThreshold(sensor, value);
-    }
-
-    private void checkThreshold(Sensor sensor, Double value) {
-        sensorThresholdRepository.findBySensorId(sensor.getId()).ifPresent(threshold -> {
-            if (threshold.getMinValue() != null && value < threshold.getMinValue()) {
-                log.warn("ALERT: {} = {}{} is below min {}", sensor.getName(), value, sensor.getType().getUnit(), threshold.getMinValue());
-            } else if (threshold.getMaxValue() != null && value > threshold.getMaxValue()) {
-                log.warn("ALERT: {} = {}{} is above max {}", sensor.getName(), value, sensor.getType().getUnit(), threshold.getMaxValue());
-            }
-        });
     }
 
     /**

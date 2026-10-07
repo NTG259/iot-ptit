@@ -1,39 +1,40 @@
 import { useState } from 'react'
-import { Alert, Button } from 'antd'
-import { LuRefreshCw } from 'react-icons/lu'
+import { Alert, Button, DatePicker, Input } from 'antd'
 import AppShell from '@/components/layout/AppShell'
-import Badge from '@/components/common/Badge'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
+import Badge from '@/components/common/Badge'
 import DataTable from '@/components/common/DataTable'
-import DateFilter, { dayRange } from '@/components/common/DateFilter'
-import SearchInput from '@/components/common/SearchInput'
-import { formatDateTime } from '@/utils/format'
-import { sensorService } from '@/services'
-import useApi from '@/hooks/useApi'
+import { dinhDangNgayGio, khoangNgay } from '@/utils/format'
+import { dichVuCamBien } from '@/services'
+import useGoiApi from '@/hooks/useApi'
 
-// Keyed by the backend SensorType enum; the unit itself comes from the API.
-const TYPES = {
+// Nhãn, màu và số chữ số thập phân của từng loại cảm biến (đơn vị lấy từ API).
+const LOAI = {
   TEMPERATURE: { label: 'Temperature', tone: 'green', unitClass: 'text-primary', decimals: 1 },
   HUMIDITY: { label: 'Humidity', tone: 'cyan', unitClass: 'text-cyan-600', decimals: 1 },
   LIGHT: { label: 'Light', tone: 'orange', unitClass: 'text-muted', decimals: 0 },
 }
 
-// Order of the Sensor Type filter, as in the design.
-const TYPE_OPTIONS = ['TEMPERATURE', 'LIGHT', 'HUMIDITY'].map((value) => ({ value, label: TYPES[value].label }))
+// Các ô tick của bộ lọc loại cảm biến.
+const LUA_CHON_LOAI = [
+  { value: 'TEMPERATURE', label: 'Temperature' },
+  { value: 'LIGHT', label: 'Light' },
+  { value: 'HUMIDITY', label: 'Humidity' },
+]
 
-const COLUMNS = [
-  { title: 'ID', dataIndex: 'id', render: (id) => <span className="font-semibold">#{id}</span> },
-  { title: 'Sensor', dataIndex: 'sensorName', render: (name) => <span className="font-medium whitespace-nowrap">{name}</span> },
-  { title: 'Sensor Type', dataIndex: 'sensorType', render: (type) => <Badge tone={TYPES[type].tone}>{TYPES[type].label}</Badge> },
+const CAC_COT = [
+  { title: 'ID', dataIndex: 'id' },
+  { title: 'Sensor', dataIndex: 'sensorName', render: (ten) => <span className="font-medium whitespace-nowrap">{ten}</span> },
+  { title: 'Sensor Type', dataIndex: 'sensorType', render: (loai) => <Badge tone={LOAI[loai].tone}>{LOAI[loai].label}</Badge> },
   {
     title: 'Value',
     dataIndex: 'value',
-    render: (value, r) => {
-      const t = TYPES[r.sensorType]
+    render: (giaTri, dong) => {
+      const cauHinhLoai = LOAI[dong.sensorType]
       return (
         <span className="whitespace-nowrap">
-          <span className="text-lg font-semibold">{value.toFixed(t.decimals)}</span>
-          <span className={`ml-1 text-sm ${t.unitClass}`}>{r.unit}</span>
+          <span className="text-lg font-semibold">{giaTri.toFixed(cauHinhLoai.decimals)}</span>
+          <span className={`ml-1 text-sm ${cauHinhLoai.unitClass}`}>{dong.unit}</span>
         </span>
       )
     },
@@ -41,78 +42,103 @@ const COLUMNS = [
   {
     title: 'Timestamp',
     dataIndex: 'measuredAt',
-    key: 'time',
-    sorter: true,
-    // Repeating 'descend' keeps the column toggling between the two orders instead of clearing the sort.
-    sortDirections: ['descend', 'ascend', 'descend'],
-    render: (at) => <span className="text-sm text-slate-600 whitespace-nowrap">{formatDateTime(new Date(at))}</span>,
+    render: (luc) => <span className="text-sm text-slate-600 whitespace-nowrap">{dinhDangNgayGio(new Date(luc))}</span>,
   },
 ]
 
-// The ESP8266 publishes every 2s, so poll at the same pace to show each new reading.
-const POLL_MS = 2000
-const EMPTY_PAGE = { items: [], totalItems: 0 }
+// Trang kết quả rỗng, dùng khi chưa tải xong hoặc khi bỏ tick hết loại cảm biến.
+const TRANG_TRONG = { items: [], totalItems: 0 }
 
+/**
+ * Sensors: trang bảng dữ liệu đo của các cảm biến.
+ * - Thanh công cụ: tìm theo tên cảm biến, giá trị hoặc giờ (HH:mm:ss), lọc theo loại cảm biến, chọn một ngày
+ *   (giờ Việt Nam, ô tìm kiếm có thể thu hẹp tiếp tới 17:20 hay 17:20:05) và nút Refresh.
+ *   Mọi thay đổi bộ lọc đều quay về trang 1.
+ * - Bỏ tick hết loại cảm biến nghĩa là "không hiện gì"; tick đủ tất cả thì không gửi bộ lọc loại.
+ * - Poll mỗi 2s, đúng nhịp ESP8266 gửi dữ liệu.
+ */
 export default function Sensors() {
-  const [query, setQuery] = useState('')
-  const [types, setTypes] = useState(Object.keys(TYPES))
-  // One day (Vietnam time); the search box then narrows it to a time such as 17:20 or 17:20:05.
-  const [day, setDay] = useState(null)
-  const [newestFirst, setNewestFirst] = useState(true)
-  const [page, setPage] = useState(1)
-  const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [tuKhoa, datTuKhoa] = useState('')
+  const [cacLoai, datCacLoai] = useState(['TEMPERATURE', 'LIGHT', 'HUMIDITY'])
+  const [ngay, datNgay] = useState(null)
+  const [moiNhatTruoc, datMoiNhatTruoc] = useState(true)
+  const [trang, datTrang] = useState(1)
+  const [soDongMoiTrang, datSoDongMoiTrang] = useState(10)
 
-  const allTypes = types.length === TYPE_OPTIONS.length
-
-  const withReset = (setter) => (value) => {
-    setter(value)
-    setPage(1)
-  }
-
-  const readings = useApi(
+  // Tải bảng số đo, tự tải lại mỗi 2s. Bỏ tick hết loại thì không hiện gì; tick đủ 3 loại thì không gửi bộ lọc loại.
+  const bangSoDo = useGoiApi(
     () => {
-      // Unticking every type means "show nothing", while an empty filter means "all" to the API.
-      if (types.length === 0) return Promise.resolve(EMPTY_PAGE)
-      return sensorService.getReadings({
-        search: query.trim(),
-        types: allTypes ? null : types,
-        ...dayRange(day),
-        newestFirst,
-        page,
-        size: rowsPerPage,
+      if (cacLoai.length === 0) return Promise.resolve(TRANG_TRONG)
+      return dichVuCamBien.laySoDo({
+        search: tuKhoa.trim(),
+        types: cacLoai.length === 3 ? null : cacLoai,
+        ...khoangNgay(ngay),
+        newestFirst: moiNhatTruoc,
+        page: trang,
+        size: soDongMoiTrang,
       })
     },
-    [query, types, day, newestFirst, page, rowsPerPage],
-    { intervalMs: POLL_MS },
+    [tuKhoa, cacLoai, ngay, moiNhatTruoc, trang, soDongMoiTrang],
+    { chuKyMs: 2000, giaTriDau: TRANG_TRONG },
   )
-  const { items: rows, totalItems } = readings.data ?? EMPTY_PAGE
+  const { items: cacDong, totalItems: tongSo } = bangSoDo.duLieu
 
   return (
     <AppShell breadcrumb="Sensors" title="Sensor Data" subtitle="Sensor reading history, updated every 2 seconds.">
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
-        <SearchInput value={query} onChange={withReset(setQuery)} placeholder="Sensor, value or time (HH:mm:ss)" />
-        <CheckboxFilter label="Sensor Type" options={TYPE_OPTIONS} value={types} onChange={withReset(setTypes)} />
-        <DateFilter value={day} onChange={withReset(setDay)} />
-        <Button icon={<LuRefreshCw className="w-4 h-4 text-muted" />} onClick={readings.reload}>
-          Refresh
-        </Button>
+        {/* Đổi bộ lọc nào cũng quay về trang 1. */}
+        <Input
+          allowClear
+          placeholder="Sensor, value or time (HH:mm:ss)"
+          value={tuKhoa}
+          onChange={(e) => {
+            datTuKhoa(e.target.value)
+            datTrang(1)
+          }}
+          style={{ width: 280 }}
+        />
+        <CheckboxFilter
+          label="Sensor Type"
+          header="Filter by type"
+          options={LUA_CHON_LOAI}
+          value={cacLoai}
+          onChange={(giaTri) => {
+            datCacLoai(giaTri)
+            datTrang(1)
+          }}
+        />
+        <DatePicker
+          value={ngay}
+          onChange={(giaTri) => {
+            datNgay(giaTri)
+            datTrang(1)
+          }}
+        />
+        <Button onClick={bangSoDo.taiLai}>Refresh</Button>
       </div>
 
-      {readings.error && <Alert type="error" showIcon title={`Could not load sensor data: ${readings.error.message}`} />}
+      {bangSoDo.loi && <Alert type="error" showIcon title={`Could not load sensor data: ${bangSoDo.loi.message}`} />}
 
       <DataTable
-        columns={COLUMNS.map((c) => (c.key === 'time' ? { ...c, sortOrder: newestFirst ? 'descend' : 'ascend' } : c))}
-        rows={rows}
-        loaded={!readings.loading}
+        columns={CAC_COT}
+        sortColumn="measuredAt"
+        rows={cacDong}
+        loaded={!bangSoDo.dangTai}
         emptyText="No readings match these filters."
-        page={page}
-        rowsPerPage={rowsPerPage}
-        total={totalItems}
+        page={trang}
+        rowsPerPage={soDongMoiTrang}
+        total={tongSo}
         noun="readings"
-        rowsOptions={[10, 20, 50]}
-        onPageChange={setPage}
-        onRowsPerPageChange={withReset(setRowsPerPage)}
-        onChange={(_pagination, _filters, sorter) => withReset(setNewestFirst)(sorter.order !== 'ascend')}
+        onPageChange={datTrang}
+        onRowsPerPageChange={(giaTri) => {
+          datSoDongMoiTrang(giaTri)
+          datTrang(1)
+        }}
+        newestFirst={moiNhatTruoc}
+        onNewestFirstChange={(giaTri) => {
+          datMoiNhatTruoc(giaTri)
+          datTrang(1)
+        }}
       />
     </AppShell>
   )

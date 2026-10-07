@@ -1,32 +1,34 @@
-import { config } from '@/config'
-import { ROUTES } from '@/routes/paths'
-import { clearSession, getToken } from './session'
+import { cauHinh } from '@/config'
+import { DUONG_DAN } from '@/routes/paths'
+import { xoaPhien, layToken } from './session'
 
-export class ApiError extends Error {
-  constructor(message, status) {
+// Lỗi khi gọi API: `message` lấy từ backend, `maHttp` là mã HTTP (vd 503 = ESP8266 chưa kết nối).
+export class LoiApi extends Error {
+  constructor(message, maHttp) {
     super(message)
-    this.status = status
+    this.maHttp = maHttp
   }
 }
 
-// Drops empty filters ('' / null / undefined / 'all') so callers can pass UI state straight through.
-function toQuery(params) {
-  if (!params) return ''
-  const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value === undefined || value === null || value === '' || value === 'all') continue
-    search.set(key, Array.isArray(value) ? value.join(',') : value)
+// Tạo query string, bỏ qua bộ lọc rỗng ('' / null / undefined) để nơi gọi truyền thẳng state của UI;
+// mảng được nối bằng dấu phẩy.
+function taoQuery(thamSo) {
+  if (!thamSo) return ''
+  const query = new URLSearchParams()
+  for (const [khoa, giaTri] of Object.entries(thamSo)) {
+    if (giaTri === undefined || giaTri === null || giaTri === '') continue
+    query.set(khoa, Array.isArray(giaTri) ? giaTri.join(',') : giaTri)
   }
-  const query = search.toString()
-  return query ? `?${query}` : ''
+  const chuoi = query.toString()
+  return chuoi ? `?${chuoi}` : ''
 }
 
-// Thin fetch wrapper so services never call fetch() directly. The backend wraps every body as
-// { success, message, data }; this returns `data` and throws ApiError with `message` on failure.
-async function request(path, { params, headers, ...options } = {}) {
-  const token = getToken()
-  const res = await fetch(`${config.apiBaseUrl}${path}${toQuery(params)}`, {
-    ...options,
+// Lớp bọc fetch để các service không gọi fetch() trực tiếp. Backend luôn trả về { success, message, data };
+// hàm này trả về `data`, lỗi thì ném LoiApi kèm `message`. Tự gắn token đăng nhập vào header.
+async function goiApi(duongDan, { thamSo, headers, ...tuyChon } = {}) {
+  const token = layToken()
+  const phanHoi = await fetch(`${cauHinh.diaChiApi}${duongDan}${taoQuery(thamSo)}`, {
+    ...tuyChon,
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
@@ -34,28 +36,29 @@ async function request(path, { params, headers, ...options } = {}) {
     },
   })
 
-  const body = res.status === 204 ? null : await res.json().catch(() => null)
+  const noiDung = phanHoi.status === 204 ? null : await phanHoi.json().catch(() => null)
 
-  if (res.status === 401 && token) {
-    // Token expired or revoked: drop it and send the user back to the login page.
-    clearSession()
-    window.location.assign(ROUTES.LOGIN)
+  if (phanHoi.status === 401 && token) {
+    // Token hết hạn hoặc bị thu hồi: xoá token và đưa người dùng về trang đăng nhập.
+    xoaPhien()
+    window.location.assign(DUONG_DAN.DANG_NHAP)
   }
-  if (!res.ok || body?.success === false) {
-    throw new ApiError(body?.message ?? `Request failed: ${res.status} ${res.statusText}`, res.status)
+  if (!phanHoi.ok || noiDung?.success === false) {
+    throw new LoiApi(noiDung?.message ?? `Request failed: ${phanHoi.status} ${phanHoi.statusText}`, phanHoi.status)
   }
-  // A 2xx without our JSON envelope (e.g. the dev server's index.html when the /api proxy is down)
-  // must fail loudly rather than hand callers a null they don't expect.
-  if (res.status !== 204 && body == null) {
-    throw new ApiError(`Unexpected response from ${path}: not JSON — is the backend reachable?`, res.status)
+  // Response 2xx nhưng không phải JSON của backend (vd index.html của dev server khi proxy /api không chạy)
+  // thì báo lỗi rõ ràng, thay vì trả về null mà nơi gọi không ngờ tới.
+  if (phanHoi.status !== 204 && noiDung == null) {
+    throw new LoiApi(`Unexpected response from ${duongDan}: not JSON — is the backend reachable?`, phanHoi.status)
   }
 
-  return body?.data ?? null
+  return noiDung?.data ?? null
 }
 
-export const apiClient = {
-  get: (path, params, options) => request(path, { ...options, params, method: 'GET' }),
-  post: (path, body, options) => request(path, { ...options, method: 'POST', body: JSON.stringify(body) }),
-  put: (path, body, options) => request(path, { ...options, method: 'PUT', body: JSON.stringify(body) }),
-  delete: (path, options) => request(path, { ...options, method: 'DELETE' }),
+// Các phương thức HTTP; nội dung của post/put được chuyển sang JSON.
+export const khachApi = {
+  get: (duongDan, thamSo, tuyChon) => goiApi(duongDan, { ...tuyChon, thamSo, method: 'GET' }),
+  post: (duongDan, noiDung, tuyChon) => goiApi(duongDan, { ...tuyChon, method: 'POST', body: JSON.stringify(noiDung) }),
+  put: (duongDan, noiDung, tuyChon) => goiApi(duongDan, { ...tuyChon, method: 'PUT', body: JSON.stringify(noiDung) }),
+  delete: (duongDan, tuyChon) => goiApi(duongDan, { ...tuyChon, method: 'DELETE' }),
 }

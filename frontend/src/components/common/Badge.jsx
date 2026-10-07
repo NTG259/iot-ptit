@@ -1,5 +1,4 @@
-// Tone classes are spelled out in full so Tailwind can see them.
-const TONES = {
+const MAU_NHAN = {
   green: { box: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' },
   blue: { box: 'bg-blue-50 border-blue-200 text-blue-700', dot: 'bg-blue-500' },
   red: { box: 'bg-red-50 border-red-200 text-red-700', dot: 'bg-red-500' },
@@ -8,12 +7,15 @@ const TONES = {
   orange: { box: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500' },
 }
 
-/** Pill, optionally with a leading status dot (`dot`). */
+/**
+ * Badge: nhãn bo tròn hiển thị trạng thái hoặc loại, có thể kèm chấm màu phía trước (`dot`).
+ * `tone` chọn bộ màu trong MAU_NHAN; các class Tailwind được viết đầy đủ để Tailwind quét được.
+ */
 export default function Badge({ tone = 'gray', dot = false, children }) {
-  const t = TONES[tone]
+  const mau = MAU_NHAN[tone]
   return (
-    <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 border rounded-full tabular-nums text-sm whitespace-nowrap ${t.box}`}>
-      {dot && <span className={`w-1.5 h-1.5 rounded-full ${t.dot}`} />}
+    <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 border rounded-full tabular-nums text-sm whitespace-nowrap ${mau.box}`}>
+      {dot && <span className={`w-1.5 h-1.5 rounded-full ${mau.dot}`} />}
       {children}
     </span>
   )

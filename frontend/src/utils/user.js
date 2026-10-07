@@ -1,5 +1,5 @@
-/** "Nguyễn Trường Giang" -> "TG" (last two words, like the design). */
-export function initialsOf(name) {
-  const words = (name ?? '').trim().split(/\s+/).filter(Boolean)
-  return words.slice(-2).map((w) => w[0].toUpperCase()).join('') || '?'
+/** "Nguyễn Trường Giang" -> "TG" (chữ cái đầu của hai từ cuối, theo thiết kế). */
+export function layChuCaiDau(ten) {
+  const cacTu = (ten ?? '').trim().split(/\s+/).filter(Boolean)
+  return cacTu.slice(-2).map((tu) => tu[0].toUpperCase()).join('') || '?'
 }

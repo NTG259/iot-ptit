@@ -4,24 +4,23 @@ import Login from '@/pages/Login'
 import Sensors from '@/pages/Sensors'
 import History from '@/pages/History'
 import Profile from '@/pages/Profile'
-import Settings from '@/pages/Settings'
 import RequireAuth from './RequireAuth'
-import { ROUTES } from './paths'
+import { DUONG_DAN } from './paths'
 
-const router = createBrowserRouter([
-  { path: ROUTES.LOGIN, element: <Login /> },
+// Trang đăng nhập đứng riêng; các trang còn lại phải đăng nhập mới vào được.
+const boDinhTuyen = createBrowserRouter([
+  { path: DUONG_DAN.DANG_NHAP, element: <Login /> },
   {
     element: <RequireAuth />,
     children: [
-      { path: ROUTES.DASHBOARD, element: <Dashboard /> },
-      { path: ROUTES.SENSORS, element: <Sensors /> },
-      { path: ROUTES.HISTORY, element: <History /> },
-      { path: ROUTES.PROFILE, element: <Profile /> },
-      { path: ROUTES.SETTINGS, element: <Settings /> },
+      { path: DUONG_DAN.BANG_DIEU_KHIEN, element: <Dashboard /> },
+      { path: DUONG_DAN.CAM_BIEN, element: <Sensors /> },
+      { path: DUONG_DAN.LICH_SU, element: <History /> },
+      { path: DUONG_DAN.HO_SO, element: <Profile /> },
     ],
   },
 ])
 
 export default function AppRouter() {
-  return <RouterProvider router={router} />
+  return <RouterProvider router={boDinhTuyen} />
 }

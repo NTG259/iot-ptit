@@ -1,18 +1,15 @@
 package com.iot.backend.service;
 
 import com.iot.backend.dto.PageResponse;
-import com.iot.backend.dto.SensorDataResponse;
+import com.iot.backend.dto.SensorChartResponse;
 import com.iot.backend.dto.SensorResponse;
-import com.iot.backend.dto.ThresholdRequest;
-import com.iot.backend.dto.ThresholdResponse;
 import com.iot.backend.entity.Sensor;
-import com.iot.backend.entity.SensorThreshold;
+import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.entity.enums.SensorType;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
-import com.iot.backend.repository.SensorThresholdRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -24,6 +21,8 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -35,9 +34,11 @@ public class SensorService {
     /** Readings are late but may resume; older than this (or none at all) means offline. */
     private static final Duration STANDBY_WINDOW = Duration.ofSeconds(60);
 
+    /** Chart times are shown as "HH:mm:ss" in Vietnam time, like every other time in the app. */
+    private static final DateTimeFormatter CHART_TIME = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
-    private final SensorThresholdRepository sensorThresholdRepository;
 
     /** Every filter is optional; {@code page} is 1-based. Sorted by last reading time. */
     @Transactional(readOnly = true)
@@ -61,58 +62,30 @@ public class SensorService {
         }
 
         Sort sort = Sort.by(newestFirst ? Sort.Direction.DESC : Sort.Direction.ASC, "lastReadingAt");
-        return PageResponse.of(sensorRepository.findAll(spec, PageRequest.of(page - 1, size, sort)).map(SensorResponse::from));
+        var sensors = sensorRepository.findAll(spec, PageRequest.of(page - 1, size, sort));
+        return PageResponse.of(sensors.map(SensorResponse::from));
     }
 
-    /**
-     * Readings for one sensor between {@code from} and {@code to} (default: the last 24 hours).
-     * With {@code buckets}, the range is split into that many slots and each returns its average,
-     * so long ranges stay small enough for a chart.
-     */
+    /** One sensor with its latest reading and status (a dashboard card). */
     @Transactional(readOnly = true)
-    public List<SensorDataResponse> getData(String code, Instant from, Instant to, Integer buckets) {
-        Sensor sensor = findSensor(code);
-        Instant end = to != null ? to : Instant.now();
-        Instant start = from != null ? from : end.minus(Duration.ofHours(24));
-
-        if (buckets == null) {
-            return sensorDataRepository.findBySensorIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(sensor.getId(), start, end)
-                    .stream()
-                    .map(SensorDataResponse::from)
-                    .toList();
-        }
-        if (buckets < 1) {
-            throw new IllegalArgumentException("buckets must be at least 1");
-        }
-        long stepSeconds = Math.max(1, Duration.between(start, end).toSeconds() / buckets);
-        return sensorDataRepository.averageByBucket(sensor.getId(), start, end, stepSeconds).stream()
-                .map(b -> new SensorDataResponse(b.getAvgValue(), Instant.ofEpochSecond(b.getBucketEpoch())))
-                .toList();
+    public SensorResponse getSensor(String code) {
+        return SensorResponse.from(findSensor(code));
     }
 
+    /** The {@code limit} newest readings of one sensor, oldest first (the dashboard chart). */
     @Transactional(readOnly = true)
-    public ThresholdResponse getThreshold(String code) {
-        Sensor sensor = findSensor(code);
-        return sensorThresholdRepository.findBySensorId(sensor.getId())
-                .map(ThresholdResponse::from)
-                .orElse(new ThresholdResponse(sensor.getCode(), null, null));
+    public SensorChartResponse getLatest(String code, int limit) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("limit must be at least 1");
+        }
+        List<SensorData> readings = sensorDataRepository
+                .findBySensorIdOrderByMeasuredAtDesc(findSensor(code).getId(), PageRequest.of(0, limit))
+                .reversed();
+        return new SensorChartResponse(
+                readings.stream().map(SensorData::getValue).toList(),
+                readings.stream().map(reading -> CHART_TIME.format(reading.getMeasuredAt())).toList());
     }
 
-    @Transactional
-    public ThresholdResponse updateThreshold(String code, ThresholdRequest request) {
-        if (request.minValue() != null && request.maxValue() != null && request.minValue() > request.maxValue()) {
-            throw new IllegalArgumentException("minValue must not be greater than maxValue");
-        }
-        Sensor sensor = findSensor(code);
-        SensorThreshold threshold = sensorThresholdRepository.findBySensorId(sensor.getId()).orElseGet(() -> {
-            SensorThreshold created = new SensorThreshold();
-            created.setSensor(sensor);
-            return created;
-        });
-        threshold.setMinValue(request.minValue());
-        threshold.setMaxValue(request.maxValue());
-        return ThresholdResponse.from(sensorThresholdRepository.save(threshold));
-    }
 
     /** Keeps each sensor's status in line with how long ago its last reading arrived. */
     @Scheduled(fixedDelay = 5000)

@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 
-// Current time, refreshed every `intervalMs` so clocks stay live.
-export default function useNow(intervalMs = 1000) {
-  const [now, setNow] = useState(() => new Date())
+// Thời gian hiện tại, tự cập nhật mỗi `chuKyMs` mili giây để đồng hồ chạy liên tục.
+export default function useBayGio(chuKyMs = 1000) {
+  const [bayGio, datBayGio] = useState(() => new Date())
 
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), intervalMs)
+    const id = setInterval(() => datBayGio(new Date()), chuKyMs)
     return () => clearInterval(id)
-  }, [intervalMs])
+  }, [chuKyMs])
 
-  return now
+  return bayGio
 }

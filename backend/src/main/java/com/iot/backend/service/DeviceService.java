@@ -5,6 +5,7 @@ import com.iot.backend.entity.Device;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
+import com.iot.backend.exception.DeviceOfflineException;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.mqtt.EspPresence;
 import com.iot.backend.mqtt.MqttPublisher;
@@ -40,6 +41,18 @@ public class DeviceService {
         return deviceRepository.findAll(Sort.by("code"));
     }
 
+    /**
+     * The action the device is still waiting on the ESP8266 to confirm, or null. Only its latest command counts
+     * (an older one still PENDING was superseded by a newer click), and only if it would change the LED's state.
+     */
+    public DeviceAction pendingAction(Device device) {
+        DeviceAction current = device.getState() == DeviceState.ON ? DeviceAction.TURN_ON : DeviceAction.TURN_OFF;
+        return actionHistoryRepository.findFirstByDeviceOrderByIdDesc(device)
+                .filter(history -> history.getStatus() == ActionStatus.PENDING && history.getAction() != current)
+                .map(ActionHistory::getAction)
+                .orElse(null);
+    }
+
     /** Sends the action to every device (the dashboard's "All On" / "All Off"); one history row per device. */
     public List<ActionHistory> controlAll(DeviceAction action) {
         espPresence.ensureOnline();
@@ -58,6 +71,7 @@ public class DeviceService {
     /**
      * Logs the action as PENDING, then publishes the command. Intentionally not
      * transactional: the PENDING row must be committed before the ESP8266 replies.
+     * If the broker rejects it, the action is logged as FAILED and DeviceOfflineException is thrown (503).
      */
     private ActionHistory send(String deviceCode, DeviceAction action) {
         Device device = deviceRepository.findByCode(deviceCode)
@@ -73,7 +87,8 @@ public class DeviceService {
         } catch (MqttException e) {
             log.warn("Failed to send {} to {}: {}", action, device.getCode(), e.getMessage());
             history.setStatus(ActionStatus.FAILED);
-            history = actionHistoryRepository.save(history);
+            actionHistoryRepository.save(history);
+            throw new DeviceOfflineException("Could not send the command to " + device.getCode() + " — is the MQTT broker running?");
         }
         return history;
     }

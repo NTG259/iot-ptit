@@ -1,16 +1,18 @@
-import { useRef } from 'react'
-import { Pagination, Table } from 'antd'
+import { Table } from 'antd'
 
-const CLASS_NAMES = {
-  header: { cell: 'tracking-[0.12em] uppercase text-sm font-medium whitespace-nowrap' },
-}
+// Cột thời gian chỉ đảo giữa mới nhất trước và cũ nhất trước, không bao giờ bỏ sắp xếp.
+const SAP_XEP_THOI_GIAN = { sorter: true, sortDirections: ['descend', 'ascend', 'descend'] }
 
 /**
- * Server-paginated table that fills its panel: the rows scroll under a sticky header
- * and the pagination bar stays pinned below them.
+ * DataTable: bảng phân trang phía server, dùng phân trang có sẵn của antd, nằm trong một panel chiếm hết chiều cao còn lại
+ * (bảng dài thì panel cuộn).
+ * - Đổi trang gọi `onPageChange`, đổi số dòng mỗi trang gọi `onRowsPerPageChange`.
+ * - `sortColumn` là `dataIndex` của cột thời gian (vd 'measuredAt'): bấm vào tiêu đề cột đó thì kết quả báo qua
+ *   `onNewestFirstChange`.
  */
 export default function DataTable({
   columns,
+  sortColumn,
   rows,
   loaded,
   emptyText,
@@ -21,43 +23,31 @@ export default function DataTable({
   rowsOptions = [10, 20, 50],
   onPageChange,
   onRowsPerPageChange,
-  onChange,
+  newestFirst,
+  onNewestFirstChange,
 }) {
-  const scrollRef = useRef(null)
-  const from = total === 0 ? 0 : (page - 1) * rowsPerPage + 1
-  const to = Math.min(total, page * rowsPerPage)
-
   return (
-    <section className="panel flex-1 min-h-0 overflow-hidden flex flex-col">
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-auto">
-        <Table
-          rowKey="id"
-          columns={columns}
-          dataSource={rows}
-          loading={!loaded}
-          pagination={false}
-          sticky={{ getContainer: () => scrollRef.current }}
-          locale={{ emptyText: loaded ? emptyText : ' ' }}
-          classNames={CLASS_NAMES}
-          onChange={onChange}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center shrink-0 gap-4 px-5 py-3 border-t border-outline text-muted">
-        <span>
-          Showing <span className="text-text">{from}–{to}</span> of{' '}
-          <span className="text-text">{total.toLocaleString('en-US')}</span> {noun}
-        </span>
-        <Pagination
-          className="ml-auto"
-          current={page}
-          pageSize={rowsPerPage}
-          total={total}
-          showSizeChanger
-          pageSizeOptions={rowsOptions}
-          onChange={(nextPage, nextSize) => (nextSize === rowsPerPage ? onPageChange(nextPage) : onRowsPerPageChange(nextSize))}
-        />
-      </div>
+    <section className="panel flex-1 min-h-0 overflow-auto">
+      <Table
+        rowKey="id"
+        columns={columns.map((cot) => (cot.dataIndex === sortColumn ? { ...cot, ...SAP_XEP_THOI_GIAN, sortOrder: newestFirst ? 'descend' : 'ascend' } : cot))}
+        dataSource={rows}
+        loading={!loaded}
+        locale={{ emptyText: loaded ? emptyText : ' ' }}
+        pagination={{
+          current: page,
+          pageSize: rowsPerPage,
+          total,
+          showSizeChanger: true,
+          pageSizeOptions: rowsOptions,
+          showTotal: (tong) => `${tong.toLocaleString('en-US')} ${noun}`,
+          // Thư viện dùng chung một sự kiện cho cả đổi trang lẫn đổi số dòng mỗi trang: kích thước đổi thì là đổi số dòng.
+          onChange: (trangMoi, soDongMoi) => (soDongMoi === rowsPerPage ? onPageChange(trangMoi) : onRowsPerPageChange(soDongMoi)),
+        }}
+        onChange={(_phanTrang, _loc, sapXep, hanhDong) => {
+          if (hanhDong.action === 'sort') onNewestFirstChange(sapXep.order !== 'ascend')
+        }}
+      />
     </section>
   )
 }

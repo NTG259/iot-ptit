@@ -1,25 +1,20 @@
-const pad = (n) => String(n).padStart(2, '0')
+// Mọi thời gian trong app hiển thị theo giờ Việt Nam, bất kể múi giờ của trình duyệt.
+export const MUI_GIO_VN = 'Asia/Ho_Chi_Minh'
 
-// Vietnam time is UTC+7 all year (no daylight saving), so a fixed offset is exact.
-const VN_OFFSET_MS = 7 * 60 * 60 * 1000
-
-/** The same instant shifted so its getUTC*() fields read as Vietnam wall-clock time. */
-export function inVietnam(date) {
-  return new Date(date.getTime() + VN_OFFSET_MS)
+/**
+ * "2025-05-18 14:32:05" theo giờ Việt Nam: định dạng thời gian duy nhất dùng trong các bảng,
+ * cũng là định dạng mà ô tìm kiếm hiểu được.
+ */
+export function dinhDangNgayGio(ngayGio) {
+  return ngayGio.toLocaleString('sv-SE', { timeZone: MUI_GIO_VN })
 }
 
 /**
- * "2025-05-18 14:32:05" in Vietnam time, whatever the browser's own time zone — the one timestamp
- * format used across the tables, and the same format the search box understands.
+ * Đổi một ngày đã chọn (giá trị dayjs của antd, hoặc null) thành khoảng { from, to } theo giờ Việt Nam (UTC+7),
+ * khớp với cách các bảng hiển thị thời gian; không chọn ngày thì cả hai là null (mọi ngày).
  */
-export function formatDateTime(date) {
-  const vn = inVietnam(date)
-  return `${vn.getUTCFullYear()}-${pad(vn.getUTCMonth() + 1)}-${pad(vn.getUTCDate())} ${formatTime(date, true)}`
-}
-
-/** "14:32" (or "14:32:05" with seconds) in Vietnam time. */
-export function formatTime(date, seconds = false) {
-  const vn = inVietnam(date)
-  const hm = `${pad(vn.getUTCHours())}:${pad(vn.getUTCMinutes())}`
-  return seconds ? `${hm}:${pad(vn.getUTCSeconds())}` : hm
+export function khoangNgay(ngay) {
+  if (!ngay) return { from: null, to: null }
+  const chuoiNgay = ngay.format('YYYY-MM-DD')
+  return { from: `${chuoiNgay}T00:00:00+07:00`, to: `${chuoiNgay}T23:59:59.999+07:00` }
 }

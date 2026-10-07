@@ -1,7 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { getToken } from '@/services/session'
-import { ROUTES } from './paths'
+import { layToken } from '@/services/session'
+import { DUONG_DAN } from './paths'
 
+// Chặn các trang cần đăng nhập: chưa có token thì chuyển về trang đăng nhập.
 export default function RequireAuth() {
-  return getToken() ? <Outlet /> : <Navigate to={ROUTES.LOGIN} replace />
+  return layToken() ? <Outlet /> : <Navigate to={DUONG_DAN.DANG_NHAP} replace />
 }
