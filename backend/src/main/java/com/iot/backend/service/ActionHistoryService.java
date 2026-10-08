@@ -26,20 +26,15 @@ public class ActionHistoryService {
 
     /**
      * Every filter is optional (an empty list means any); {@code page} is 1-based. Newest actions first by default.
-     * {@code search} is a Vietnam-time date/time or time of day (see {@link TimeSearch}), or else a device code/name.
+     * {@code search} is matched against the field {@code searchBy} names (time, type or name; see {@link TimeSearch}); when null, a time if it reads as one, else a device code/name.
      */
     @Transactional(readOnly = true)
-    public PageResponse<ActionHistoryResponse> search(String search, List<ActionStatus> status, List<DeviceAction> action,
+    public PageResponse<ActionHistoryResponse> search(String search, SearchBy searchBy, List<ActionStatus> status, List<DeviceAction> action,
                                                       List<DeviceType> deviceType, Instant from, Instant to,
                                                       boolean newestFirst, int page, int size) {
         Specification<ActionHistory> spec = Specification.unrestricted();
         if (StringUtils.hasText(search)) {
-            // A time ("2026-10-03 17:20", "17:20:05") matches when the action was sent; anything else the device.
-            Specification<ActionHistory> time = TimeSearch.matching(search.trim(), "createdAt", "secondOfDay");
-            String pattern = "%" + search.trim().toLowerCase() + "%";
-            spec = spec.and(time != null ? time : (root, query, cb) -> cb.or(
-                    cb.like(cb.lower(root.get("device").get("code")), pattern),
-                    cb.like(cb.lower(root.get("device").get("name")), pattern)));
+            spec = spec.and(matching(search.trim(), searchBy));
         }
         if (status != null && !status.isEmpty()) {
             spec = spec.and((root, query, cb) -> root.get("status").in(status));
@@ -61,5 +56,28 @@ public class ActionHistoryService {
         Sort.Direction direction = newestFirst ? Sort.Direction.DESC : Sort.Direction.ASC;
         PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(direction, "createdAt", "id"));
         return PageResponse.of(actionHistoryRepository.findAll(spec, pageable).map(ActionHistoryResponse::from));
+    }
+
+    /** Matches {@code search} against the chosen field; with no field, a time if it reads as one, else the device. */
+    private static Specification<ActionHistory> matching(String search, SearchBy searchBy) {
+        Specification<ActionHistory> time = TimeSearch.matching(search, "createdAt", "secondOfDay");
+        if (searchBy == null) {
+            return time != null ? time : name(search);
+        }
+        return switch (searchBy) {
+            case TIME -> time != null ? time : (root, query, cb) -> cb.disjunction();
+            case TYPE -> {
+                String pattern = "%" + search.toLowerCase().replace(' ', '_') + "%";
+                yield (root, query, cb) -> cb.like(cb.lower(root.get("device").get("type").as(String.class)), pattern);
+            }
+            case NAME, VALUE -> name(search);
+        };
+    }
+
+    private static Specification<ActionHistory> name(String search) {
+        String pattern = "%" + search.toLowerCase() + "%";
+        return (root, query, cb) -> cb.or(
+                cb.like(cb.lower(root.get("device").get("code")), pattern),
+                cb.like(cb.lower(root.get("device").get("name")), pattern));
     }
 }

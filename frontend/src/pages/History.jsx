@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, DatePicker, Input } from 'antd'
+import { Alert, DatePicker, Input, Select, Space } from 'antd'
 import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
 import Badge from '@/components/common/Badge'
@@ -28,6 +28,13 @@ const LUA_CHON_HANH_DONG = [
   { value: 'TURN_OFF', label: 'Turn OFF' },
 ]
 const LUA_CHON_LOAI_THIET_BI = [{ value: 'SMART_LED', label: 'Smart LED' }]
+
+// Các trường mà ô tìm kiếm có thể so khớp, kèm gợi ý nhập.
+const TRUONG_TIM_KIEM = [
+  { value: 'NAME', label: 'Name', placeholder: 'Device name' },
+  { value: 'TYPE', label: 'Type', placeholder: 'Smart LED' },
+  { value: 'TIME', label: 'Date time', placeholder: '2026-10-03 17:20 or 17:20:05' },
+]
 
 // Trang kết quả rỗng, dùng khi chưa tải xong hoặc khi bỏ tick hết một bộ lọc.
 const TRANG_TRONG = { items: [], totalItems: 0 }
@@ -61,13 +68,14 @@ const CAC_COT = [
 
 /**
  * History: trang lịch sử bật/tắt thiết bị (action history).
- * - Thanh công cụ: tìm theo tên thiết bị hoặc giờ (HH:mm:ss), lọc theo Status / Action / Device Type và theo ngày.
+ * - Thanh công cụ: tìm theo tên, loại thiết bị hoặc ngày giờ (chọn trường ở ô dropdown bên cạnh), lọc theo Status / Action / Device Type và theo ngày.
  *   Mọi thay đổi bộ lọc đều quay về trang 1.
  * - Bỏ tick hết một bộ lọc nghĩa là "không hiện gì"; còn tick đủ tất cả thì không gửi bộ lọc đó (API hiểu là "mọi giá trị").
  * - Poll mỗi 3s để thấy các lệnh PENDING chuyển sang SUCCESS / FAILED.
  */
 export default function History() {
   const [tuKhoa, datTuKhoa] = useState('')
+  const [truongTim, datTruongTim] = useState('NAME')
   const [cacTrangThai, datCacTrangThai] = useState(['SUCCESS', 'PENDING', 'FAILED'])
   const [cacHanhDong, datCacHanhDong] = useState(['TURN_ON', 'TURN_OFF'])
   const [cacLoaiThietBi, datCacLoaiThietBi] = useState(['SMART_LED'])
@@ -82,6 +90,7 @@ export default function History() {
       if (cacTrangThai.length === 0 || cacHanhDong.length === 0 || cacLoaiThietBi.length === 0) return Promise.resolve(TRANG_TRONG)
       return dichVuLichSu.layLichSuLenh({
         search: tuKhoa.trim(),
+        searchBy: truongTim,
         status: cacTrangThai.length === 3 ? null : cacTrangThai,
         action: cacHanhDong.length === 2 ? null : cacHanhDong,
         deviceType: cacLoaiThietBi.length === 1 ? null : cacLoaiThietBi,
@@ -91,7 +100,7 @@ export default function History() {
         size: soDongMoiTrang,
       })
     },
-    [tuKhoa, cacTrangThai, cacHanhDong, cacLoaiThietBi, ngay, moiNhatTruoc, trang, soDongMoiTrang],
+    [tuKhoa, truongTim, cacTrangThai, cacHanhDong, cacLoaiThietBi, ngay, moiNhatTruoc, trang, soDongMoiTrang],
     { chuKyMs: 3000, giaTriDau: TRANG_TRONG },
   )
   const { items: cacDong, totalItems: tongSo } = bangLichSu.duLieu
@@ -104,16 +113,28 @@ export default function History() {
     >
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
         {/* Đổi bộ lọc nào cũng quay về trang 1. */}
-        <Input
-          allowClear
-          placeholder="Device or time (HH:mm:ss)"
-          value={tuKhoa}
-          onChange={(e) => {
-            datTuKhoa(e.target.value)
-            datTrang(1)
-          }}
-          style={{ width: 240 }}
-        />
+        <Space.Compact>
+          <Select
+            value={truongTim}
+            options={TRUONG_TIM_KIEM}
+            onChange={(giaTri) => {
+              datTruongTim(giaTri)
+              datTuKhoa('')
+              datTrang(1)
+            }}
+            style={{ width: 120 }}
+          />
+          <Input
+            allowClear
+            placeholder={TRUONG_TIM_KIEM.find((t) => t.value === truongTim).placeholder}
+            value={tuKhoa}
+            onChange={(e) => {
+              datTuKhoa(e.target.value)
+              datTrang(1)
+            }}
+            style={{ width: 240 }}
+          />
+        </Space.Compact>
         <CheckboxFilter
           label="Status"
           header="Filter by status"

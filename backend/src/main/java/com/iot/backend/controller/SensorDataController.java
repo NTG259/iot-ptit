@@ -4,6 +4,7 @@ import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorReadingResponse;
 import com.iot.backend.entity.enums.SensorType;
+import com.iot.backend.service.SearchBy;
 import com.iot.backend.service.SensorDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,12 +26,13 @@ public class SensorDataController {
     @GetMapping
     public ApiResponse<PageResponse<SensorReadingResponse>> search(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) SearchBy searchBy,
             @RequestParam(required = false) List<SensorType> types,
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(sensorDataService.search(search, types, from, to, newestFirst, page, size));
+        return ApiResponse.ok(sensorDataService.search(search, searchBy, types, from, to, newestFirst, page, size));
     }
 }

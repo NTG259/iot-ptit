@@ -52,16 +52,16 @@ public class SensorDataService {
 
     /**
      * Stored readings, newest first by default; every filter is optional and {@code page} is 1-based.
-     * {@code search} is matched, in this order, as a Vietnam-time date/time prefix ("2026-10-03 17:20" means that
+     * {@code search} is matched against the field {@code searchBy} names (time, type, value or name); when that is null it is matched, in this order, as a Vietnam-time date/time prefix ("2026-10-03 17:20" means that
      * whole minute), a Vietnam time of day on any date ("17:20" or "17:20:05"; combine with from/to for one day), an exact
      * value when it is a number, or else against the sensor code or name.
      */
     @Transactional(readOnly = true)
-    public PageResponse<SensorReadingResponse> search(String search, List<SensorType> types, Instant from, Instant to,
+    public PageResponse<SensorReadingResponse> search(String search, SearchBy searchBy, List<SensorType> types, Instant from, Instant to,
                                                       boolean newestFirst, int page, int size) {
         Specification<SensorData> spec = Specification.unrestricted();
         if (StringUtils.hasText(search)) {
-            spec = spec.and(matching(search.trim()));
+            spec = spec.and(matching(search.trim(), searchBy));
         }
         if (types != null && !types.isEmpty()) {
             spec = spec.and((root, query, cb) -> root.get("sensor").get("type").in(types));
@@ -79,15 +79,37 @@ public class SensorDataService {
         return PageResponse.of(sensorDataRepository.findAll(spec, pageable).map(SensorReadingResponse::from));
     }
 
-    private static Specification<SensorData> matching(String search) {
-        Specification<SensorData> time = TimeSearch.matching(search, "measuredAt", "secondOfDay");
-        if (time != null) {
-            return time;
+    private static Specification<SensorData> matching(String search, SearchBy searchBy) {
+        if (searchBy == null) {
+            Specification<SensorData> time = TimeSearch.matching(search, "measuredAt", "secondOfDay");
+            if (time != null) {
+                return time;
+            }
+            Double number = parseNumber(search);
+            return number != null ? valueEquals(number) : name(search);
         }
-        Double number = parseNumber(search);
-        if (number != null) {
-            return (root, query, cb) -> cb.equal(root.get("value"), number);
-        }
+        return switch (searchBy) {
+            case TIME -> {
+                Specification<SensorData> time = TimeSearch.matching(search, "measuredAt", "secondOfDay");
+                yield time != null ? time : (root, query, cb) -> cb.disjunction();
+            }
+            case TYPE -> {
+                String pattern = "%" + search.toLowerCase().replace(' ', '_') + "%";
+                yield (root, query, cb) -> cb.like(cb.lower(root.get("sensor").get("type").as(String.class)), pattern);
+            }
+            case VALUE -> {
+                Double number = parseNumber(search);
+                yield number != null ? valueEquals(number) : (root, query, cb) -> cb.disjunction();
+            }
+            case NAME -> name(search);
+        };
+    }
+
+    private static Specification<SensorData> valueEquals(Double number) {
+        return (root, query, cb) -> cb.equal(root.get("value"), number);
+    }
+
+    private static Specification<SensorData> name(String search) {
         String pattern = "%" + search.toLowerCase() + "%";
         return (root, query, cb) -> cb.or(
                 cb.like(cb.lower(root.get("sensor").get("code")), pattern),

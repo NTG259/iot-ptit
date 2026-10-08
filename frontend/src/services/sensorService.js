@@ -48,9 +48,10 @@ export function layAnhSangMoiNhat({ limit } = {}) {
  * Lịch sử số đo của mọi cảm biến (trang Sensors), có phân trang. Mọi tham số đều tuỳ chọn.
  * - search: tên/mã cảm biến, một giá trị, hoặc ngày giờ / giờ trong ngày theo giờ Việt Nam,
  *   vd "2026-10-03 17:20" hay "17:20:05".
+ * - searchBy: TIME | TYPE | NAME | VALUE, ô search được so khớp với trường nào (bỏ trống thì backend tự đoán).
  * - types: mảng loại cảm biến; from, to: khoảng thời gian; newestFirst: sắp xếp mới nhất trước.
  * - page (bắt đầu từ 1), size: phân trang.
  */
-export function laySoDo({ search, types, from, to, newestFirst, page, size } = {}) {
-  return khachApi.get('/sensor-data', { search, types, from, to, newestFirst, page, size })
+export function laySoDo({ search, searchBy, types, from, to, newestFirst, page, size } = {}) {
+  return khachApi.get('/sensor-data', { search, searchBy, types, from, to, newestFirst, page, size })
 }

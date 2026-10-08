@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Button, DatePicker, Input } from 'antd'
+import { Alert, Button, DatePicker, Input, Select, Space } from 'antd'
 import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
 import Badge from '@/components/common/Badge'
@@ -20,6 +20,14 @@ const LUA_CHON_LOAI = [
   { value: 'TEMPERATURE', label: 'Temperature' },
   { value: 'LIGHT', label: 'Light' },
   { value: 'HUMIDITY', label: 'Humidity' },
+]
+
+// Các trường mà ô tìm kiếm có thể so khớp, kèm gợi ý nhập.
+const TRUONG_TIM_KIEM = [
+  { value: 'NAME', label: 'Name', placeholder: 'Sensor name' },
+  { value: 'TYPE', label: 'Type', placeholder: 'Temperature, Humidity, Light' },
+  { value: 'VALUE', label: 'Value', placeholder: 'Exact value, e.g. 28.5' },
+  { value: 'TIME', label: 'Date time', placeholder: '2026-10-03 17:20 or 17:20:05' },
 ]
 
 const CAC_COT = [
@@ -51,7 +59,7 @@ const TRANG_TRONG = { items: [], totalItems: 0 }
 
 /**
  * Sensors: trang bảng dữ liệu đo của các cảm biến.
- * - Thanh công cụ: tìm theo tên cảm biến, giá trị hoặc giờ (HH:mm:ss), lọc theo loại cảm biến, chọn một ngày
+ * - Thanh công cụ: tìm theo tên, loại, giá trị hoặc ngày giờ (chọn trường ở ô dropdown bên cạnh), lọc theo loại cảm biến, chọn một ngày
  *   (giờ Việt Nam, ô tìm kiếm có thể thu hẹp tiếp tới 17:20 hay 17:20:05) và nút Refresh.
  *   Mọi thay đổi bộ lọc đều quay về trang 1.
  * - Bỏ tick hết loại cảm biến nghĩa là "không hiện gì"; tick đủ tất cả thì không gửi bộ lọc loại.
@@ -59,6 +67,7 @@ const TRANG_TRONG = { items: [], totalItems: 0 }
  */
 export default function Sensors() {
   const [tuKhoa, datTuKhoa] = useState('')
+  const [truongTim, datTruongTim] = useState('NAME')
   const [cacLoai, datCacLoai] = useState(['TEMPERATURE', 'LIGHT', 'HUMIDITY'])
   const [ngay, datNgay] = useState(null)
   const [moiNhatTruoc, datMoiNhatTruoc] = useState(true)
@@ -71,6 +80,7 @@ export default function Sensors() {
       if (cacLoai.length === 0) return Promise.resolve(TRANG_TRONG)
       return dichVuCamBien.laySoDo({
         search: tuKhoa.trim(),
+        searchBy: truongTim,
         types: cacLoai.length === 3 ? null : cacLoai,
         ...khoangNgay(ngay),
         newestFirst: moiNhatTruoc,
@@ -78,7 +88,7 @@ export default function Sensors() {
         size: soDongMoiTrang,
       })
     },
-    [tuKhoa, cacLoai, ngay, moiNhatTruoc, trang, soDongMoiTrang],
+    [tuKhoa, truongTim, cacLoai, ngay, moiNhatTruoc, trang, soDongMoiTrang],
     { chuKyMs: 2000, giaTriDau: TRANG_TRONG },
   )
   const { items: cacDong, totalItems: tongSo } = bangSoDo.duLieu
@@ -87,16 +97,28 @@ export default function Sensors() {
     <AppShell breadcrumb="Sensors" title="Sensor Data" subtitle="Sensor reading history, updated every 2 seconds.">
       <div className="panel shrink-0 p-3 flex flex-wrap items-center gap-3">
         {/* Đổi bộ lọc nào cũng quay về trang 1. */}
-        <Input
-          allowClear
-          placeholder="Sensor, value or time (HH:mm:ss)"
-          value={tuKhoa}
-          onChange={(e) => {
-            datTuKhoa(e.target.value)
-            datTrang(1)
-          }}
-          style={{ width: 280 }}
-        />
+        <Space.Compact>
+          <Select
+            value={truongTim}
+            options={TRUONG_TIM_KIEM}
+            onChange={(giaTri) => {
+              datTruongTim(giaTri)
+              datTuKhoa('')
+              datTrang(1)
+            }}
+            style={{ width: 120 }}
+          />
+          <Input
+            allowClear
+            placeholder={TRUONG_TIM_KIEM.find((t) => t.value === truongTim).placeholder}
+            value={tuKhoa}
+            onChange={(e) => {
+              datTuKhoa(e.target.value)
+              datTrang(1)
+            }}
+            style={{ width: 260 }}
+          />
+        </Space.Compact>
         <CheckboxFilter
           label="Sensor Type"
           header="Filter by type"
