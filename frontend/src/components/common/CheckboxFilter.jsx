@@ -20,7 +20,11 @@ export default function CheckboxFilter({ label, options, value, onChange }) {
     if (checked) {
       onChange([...value, optionValue])
     } else {
-      onChange(value.filter((selectedValue) => selectedValue !== optionValue))
+      // Bỏ tick: sao chép danh sách, tìm vị trí của giá trị này rồi xoá nó đi.
+      const newValues = [...value]
+      const position = newValues.indexOf(optionValue)
+      newValues.splice(position, 1)
+      onChange(newValues)
     }
   }
 

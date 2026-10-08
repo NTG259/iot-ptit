@@ -24,13 +24,27 @@ const TYPE_OPTIONS = [
   { value: 'HUMIDITY', label: 'Humidity' },
 ]
 
-// Các trường mà ô tìm kiếm có thể so khớp, kèm gợi ý nhập.
+// Các trường mà ô tìm kiếm có thể so khớp.
 const SEARCH_FIELDS = [
-  { value: 'NAME', label: 'Name', placeholder: 'Sensor name' },
-  { value: 'TYPE', label: 'Type', placeholder: 'Temperature, Humidity, Light' },
-  { value: 'VALUE', label: 'Value', placeholder: 'Exact value, e.g. 28.5' },
-  { value: 'TIME', label: 'Date time', placeholder: '2026-10-03 17:20 or 17:20:05' },
+  { value: 'NAME', label: 'Name' },
+  { value: 'TYPE', label: 'Type' },
+  { value: 'VALUE', label: 'Value' },
+  { value: 'TIME', label: 'Date time' },
 ]
+
+// Gợi ý nhập trong ô tìm kiếm, theo trường đang chọn.
+function getSearchPlaceholder(searchField) {
+  if (searchField === 'NAME') {
+    return 'Sensor name'
+  }
+  if (searchField === 'TYPE') {
+    return 'Temperature, Humidity, Light'
+  }
+  if (searchField === 'VALUE') {
+    return 'Exact value, e.g. 28.5'
+  }
+  return '2026-10-03 17:20 or 17:20:05'
+}
 
 const COLUMNS = [
   { title: 'ID', dataIndex: 'id' },
@@ -103,7 +117,6 @@ export default function Sensors() {
     { intervalMs: 2000, initialData: EMPTY_PAGE },
   )
   const { items: rows, totalItems: totalRows } = readingsRequest.data
-  const currentSearchField = SEARCH_FIELDS.find((field) => field.value === searchField)
 
   // Đổi bộ lọc nào cũng quay về trang 1.
   function handleSearchFieldChange(newField) {
@@ -140,7 +153,7 @@ export default function Sensors() {
           <Input
             allowClear
             prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
-            placeholder={currentSearchField.placeholder}
+            placeholder={getSearchPlaceholder(searchField)}
             value={searchText}
             onChange={handleSearchTextChange}
             style={{ width: 260 }}

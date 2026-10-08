@@ -39,19 +39,16 @@ function TabLabel({ sensorConfig }) {
   )
 }
 
-// Lệnh gửi lên backend và trạng thái LED mong đợi sau khi ESP8266 xác nhận.
-function commandFor(turnOn) {
+// Lệnh gửi lên backend: bật thì TURN_ON, tắt thì TURN_OFF.
+function getAction(turnOn) {
   if (turnOn) {
-    return { action: 'TURN_ON', expectedState: 'ON' }
+    return 'TURN_ON'
   }
-  return { action: 'TURN_OFF', expectedState: 'OFF' }
+  return 'TURN_OFF'
 }
 
 // Biểu đồ khi chưa tải xong.
 const EMPTY_CHART = { values: [], times: [] }
-
-// Biểu đồ có 25 điểm; trục X chỉ ghi giờ của 7 điểm cách đều nhau (chỉ số 0, 4, 8, ... 24).
-const X_LABEL_INDEXES = [0, 4, 8, 12, 16, 20, 24]
 
 /**
  * Dashboard: trang tổng quan thời gian thực — 3 thẻ chỉ số, biểu đồ 25 số đo gần nhất của từng cảm biến (chọn bằng
@@ -60,8 +57,6 @@ const X_LABEL_INDEXES = [0, 4, 8, 12, 16, 20, 24]
  */
 export default function Dashboard() {
   const [notifier, notificationHolder] = notification.useNotification()
-  // Công tắc LED người dùng vừa bấm, hiện ngay trạng thái mong muốn mà không chờ ESP8266: { LED1: true }.
-  const [desiredStates, setDesiredStates] = useState({})
   // Biểu đồ đang xem: id của một cảm biến trong TEMPERATURE / HUMIDITY / LIGHT.
   const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
 
@@ -83,14 +78,21 @@ export default function Dashboard() {
   const leds = ledRequest.data
 
   // Ba biểu đồ, mỗi cảm biến một cái; chỉ biểu đồ của tab đang chọn được vẽ.
-  const charts = [
-    { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest },
-    { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest },
-    { sensorConfig: LIGHT, sensor: light, chartRequest: lightChartRequest },
-  ]
-  const selectedChart = charts.find((chart) => chart.sensorConfig.id === selectedChartId)
+  const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
+  const humidityChart = { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest }
+  const lightChart = { sensorConfig: LIGHT, sensor: light, chartRequest: lightChartRequest }
+
+  let selectedChart = temperatureChart
+  if (selectedChartId === HUMIDITY.id) {
+    selectedChart = humidityChart
+  } else if (selectedChartId === LIGHT.id) {
+    selectedChart = lightChart
+  }
+
   const { values, times } = selectedChart.chartRequest.data
-  const xAxisLabels = X_LABEL_INDEXES.map((index) => times[index])
+
+  // Biểu đồ có 25 điểm; trục X chỉ ghi giờ của 7 điểm cách đều nhau (thứ tự 1, 5, 9, 13, 17, 21, 25).
+  const xAxisLabels = [times[0], times[4], times[8], times[12], times[16], times[20], times[24]]
 
   // Dòng trạng thái bên phải thanh tab: giá trị hiện tại, hoặc báo chưa đủ số đo để vẽ.
   const notEnoughReadings = !selectedChart.chartRequest.loading && values.length < 2
@@ -105,69 +107,25 @@ export default function Dashboard() {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
-  // Hỏi backend mỗi 0,3 giây cho tới khi không còn LED nào chờ ESP8266 xác nhận (`pendingAction` hết).
-  // Quá hạn thì backend tự đánh dấu FAILED sau 10s, nên tối đa chờ 12 giây. Trả về danh sách LED mới nhất.
-  async function waitForLedsToSettle() {
-    let latestLeds = []
-    for (let attempt = 0; attempt < 40; attempt++) {
-      latestLeds = await deviceService.getLeds()
-      const stillPending = latestLeds.some((led) => led.pendingAction)
-      if (!stillPending) {
-        break
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300))
-    }
-    return latestLeds
-  }
-
-  // Bật/tắt một LED: công tắc đổi ngay (`desiredStates`), gửi lệnh, rồi chờ ESP8266 xác nhận. Bị từ chối (ESP8266 offline,
-  // broker lỗi…) hoặc LED không đổi trạng thái thì báo lỗi; cuối cùng bỏ `desiredStates` nên công tắc theo trạng thái thật
-  // (thất bại thì tự về lại như cũ).
+  // Bật/tắt một LED: gửi lệnh lên backend rồi tải lại danh sách LED. Backend trả lỗi (ESP8266 chưa kết nối,
+  // broker lỗi…) thì hiện thông báo. Công tắc luôn hiện `led.on` do backend tính nên không cần đoán trước.
   async function toggleLed(code, turnOn) {
-    const { action, expectedState } = commandFor(turnOn)
-
-    setDesiredStates((previous) => ({ ...previous, [code]: turnOn }))
     try {
-      await deviceService.controlLed(code, action)
-      const latestLeds = await waitForLedsToSettle()
-      const toggledLed = latestLeds.find((led) => led.code === code)
-      if (toggledLed.state !== expectedState) {
-        notifier.error({ title: 'No response', description: `${code} did not respond` })
-      }
+      await deviceService.controlLed(code, getAction(turnOn))
     } catch (error) {
-      notifier.error({ title: 'Command failed', description: error.message })
+      notifier.error({ title: 'Connection error', description: error.message })
     }
-    setDesiredStates((previous) => ({ ...previous, [code]: undefined }))
     ledRequest.reload()
   }
 
   // Bật/tắt cả 3 LED, cùng cách làm như `toggleLed`.
   async function toggleAllLeds(turnOn) {
-    const { action, expectedState } = commandFor(turnOn)
-
-    setDesiredStates({ LED1: turnOn, LED2: turnOn, LED3: turnOn })
     try {
-      await deviceService.controlAllLeds(action)
-      const latestLeds = await waitForLedsToSettle()
-      const anyLedDidNotChange = latestLeds.some((led) => led.state !== expectedState)
-      if (anyLedDidNotChange) {
-        notifier.error({ title: 'No response', description: 'Some LEDs did not respond' })
-      }
+      await deviceService.controlAllLeds(getAction(turnOn))
     } catch (error) {
-      notifier.error({ title: 'Command failed', description: error.message })
+      notifier.error({ title: 'Connection error', description: error.message })
     }
-    setDesiredStates({})
     ledRequest.reload()
-  }
-
-  // Công tắc hiện trạng thái người dùng vừa chọn nếu có; không thì hiện `led.on` do backend tính
-  // (đích của lệnh đang chờ, không thì trạng thái thật).
-  function isLedOn(led) {
-    const desiredState = desiredStates[led.code]
-    if (desiredState !== undefined) {
-      return desiredState
-    }
-    return led.on
   }
 
   return (
@@ -195,7 +153,11 @@ export default function Dashboard() {
             activeKey={selectedChartId}
             onChange={setSelectedChartId}
             tabBarStyle={{ margin: 0 }}
-            items={charts.map((chart) => ({ key: chart.sensorConfig.id, label: <TabLabel sensorConfig={chart.sensorConfig} /> }))}
+            items={[
+              { key: TEMPERATURE.id, label: <TabLabel sensorConfig={TEMPERATURE} /> },
+              { key: HUMIDITY.id, label: <TabLabel sensorConfig={HUMIDITY} /> },
+              { key: LIGHT.id, label: <TabLabel sensorConfig={LIGHT} /> },
+            ]}
           />
           <span className="dashboard__chart-status">{statusText}</span>
         </div>
@@ -229,7 +191,7 @@ export default function Dashboard() {
 
         <div className="dashboard__led-list">
           {leds.map((led) => (
-            <LedDeviceCard key={led.code} name={led.name} on={isLedOn(led)} onToggle={(turnOn) => toggleLed(led.code, turnOn)} />
+            <LedDeviceCard key={led.code} name={led.name} on={led.on} onToggle={(turnOn) => toggleLed(led.code, turnOn)} />
           ))}
         </div>
       </section>

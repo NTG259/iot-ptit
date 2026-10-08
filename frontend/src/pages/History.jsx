@@ -31,12 +31,23 @@ const ACTION_OPTIONS = [
 ]
 const DEVICE_TYPE_OPTIONS = [{ value: 'SMART_LED', label: 'Smart LED' }]
 
-// Các trường mà ô tìm kiếm có thể so khớp, kèm gợi ý nhập.
+// Các trường mà ô tìm kiếm có thể so khớp.
 const SEARCH_FIELDS = [
-  { value: 'NAME', label: 'Name', placeholder: 'Device name' },
-  { value: 'TYPE', label: 'Type', placeholder: 'Smart LED' },
-  { value: 'TIME', label: 'Date time', placeholder: '2026-10-03 17:20 or 17:20:05' },
+  { value: 'NAME', label: 'Name' },
+  { value: 'TYPE', label: 'Type' },
+  { value: 'TIME', label: 'Date time' },
 ]
+
+// Gợi ý nhập trong ô tìm kiếm, theo trường đang chọn.
+function getSearchPlaceholder(searchField) {
+  if (searchField === 'NAME') {
+    return 'Device name'
+  }
+  if (searchField === 'TYPE') {
+    return 'Smart LED'
+  }
+  return '2026-10-03 17:20 or 17:20:05'
+}
 
 // Trang kết quả rỗng, dùng khi chưa tải xong hoặc khi bỏ tick hết một bộ lọc.
 const EMPTY_PAGE = { items: [], totalItems: 0 }
@@ -115,7 +126,6 @@ export default function History() {
     { intervalMs: 3000, initialData: EMPTY_PAGE },
   )
   const { items: rows, totalItems: totalRows } = historyRequest.data
-  const currentSearchField = SEARCH_FIELDS.find((field) => field.value === searchField)
 
   // Đổi bộ lọc nào cũng quay về trang 1.
   function handleSearchFieldChange(newField) {
@@ -164,7 +174,7 @@ export default function History() {
           <Input
             allowClear
             prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
-            placeholder={currentSearchField.placeholder}
+            placeholder={getSearchPlaceholder(searchField)}
             value={searchText}
             onChange={handleSearchTextChange}
             style={{ width: 240 }}
