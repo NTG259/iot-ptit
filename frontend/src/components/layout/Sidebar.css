@@ -1,0 +1,137 @@
+/* Thanh điều hướng bên trái. */
+.sidebar {
+  width: 16rem;
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem 1rem;
+  background: #fff;
+  border-right: 1px solid var(--color-outline);
+}
+
+.sidebar__logo {
+  padding: 0 0.5rem 1.25rem;
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.sidebar__logo-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sidebar__nav {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Một mục điều hướng. Hai biến thể: --active (đang mở) và --inactive (các mục còn lại). */
+.sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.sidebar__nav-item svg {
+  flex-shrink: 0;
+}
+
+.sidebar__nav-item--active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-line);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.sidebar__nav-item--inactive {
+  color: var(--color-text-strong);
+}
+
+.sidebar__nav-item--inactive:hover {
+  background: var(--color-canvas);
+}
+
+/* Khối người dùng ở đáy sidebar: bên trái là link tới Profile, bên phải là nút đăng xuất. */
+.sidebar__user {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-outline);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sidebar__user-link {
+  min-width: 0;
+  flex: 1 1 0%;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.sidebar__user-link:hover {
+  background: var(--color-canvas);
+}
+
+.sidebar__avatar {
+  flex-shrink: 0;
+  background: var(--color-primary);
+}
+
+.sidebar__user-text {
+  min-width: 0;
+  flex: 1 1 0%;
+}
+
+.sidebar__user-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.sidebar__user-username {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.3333;
+  color: var(--color-muted);
+}
+
+/* Nút đăng xuất: chỉ có icon, chuyển đỏ khi rê chuột. */
+.sidebar__logout-button {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.sidebar__logout-button:hover {
+  background: #fef2f2;
+  color: var(--color-red);
+}

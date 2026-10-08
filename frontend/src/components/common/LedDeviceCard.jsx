@@ -1,18 +1,23 @@
 import { Switch } from 'antd'
+import './LedDeviceCard.css'
 
 /** LedDeviceCard: thẻ một đèn LED gồm tên, nhãn ON/OFF và công tắc bật tắt (xanh = đang bật). */
 export default function LedDeviceCard({ name, on, onToggle }) {
+  // Đèn bật thì dùng biến thể --on (xanh), tắt thì --off (xám); màu cụ thể nằm trong LedDeviceCard.css.
+  let nameClass = 'led-card__name led-card__name--off'
+  let stateClass = 'led-card__state led-card__state--off'
+  let stateText = 'OFF'
+  if (on) {
+    nameClass = 'led-card__name led-card__name--on'
+    stateClass = 'led-card__state led-card__state--on'
+    stateText = 'ON'
+  }
+
   return (
-    <div className="flex items-center gap-3 px-3 py-2 border border-outline rounded-xl bg-canvas/60">
-      <p className={`m-0 text-base font-semibold ${on ? 'text-text' : 'text-text/70'}`}>{name}</p>
-      <span
-        className={`px-2 py-0.5 rounded-full tabular-nums text-xs font-semibold tracking-[0.08em] ${
-          on ? 'bg-primary-soft text-primary' : 'bg-slate-100 text-muted'
-        }`}
-      >
-        {on ? 'ON' : 'OFF'}
-      </span>
-      <span className="ml-auto">
+    <div className="led-card">
+      <p className={nameClass}>{name}</p>
+      <span className={stateClass}>{stateText}</span>
+      <span className="led-card__switch">
         <Switch checked={on} onChange={onToggle} aria-label={`Toggle ${name}`} />
       </span>
     </div>

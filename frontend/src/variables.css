@@ -1,17 +1,27 @@
-/* Shared design tokens, defined as Tailwind v4 theme values so they generate real utility
-   classes (bg-primary, text-green, border-outline, ...) as well as plain CSS variables. */
-@theme {
+/* Màu và font dùng chung cho cả app. Dùng trong CSS bằng var(--tên), ví dụ: color: var(--color-primary); */
+:root {
   --color-primary: #059669;
   --color-primary-soft: #ecfdf5;
   --color-primary-line: #a7f3d0;
   --color-text: #0f172a;
+  --color-text-strong: rgba(15, 23, 42, 0.8); /* chữ đậm vừa (text 80%) */
+  --color-text-dim: rgba(15, 23, 42, 0.7); /* chữ mờ hơn (text 70%) */
+  --color-text-faint: rgba(15, 23, 42, 0.6); /* chữ mờ nhất (text 60%) */
   --color-muted: #64748b;
-  --color-green: #10b981;
-  --color-cyan: #06b6d4;
-  --color-orange: #f59e0b;
   --color-red: #ef4444;
   --color-canvas: #f8fafc;
+  --color-canvas-soft: rgba(248, 250, 252, 0.6); /* nền canvas trong suốt 60% */
   --color-outline: #e2e8f0;
 
+  /* Các màu xám dùng lẻ tẻ. */
+  --color-gray-100: #f1f5f9;
+  --color-gray-300: #cbd5e1;
+  --color-gray-400: #94a3b8;
+  --color-gray-600: #475569;
+
   --font-sans: 'Be Vietnam Pro', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  --shadow-small: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-large: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }

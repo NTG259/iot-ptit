@@ -1,4 +1,4 @@
-import { khachApi } from './apiClient'
+import { apiClient } from './apiClient'
 
 /**
  * Danh sách LED. Mỗi thiết bị: { code, name, state, online, pendingAction, on }
@@ -7,19 +7,19 @@ import { khachApi } from './apiClient'
  * - pendingAction: lệnh đã gửi nhưng chưa được xác nhận và sẽ làm đổi `state`; không có thì null.
  * - on: trạng thái công tắc nên hiện (true = bật): đích của lệnh đang chờ, không thì trạng thái thật.
  */
-export function layDanhSachDen() {
-  return khachApi.get('/devices')
+export function getLeds() {
+  return apiClient.get('/devices')
 }
 
 /**
- * Bật/tắt một LED. hanhDong: 'TURN_ON' | 'TURN_OFF'.
+ * Bật/tắt một LED. action: 'TURN_ON' | 'TURN_OFF'.
  * Trả về lệnh vừa tạo (PENDING); lỗi 503 nếu ESP8266 chưa kết nối hoặc không gửi được qua MQTT broker.
  */
-export function dieuKhien(ma, hanhDong) {
-  return khachApi.post(`/devices/${ma}/control`, { action: hanhDong })
+export function controlLed(code, action) {
+  return apiClient.post(`/devices/${code}/control`, { action })
 }
 
-/** Bật/tắt tất cả LED (nút All On / All Off); lỗi giống `dieuKhien`. */
-export function dieuKhienTatCa(hanhDong) {
-  return khachApi.post('/devices/control-all', { action: hanhDong })
+/** Bật/tắt tất cả LED (nút All On / All Off); lỗi giống `controlLed`. */
+export function controlAllLeds(action) {
+  return apiClient.post('/devices/control-all', { action })
 }

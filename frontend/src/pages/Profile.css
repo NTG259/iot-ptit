@@ -1,0 +1,172 @@
+/* Trang hồ sơ người dùng. */
+.profile {
+  flex: 1 1 0%;
+  display: grid;
+  place-items: center;
+}
+
+.profile__card {
+  position: relative;
+  width: 100%;
+  max-width: 38rem;
+  padding: 1.5rem 2rem;
+  box-shadow: var(--shadow-large);
+}
+
+/* Nút "Edit profile" ở góc trên phải của thẻ. */
+.profile__edit-button {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.profile__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Vòng tròn chứa chữ cái đầu của tên. */
+.profile__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 5rem;
+  height: 5rem;
+  border: 2px solid var(--color-primary-line);
+  border-radius: 9999px;
+  background: var(--color-primary-soft);
+  font-size: 1.875rem;
+  line-height: 1.2;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.profile__name {
+  margin-top: 1rem;
+  font-size: 1.5rem;
+  line-height: 1.3333;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.profile__role {
+  margin-top: 0.5rem;
+  font-size: 1.125rem;
+  line-height: 1.5556;
+  color: var(--color-gray-600);
+}
+
+.profile__school {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+}
+
+.profile__divider {
+  margin: 1.25rem 0;
+  border-top: 1px solid var(--color-outline);
+}
+
+.profile__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Hai nút GitHub / Figma nằm cạnh nhau. */
+.profile__links {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.profile__link {
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.5rem;
+  background: var(--color-canvas-soft);
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.profile__link:hover {
+  background: #fff;
+}
+
+.profile__refresh-error {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--color-red);
+}
+
+/* Một dòng thông tin có nút sao chép. */
+.copy-field {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.75rem;
+  background: var(--color-canvas-soft);
+}
+
+.copy-field__text {
+  min-width: 0;
+}
+
+.copy-field__label {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-400);
+}
+
+.copy-field__value {
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+/* Giá trị nổi bật (mã sinh viên): số đều nhau, đậm, màu xanh. */
+.copy-field__value--highlight {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.copy-field__button {
+  margin-left: auto;
+}
+.copy-field__button--idle {
+  color: var(--color-gray-400);
+}
+.copy-field__button--copied {
+  color: var(--color-primary);
+}
+
+/* Form trong hộp thoại sửa hồ sơ. */
+.edit-profile__form {
+  margin-top: 1rem;
+}
+
+.edit-profile__field {
+  margin-bottom: 0.75rem;
+}

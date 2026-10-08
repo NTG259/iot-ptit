@@ -1,0 +1,71 @@
+/* Khung chung của mọi trang sau khi đăng nhập: sidebar bên trái, phần nội dung bên phải. */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-canvas);
+}
+
+.app-shell__content {
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Thanh "SYSTEM / TÊN TRANG" phía trên. */
+.app-shell__breadcrumb {
+  height: 3rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  background: #fff;
+  border-bottom: 1px solid var(--color-outline);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  letter-spacing: 0.1em;
+}
+
+.app-shell__breadcrumb-root {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.app-shell__breadcrumb-separator {
+  margin: 0 0.75rem;
+  color: var(--color-gray-300);
+}
+
+.app-shell__breadcrumb-page {
+  color: var(--color-text);
+  text-transform: uppercase;
+}
+
+/* Vùng nội dung chính, cuộn dọc khi dài. */
+.app-shell__main {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app-shell__title {
+  font-size: 1.5rem;
+  line-height: 1.3333;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.app-shell__subtitle {
+  margin-top: 0.125rem;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  color: var(--color-muted);
+}

@@ -1,18 +1,81 @@
-/* antd sits between Tailwind's reset and its utilities, so utility classes can still adjust antd components. */
-@layer theme, base, antd, components, utilities;
+/*
+ * CSS của app. Cách tổ chức:
+ * - index.css (file này): reset trình duyệt, nền trang, và hai khối dùng chung: .panel, .toolbar.
+ * - variables.css: màu và font dùng chung.
+ * - Mỗi component/trang có file .css riêng cạnh file .jsx (Sidebar.jsx đi với Sidebar.css).
+ * - Tên class theo kiểu BEM: `khối`, `khối__phần`, `khối--biến-thể`. Ví dụ `sidebar__nav-item--active`
+ *   là mục điều hướng (nav-item) của khối sidebar ở trạng thái đang mở (active).
+ */
 
-@import 'tailwindcss';
+/* Thứ tự ưu tiên: reset (base) thấp nhất, rồi antd. CSS tự viết trong các file .css không nằm trong lớp nào nên luôn thắng cả hai. */
+@layer base, antd;
+
 @import './variables.css';
 
-/* White bordered surface shared by every card and panel. */
-@utility panel {
-  background: #fff;
-  border: 1px solid var(--color-outline);
-  border-radius: 0.875rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+@layer base {
+  /* Reset: bỏ margin/padding mặc định của trình duyệt, border mặc định là không có. */
+  *,
+  ::before,
+  ::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+  }
+
+  html {
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background-color: transparent;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    vertical-align: middle;
+  }
+
+  ol,
+  ul {
+    list-style: none;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
 }
 
-/* Everything is sized in rem, so this one value scales the whole UI. */
+/* Mọi kích thước tính bằng rem, nên giá trị này phóng to/thu nhỏ cả giao diện. */
 html {
   font-size: 87.5%;
 }
@@ -23,4 +86,22 @@ body {
   background: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Khung trắng có viền, dùng cho mọi thẻ và panel. */
+.panel {
+  background: #fff;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Thanh công cụ phía trên bảng ở trang Sensors và History. */
+.toolbar {
+  flex-shrink: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
 }

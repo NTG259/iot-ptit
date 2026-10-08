@@ -1,0 +1,47 @@
+/* Biểu đồ đường SVG. */
+.telemetry-chart {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.75rem;
+  background: var(--color-canvas-soft);
+}
+
+/* Hộp thông tin hiện khi rê chuột lên biểu đồ. */
+.telemetry-chart__tooltip {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-small);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+}
+
+.telemetry-chart__tooltip-time {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Hình vẽ phủ kín khung biểu đồ. */
+.telemetry-chart__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.telemetry-chart__axis-label {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  fill: var(--color-gray-400);
+}

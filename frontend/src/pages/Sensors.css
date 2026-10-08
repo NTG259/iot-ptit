@@ -1,0 +1,31 @@
+/* Bảng số đo ở trang Sensors. */
+.sensors__name {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sensors__value {
+  white-space: nowrap;
+}
+
+.sensors__value-number {
+  font-size: 1.125rem;
+  line-height: 1.5556;
+  font-weight: 600;
+}
+
+.sensors__value-unit {
+  margin-left: 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+}
+/* Màu đơn vị theo loại cảm biến. */
+.sensors__value-unit--temperature {
+  color: var(--color-primary);
+}
+.sensors__value-unit--humidity {
+  color: #0891b2;
+}
+.sensors__value-unit--light {
+  color: var(--color-muted);
+}

@@ -1,0 +1,74 @@
+/* Nhãn bo tròn. Màu chọn bằng biến thể: badge--green, --blue, --red, --gray, --cyan, --orange. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  line-height: 1.4286;
+  white-space: nowrap;
+}
+
+/* Chấm tròn nhỏ phía trước chữ. */
+.badge__dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+}
+
+.badge--green {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+.badge--green .badge__dot {
+  background: #10b981;
+}
+
+.badge--blue {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
+}
+.badge--blue .badge__dot {
+  background: #3b82f6;
+}
+
+.badge--red {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+.badge--red .badge__dot {
+  background: #ef4444;
+}
+
+.badge--gray {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+.badge--gray .badge__dot {
+  background: #94a3b8;
+}
+
+.badge--cyan {
+  background: #ecfeff;
+  border-color: #a5f3fc;
+  color: #0e7490;
+}
+.badge--cyan .badge__dot {
+  background: #06b6d4;
+}
+
+.badge--orange {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #b45309;
+}
+.badge--orange .badge__dot {
+  background: #f59e0b;
+}

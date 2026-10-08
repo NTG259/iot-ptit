@@ -5,9 +5,9 @@ import { ConfigProvider } from 'antd'
 import './index.css'
 import AppRouter from '@/routes/AppRouter'
 
-// Ant Design dùng cùng bảng màu với các biến Tailwind trong variables.css. Kích thước tính bằng px:
+// Ant Design dùng cùng bảng màu với các biến trong variables.css. Kích thước tính bằng px:
 // font gốc là 14px (index.css) nên 35px khớp với chiều cao h-10 của các nút trên thanh công cụ.
-const CHU_DE = {
+const THEME = {
   token: {
     colorPrimary: '#059669',
     colorText: '#0f172a',
@@ -36,9 +36,9 @@ const CHU_DE = {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {/* `layer` đặt style của antd vào @layer antd, xếp dưới các lớp tiện ích Tailwind trong index.css. */}
+    {/* `layer` đặt style của antd vào @layer antd, xếp dưới CSS tự viết trong các file .css (xem index.css). */}
     <StyleProvider layer>
-      <ConfigProvider theme={CHU_DE}>
+      <ConfigProvider theme={THEME}>
         <AppRouter />
       </ConfigProvider>
     </StyleProvider>

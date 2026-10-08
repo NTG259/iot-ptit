@@ -1,0 +1,45 @@
+/* Thẻ một đèn LED: tên, nhãn ON/OFF và công tắc. */
+.led-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.75rem;
+  background: var(--color-canvas-soft);
+}
+
+.led-card__name {
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 600;
+}
+.led-card__name--on {
+  color: var(--color-text);
+}
+.led-card__name--off {
+  color: var(--color-text-dim);
+}
+
+/* Nhãn ON (xanh) hoặc OFF (xám). */
+.led-card__state {
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  line-height: 1.3333;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.led-card__state--on {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.led-card__state--off {
+  background: var(--color-gray-100);
+  color: var(--color-muted);
+}
+
+.led-card__switch {
+  margin-left: auto;
+}

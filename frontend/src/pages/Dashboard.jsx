@@ -5,43 +5,53 @@ import MetricCard from '@/components/common/MetricCard'
 import TelemetryChart from '@/components/common/TelemetryChart'
 import LedDeviceCard from '@/components/common/LedDeviceCard'
 import GreetingHeader from '@/components/common/GreetingHeader'
-import { dichVuThietBi, dichVuCamBien, phien } from '@/services'
-import useGoiApi from '@/hooks/useApi'
-import { NHIET_DO, DO_AM, ANH_SANG, CAM_BIEN_TRONG, dinhDangSoDo } from '@/constants/sensors'
+import { deviceService, sensorService, session } from '@/services'
+import useApi from '@/hooks/useApi'
+import { TEMPERATURE, HUMIDITY, LIGHT, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
+import './Dashboard.css'
 
 function PanelTitle({ children }) {
-  return <h2 className="m-0 text-lg font-semibold text-text">{children}</h2>
+  return <h2 className="dashboard__panel-title">{children}</h2>
 }
 
-// Một đường của biểu đồ; `bieuDo` là { values, times } từ backend.
-function duongBieuDo(cauHinh, bieuDo) {
+// Một đường của biểu đồ; `chartData` là { values, times } từ backend.
+function buildChartLine(sensorConfig, chartData) {
   return {
-    id: cauHinh.id,
-    color: cauHinh.color,
-    label: cauHinh.short,
-    values: bieuDo.values,
-    format: (giaTri) => dinhDangSoDo(giaTri, cauHinh),
+    id: sensorConfig.id,
+    color: sensorConfig.color,
+    label: sensorConfig.short,
+    values: chartData.values,
+    format: (value) => formatReading(value, sensorConfig),
   }
 }
 
 // Nhãn một tab biểu đồ: chấm màu và tên cảm biến kèm đơn vị.
-function NhanTab({ cauHinh }) {
+function TabLabel({ sensorConfig }) {
+  let text = sensorConfig.label
+  if (sensorConfig.unit) {
+    text = `${sensorConfig.label} (${sensorConfig.unit})`
+  }
   return (
-    <span className="flex items-center gap-2">
-      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cauHinh.color }} />
-      {cauHinh.unit ? `${cauHinh.label} (${cauHinh.unit})` : cauHinh.label}
+    <span className="dashboard__tab-label">
+      <span className="dashboard__tab-dot" style={{ backgroundColor: sensorConfig.color }} />
+      {text}
     </span>
   )
 }
 
 // Lệnh gửi lên backend và trạng thái LED mong đợi sau khi ESP8266 xác nhận.
-function lenhCho(bat) {
-  if (bat) return { hanhDong: 'TURN_ON', trangThai: 'ON' }
-  return { hanhDong: 'TURN_OFF', trangThai: 'OFF' }
+function commandFor(turnOn) {
+  if (turnOn) {
+    return { action: 'TURN_ON', expectedState: 'ON' }
+  }
+  return { action: 'TURN_OFF', expectedState: 'OFF' }
 }
 
 // Biểu đồ khi chưa tải xong.
-const BIEU_DO_TRONG = { values: [], times: [] }
+const EMPTY_CHART = { values: [], times: [] }
+
+// Biểu đồ có 25 điểm; trục X chỉ ghi giờ của 7 điểm cách đều nhau (chỉ số 0, 4, 8, ... 24).
+const X_LABEL_INDEXES = [0, 4, 8, 12, 16, 20, 24]
 
 /**
  * Dashboard: trang tổng quan thời gian thực — 3 thẻ chỉ số, biểu đồ 25 số đo gần nhất của từng cảm biến (chọn bằng
@@ -49,153 +59,177 @@ const BIEU_DO_TRONG = { values: [], times: [] }
  * Lệnh LED đang chờ được tính ở backend.
  */
 export default function Dashboard() {
-  const [thongBao, khungThongBao] = notification.useNotification()
+  const [notifier, notificationHolder] = notification.useNotification()
   // Công tắc LED người dùng vừa bấm, hiện ngay trạng thái mong muốn mà không chờ ESP8266: { LED1: true }.
-  const [mongMuon, datMongMuon] = useState({})
-  // Biểu đồ đang xem: id của một cảm biến trong NHIET_DO / DO_AM / ANH_SANG.
-  const [bieuDoDangXem, datBieuDoDangXem] = useState(NHIET_DO.id)
+  const [desiredStates, setDesiredStates] = useState({})
+  // Biểu đồ đang xem: id của một cảm biến trong TEMPERATURE / HUMIDITY / LIGHT.
+  const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
 
   // Tải dữ liệu từ DB và tự tải lại: với mỗi cảm biến, thông tin hiện tại (giá trị mới nhất, trạng thái kết nối) và
-  // 25 số đo mới nhất cho biểu đồ (values, times), mỗi 2s; LED mỗi 1s. `giaTriDau` là dữ liệu khi chưa tải xong.
-  const thongTinNhietDo = useGoiApi(() => dichVuCamBien.layNhietDo(), [], { chuKyMs: 2000, giaTriDau: CAM_BIEN_TRONG })
-  const thongTinDoAm = useGoiApi(() => dichVuCamBien.layDoAm(), [], { chuKyMs: 2000, giaTriDau: CAM_BIEN_TRONG })
-  const thongTinAnhSang = useGoiApi(() => dichVuCamBien.layAnhSang(), [], { chuKyMs: 2000, giaTriDau: CAM_BIEN_TRONG })
-  const bieuDoNhietDo = useGoiApi(() => dichVuCamBien.layNhietDoMoiNhat({ limit: 25 }), [], { chuKyMs: 2000, giaTriDau: BIEU_DO_TRONG })
-  const bieuDoDoAm = useGoiApi(() => dichVuCamBien.layDoAmMoiNhat({ limit: 25 }), [], { chuKyMs: 2000, giaTriDau: BIEU_DO_TRONG })
-  const bieuDoAnhSang = useGoiApi(() => dichVuCamBien.layAnhSangMoiNhat({ limit: 25 }), [], { chuKyMs: 2000, giaTriDau: BIEU_DO_TRONG })
-  const thietBi = useGoiApi(() => dichVuThietBi.layDanhSachDen(), [], { chuKyMs: 1000, giaTriDau: [] })
+  // 25 số đo mới nhất cho biểu đồ (values, times), mỗi 2s; LED mỗi 1s. `initialData` là dữ liệu khi chưa tải xong.
+  const sensorOptions = { intervalMs: 2000, initialData: EMPTY_SENSOR }
+  const chartOptions = { intervalMs: 2000, initialData: EMPTY_CHART }
+  const temperatureRequest = useApi(() => sensorService.getTemperature(), [], sensorOptions)
+  const humidityRequest = useApi(() => sensorService.getHumidity(), [], sensorOptions)
+  const lightRequest = useApi(() => sensorService.getLight(), [], sensorOptions)
+  const temperatureChartRequest = useApi(() => sensorService.getLatestTemperature({ limit: 25 }), [], chartOptions)
+  const humidityChartRequest = useApi(() => sensorService.getLatestHumidity({ limit: 25 }), [], chartOptions)
+  const lightChartRequest = useApi(() => sensorService.getLatestLight({ limit: 25 }), [], chartOptions)
+  const ledRequest = useApi(() => deviceService.getLeds(), [], { intervalMs: 1000, initialData: [] })
 
-  const nhietDo = thongTinNhietDo.duLieu
-  const doAm = thongTinDoAm.duLieu
-  const anhSang = thongTinAnhSang.duLieu
-  const cacDen = thietBi.duLieu
+  const temperature = temperatureRequest.data
+  const humidity = humidityRequest.data
+  const light = lightRequest.data
+  const leds = ledRequest.data
 
   // Ba biểu đồ, mỗi cảm biến một cái; chỉ biểu đồ của tab đang chọn được vẽ.
-  const cacBieuDo = [
-    { cauHinh: NHIET_DO, camBien: nhietDo, bieuDo: bieuDoNhietDo },
-    { cauHinh: DO_AM, camBien: doAm, bieuDo: bieuDoDoAm },
-    { cauHinh: ANH_SANG, camBien: anhSang, bieuDo: bieuDoAnhSang },
+  const charts = [
+    { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest },
+    { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest },
+    { sensorConfig: LIGHT, sensor: light, chartRequest: lightChartRequest },
   ]
-  const dangXem = cacBieuDo.find((muc) => muc.cauHinh.id === bieuDoDangXem)
-  const { values, times: cacGio } = dangXem.bieuDo.duLieu
+  const selectedChart = charts.find((chart) => chart.sensorConfig.id === selectedChartId)
+  const { values, times } = selectedChart.chartRequest.data
+  const xAxisLabels = X_LABEL_INDEXES.map((index) => times[index])
+
+  // Dòng trạng thái bên phải thanh tab: giá trị hiện tại, hoặc báo chưa đủ số đo để vẽ.
+  const notEnoughReadings = !selectedChart.chartRequest.loading && values.length < 2
+  let statusText = `Now: ${formatReading(selectedChart.sensor.lastValue, selectedChart.sensorConfig)}`
+  if (notEnoughReadings) {
+    statusText = 'Not enough readings yet.'
+  }
+
+  // Chỉ vẽ khi có ít nhất 2 điểm.
+  let chartSeries = []
+  if (values.length > 1) {
+    chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
+  }
 
   // Hỏi backend mỗi 0,3 giây cho tới khi không còn LED nào chờ ESP8266 xác nhận (`pendingAction` hết).
   // Quá hạn thì backend tự đánh dấu FAILED sau 10s, nên tối đa chờ 12 giây. Trả về danh sách LED mới nhất.
-  async function doiDen() {
-    let danhSach = []
-    for (let lan = 0; lan < 40; lan++) {
-      danhSach = await dichVuThietBi.layDanhSachDen()
-      if (!danhSach.some((den) => den.pendingAction)) break
-      await new Promise((xong) => setTimeout(xong, 300))
+  async function waitForLedsToSettle() {
+    let latestLeds = []
+    for (let attempt = 0; attempt < 40; attempt++) {
+      latestLeds = await deviceService.getLeds()
+      const stillPending = latestLeds.some((led) => led.pendingAction)
+      if (!stillPending) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300))
     }
-    return danhSach
+    return latestLeds
   }
 
-  // Bật/tắt một LED: công tắc đổi ngay (`mongMuon`), gửi lệnh, rồi chờ ESP8266 xác nhận. Bị từ chối (ESP8266 offline,
-  // broker lỗi…) hoặc LED không đổi trạng thái thì báo lỗi; cuối cùng bỏ `mongMuon` nên công tắc theo trạng thái thật
+  // Bật/tắt một LED: công tắc đổi ngay (`desiredStates`), gửi lệnh, rồi chờ ESP8266 xác nhận. Bị từ chối (ESP8266 offline,
+  // broker lỗi…) hoặc LED không đổi trạng thái thì báo lỗi; cuối cùng bỏ `desiredStates` nên công tắc theo trạng thái thật
   // (thất bại thì tự về lại như cũ).
-  async function batTatDen(ma, bat) {
-    const { hanhDong, trangThai } = lenhCho(bat)
+  async function toggleLed(code, turnOn) {
+    const { action, expectedState } = commandFor(turnOn)
 
-    datMongMuon((truoc) => ({ ...truoc, [ma]: bat }))
+    setDesiredStates((previous) => ({ ...previous, [code]: turnOn }))
     try {
-      await dichVuThietBi.dieuKhien(ma, hanhDong)
-      const danhSach = await doiDen()
-      if (danhSach.find((den) => den.code === ma).state !== trangThai) {
-        thongBao.error({ title: 'No response', description: `${ma} did not respond` })
+      await deviceService.controlLed(code, action)
+      const latestLeds = await waitForLedsToSettle()
+      const toggledLed = latestLeds.find((led) => led.code === code)
+      if (toggledLed.state !== expectedState) {
+        notifier.error({ title: 'No response', description: `${code} did not respond` })
       }
-    } catch (loiGoi) {
-      thongBao.error({ title: 'Command failed', description: loiGoi.message })
+    } catch (error) {
+      notifier.error({ title: 'Command failed', description: error.message })
     }
-    datMongMuon((truoc) => ({ ...truoc, [ma]: undefined }))
-    thietBi.taiLai()
+    setDesiredStates((previous) => ({ ...previous, [code]: undefined }))
+    ledRequest.reload()
   }
 
-  // Bật/tắt cả 3 LED, cùng cách làm như `batTatDen`.
-  async function batTatCaDen(bat) {
-    const { hanhDong, trangThai } = lenhCho(bat)
+  // Bật/tắt cả 3 LED, cùng cách làm như `toggleLed`.
+  async function toggleAllLeds(turnOn) {
+    const { action, expectedState } = commandFor(turnOn)
 
-    datMongMuon({ LED1: bat, LED2: bat, LED3: bat })
+    setDesiredStates({ LED1: turnOn, LED2: turnOn, LED3: turnOn })
     try {
-      await dichVuThietBi.dieuKhienTatCa(hanhDong)
-      const danhSach = await doiDen()
-      if (danhSach.some((den) => den.state !== trangThai)) {
-        thongBao.error({ title: 'No response', description: 'Some LEDs did not respond' })
+      await deviceService.controlAllLeds(action)
+      const latestLeds = await waitForLedsToSettle()
+      const anyLedDidNotChange = latestLeds.some((led) => led.state !== expectedState)
+      if (anyLedDidNotChange) {
+        notifier.error({ title: 'No response', description: 'Some LEDs did not respond' })
       }
-    } catch (loiGoi) {
-      thongBao.error({ title: 'Command failed', description: loiGoi.message })
+    } catch (error) {
+      notifier.error({ title: 'Command failed', description: error.message })
     }
-    datMongMuon({})
-    thietBi.taiLai()
+    setDesiredStates({})
+    ledRequest.reload()
+  }
+
+  // Công tắc hiện trạng thái người dùng vừa chọn nếu có; không thì hiện `led.on` do backend tính
+  // (đích của lệnh đang chờ, không thì trạng thái thật).
+  function isLedOn(led) {
+    const desiredState = desiredStates[led.code]
+    if (desiredState !== undefined) {
+      return desiredState
+    }
+    return led.on
   }
 
   return (
     <AppShell>
-      {khungThongBao}
-      <GreetingHeader name={phien.layNguoiDung()?.fullName} />
+      {notificationHolder}
+      <GreetingHeader name={session.getUser()?.fullName} />
 
-      {thongTinNhietDo.loi && <Alert type="error" showIcon title={`Could not load sensor readings: ${thongTinNhietDo.loi.message}`} />}
+      {temperatureRequest.error && (
+        <Alert type="error" showIcon title={`Could not load sensor readings: ${temperatureRequest.error.message}`} />
+      )}
 
       {/* 3 thẻ chỉ số: nhiệt độ, độ ẩm, ánh sáng. */}
-      <div className="shrink-0 grid gap-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
-        <MetricCard config={NHIET_DO} sensor={nhietDo} />
-        <MetricCard config={DO_AM} sensor={doAm} />
-        <MetricCard config={ANH_SANG} sensor={anhSang} />
+      <div className="dashboard__metrics">
+        <MetricCard config={TEMPERATURE} sensor={temperature} />
+        <MetricCard config={HUMIDITY} sensor={humidity} />
+        <MetricCard config={LIGHT} sensor={light} />
       </div>
 
       {/* Biểu đồ: thanh tab chọn cảm biến, giá trị hiện tại của cảm biến đó rồi đến đồ thị. */}
-      <section className="panel flex-1 min-h-[12rem] px-4 py-3 flex flex-col gap-2">
+      <section className="panel dashboard__chart-panel">
         <PanelTitle>Telemetry Spectrum</PanelTitle>
 
-        <div className="flex items-center gap-4">
+        <div className="dashboard__chart-toolbar">
           <Tabs
-            activeKey={bieuDoDangXem}
-            onChange={datBieuDoDangXem}
+            activeKey={selectedChartId}
+            onChange={setSelectedChartId}
             tabBarStyle={{ margin: 0 }}
-            items={cacBieuDo.map(({ cauHinh }) => ({ key: cauHinh.id, label: <NhanTab cauHinh={cauHinh} /> }))}
+            items={charts.map((chart) => ({ key: chart.sensorConfig.id, label: <TabLabel sensorConfig={chart.sensorConfig} /> }))}
           />
-          <span className="ml-auto tabular-nums text-sm text-muted">
-            {!dangXem.bieuDo.dangTai && values.length < 2 ? 'Not enough readings yet.' : `Now: ${dinhDangSoDo(dangXem.camBien.lastValue, dangXem.cauHinh)}`}
-          </span>
+          <span className="dashboard__chart-status">{statusText}</span>
         </div>
 
-        {/* Chỉ vẽ khi có ít nhất 2 điểm. Trục X hiện 7 mốc: giờ của các điểm 1, 5, 9, 13, 17, 21 và 25 (trong 25 điểm).
-            `key` đổi theo tab để vạch dọc và tooltip của biểu đồ trước không còn khi chuyển tab. */}
+        {/* `key` đổi theo tab để mỗi cảm biến có một biểu đồ riêng, không dùng lại trạng thái của biểu đồ trước. */}
         <TelemetryChart
-          key={dangXem.cauHinh.id}
-          series={values.length > 1 ? [duongBieuDo(dangXem.cauHinh, dangXem.bieuDo.duLieu)] : []}
-          labels={[cacGio[0], cacGio[4], cacGio[8], cacGio[12], cacGio[16], cacGio[20], cacGio[24]]}
-          pointLabels={cacGio}
-          yTicks={dangXem.cauHinh.yTicks}
-          unit={dangXem.cauHinh.unit}
+          key={selectedChart.sensorConfig.id}
+          series={chartSeries}
+          labels={xAxisLabels}
+          pointLabels={times}
+          yTicks={selectedChart.sensorConfig.yTicks}
+          unit={selectedChart.sensorConfig.unit}
         />
       </section>
 
-      {/* Điều khiển LED. Công tắc hiện trạng thái người dùng vừa chọn (`mongMuon`) ngay lập tức; nếu không có thì
-          hiện `den.on` do backend tính (đích của lệnh đang chờ, không thì trạng thái thật). */}
-      <section className="panel shrink-0 px-4 py-3 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+      {/* Điều khiển LED. */}
+      <section className="panel dashboard__led-panel">
+        <div className="dashboard__led-header">
           <PanelTitle>Led Devices</PanelTitle>
-          <div className="flex gap-2">
-            <Button onClick={() => batTatCaDen(true)} disabled={cacDen.length === 0}>
+          <div className="dashboard__led-actions">
+            <Button onClick={() => toggleAllLeds(true)} disabled={leds.length === 0}>
               All On
             </Button>
-            <Button onClick={() => batTatCaDen(false)} disabled={cacDen.length === 0}>
+            <Button onClick={() => toggleAllLeds(false)} disabled={leds.length === 0}>
               All Off
             </Button>
           </div>
         </div>
 
-        {thietBi.loi && <Alert type="error" showIcon title={thietBi.loi.message} />}
+        {ledRequest.error && <Alert type="error" showIcon title={ledRequest.error.message} />}
 
-        <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(180px,1fr))]">
-          {cacDen.map((den) => (
-            <LedDeviceCard
-              key={den.code}
-              name={den.name}
-              on={mongMuon[den.code] ?? den.on}
-              onToggle={(bat) => batTatDen(den.code, bat)}
-            />
+        <div className="dashboard__led-list">
+          {leds.map((led) => (
+            <LedDeviceCard key={led.code} name={led.name} on={isLedOn(led)} onToggle={(turnOn) => toggleLed(led.code, turnOn)} />
           ))}
         </div>
       </section>

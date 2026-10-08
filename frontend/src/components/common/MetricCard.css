@@ -1,0 +1,32 @@
+/* Thẻ chỉ số của một cảm biến trên Dashboard. */
+.metric-card {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card__label {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-strong);
+}
+
+.metric-card__value {
+  margin-top: 0.25rem;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.5rem;
+  line-height: 1.3333;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--color-text);
+}
+
+.metric-card__unit {
+  margin-left: 0.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--color-muted);
+}

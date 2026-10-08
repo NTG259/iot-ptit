@@ -1,4 +1,5 @@
 import Sidebar from './Sidebar'
+import './AppShell.css'
 
 /**
  * AppShell: khung chung của mọi trang sau khi đăng nhập: Sidebar bên trái, breadcrumb phía trên,
@@ -7,23 +8,23 @@ import Sidebar from './Sidebar'
  */
 export default function AppShell({ breadcrumb, title, subtitle, children }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-canvas">
+    <div className="app-shell">
       <Sidebar />
 
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+      <div className="app-shell__content">
         {breadcrumb && (
-          <div className="h-12 shrink-0 bg-white border-b border-outline flex items-center px-8 tabular-nums text-sm tracking-[0.1em]">
-            <span className="font-semibold text-primary">SYSTEM</span>
-            <span className="mx-3 text-slate-300">/</span>
-            <span className="text-text uppercase">{breadcrumb}</span>
+          <div className="app-shell__breadcrumb">
+            <span className="app-shell__breadcrumb-root">SYSTEM</span>
+            <span className="app-shell__breadcrumb-separator">/</span>
+            <span className="app-shell__breadcrumb-page">{breadcrumb}</span>
           </div>
         )}
 
-        <main className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-4">
+        <main className="app-shell__main">
           {title && (
             <div>
-              <h1 className="m-0 text-2xl font-semibold tracking-[-0.03em] text-text">{title}</h1>
-              {subtitle && <p className="m-0 mt-0.5 text-sm text-muted">{subtitle}</p>}
+              <h1 className="app-shell__title">{title}</h1>
+              {subtitle && <p className="app-shell__subtitle">{subtitle}</p>}
             </div>
           )}
           {children}

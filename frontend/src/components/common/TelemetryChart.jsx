@@ -1,40 +1,59 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ghepDonVi } from '@/constants/sensors'
+import { joinUnit } from '@/constants/sensors'
+import './TelemetryChart.css'
 
-// Lề của vùng vẽ (px) và class chữ cho nhãn trục, tooltip.
-const LE = { top: 20, right: 24, bottom: 40, left: 72 }
-const CLASS_NHAN_TRUC = 'tabular-nums text-[12px] fill-slate-400'
-const CLASS_TOOLTIP = 'absolute z-10 pointer-events-none px-3 py-2 rounded-lg bg-white border border-outline shadow-sm tabular-nums text-sm'
+// Lề của vùng vẽ (px).
+const MARGIN = { top: 20, right: 24, bottom: 40, left: 72 }
 
 // Đo chiều rộng/cao thật của khung chứa (theo pixel) và đo lại mỗi khi khung đổi kích thước.
-function useKichThuoc(thamChieu) {
-  const [kichThuoc, datKichThuoc] = useState({ rong: 0, cao: 0 })
+function useElementSize(elementRef) {
+  const [size, setSize] = useState({ width: 0, height: 0 })
   useLayoutEffect(() => {
-    const boQuanSat = new ResizeObserver(([muc]) => {
-      const { width, height } = muc.contentRect
-      datKichThuoc({ rong: width, cao: height })
+    const observer = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect
+      setSize({ width, height })
     })
-    boQuanSat.observe(thamChieu.current)
-    return () => boQuanSat.disconnect()
-  }, [thamChieu])
-  return kichThuoc
+    observer.observe(elementRef.current)
+    return () => observer.disconnect()
+  }, [elementRef])
+  return size
 }
 
 // Nối các điểm thành một đường cong mượt đi qua đúng từng điểm (spline Catmull-Rom đổi sang Bézier bậc ba).
-// Với mỗi đoạn từ p1 đến điểm hiện tại, hai điểm điều khiển được lấy từ hướng của các điểm lân cận:
-//   c1 = p1 + (diem - p0) / 6    (đi ra khỏi p1 theo hướng từ điểm trước p1 tới điểm hiện tại)
-//   c2 = diem - (p2 - p1) / 6    (đi vào điểm hiện tại theo hướng từ p1 tới điểm sau nó)
-// p0 và p2 lấy chính p1 và điểm hiện tại ở hai đầu đường để đoạn đầu và đoạn cuối không bị lệch.
-function taoDuongCong(cacDiem) {
-  return cacDiem.reduce((duong, diem, i) => {
-    if (i === 0) return `M${diem.x},${diem.y}`
-    const p0 = cacDiem[i - 2] ?? cacDiem[i - 1]
-    const p1 = cacDiem[i - 1]
-    const p2 = cacDiem[i + 1] ?? diem
-    const c1 = { x: p1.x + (diem.x - p0.x) / 6, y: p1.y + (diem.y - p0.y) / 6 }
-    const c2 = { x: diem.x - (p2.x - p1.x) / 6, y: diem.y - (p2.y - p1.y) / 6 }
-    return `${duong} C${c1.x},${c1.y} ${c2.x},${c2.y} ${diem.x},${diem.y}`
-  }, '')
+// Với mỗi đoạn từ `previous` đến `current`, hai điểm điều khiển được lấy từ hướng của các điểm lân cận:
+//   controlOut = previous + (current - beforePrevious) / 6   (đi ra khỏi previous)
+//   controlIn  = current - (next - previous) / 6             (đi vào current)
+// Ở hai đầu đường không có điểm lân cận thì dùng chính `previous` / `current` để đoạn đầu và đoạn cuối không bị lệch.
+function buildCurvePath(points) {
+  let path = ''
+  for (let index = 0; index < points.length; index++) {
+    const current = points[index]
+    if (index === 0) {
+      path = `M${current.x},${current.y}`
+      continue
+    }
+
+    const previous = points[index - 1]
+    let beforePrevious = previous
+    if (index >= 2) {
+      beforePrevious = points[index - 2]
+    }
+    let next = current
+    if (index + 1 < points.length) {
+      next = points[index + 1]
+    }
+
+    const controlOut = {
+      x: previous.x + (current.x - beforePrevious.x) / 6,
+      y: previous.y + (current.y - beforePrevious.y) / 6,
+    }
+    const controlIn = {
+      x: current.x - (next.x - previous.x) / 6,
+      y: current.y - (next.y - previous.y) / 6,
+    }
+    path = `${path} C${controlOut.x},${controlOut.y} ${controlIn.x},${controlIn.y} ${current.x},${current.y}`
+  }
+  return path
 }
 
 /**
@@ -43,100 +62,106 @@ function taoDuongCong(cacDiem) {
  * - series: [{ id, color, label, values, format }] — `values` vẽ thẳng theo trục y; label/format dùng cho tooltip.
  * - labels: nhãn trục x, chia đều. pointLabels: nhãn thời gian của từng điểm, làm tiêu đề tooltip.
  * - yTicks: các vạch trục y, vd [0, 10, 20, 30, 40, 50]. unit: đơn vị ghi sau số trên trục y, vd '°C' (mặc định không có).
- * Rê chuột lên biểu đồ để hiện vạch dọc và tooltip giá trị của từng đường tại điểm đó.
+ * Vạch dọc, chấm và tooltip cố định ở điểm cuối cùng của biểu đồ (số đo mới nhất).
  */
 export default function TelemetryChart({ series, labels, pointLabels = [], yTicks, unit = '' }) {
-  const khungRef = useRef(null)
-  const [chiSoDangRe, datChiSoDangRe] = useState(null)
-  const { rong, cao } = useKichThuoc(khungRef)
+  const containerRef = useRef(null)
+  const { width, height } = useElementSize(containerRef)
 
-  // Vùng vẽ thật sự (trừ lề), `duongNen` là toạ độ y của trục hoành, `xPhai` là toạ độ x của mép phải vùng vẽ.
-  const rongVe = Math.max(0, rong - LE.left - LE.right)
-  const caoVe = Math.max(0, cao - LE.top - LE.bottom)
-  const duongNen = LE.top + caoVe
-  const xPhai = LE.left + rongVe
-  const [nho, lon] = [yTicks[0], yTicks.at(-1)]
-  // Đổi chỉ số điểm (0..soDiem-1) sang toạ độ x, và giá trị đo sang toạ độ y (giá trị lớn thì y nhỏ vì trục y của SVG hướng xuống).
-  const toaDoX = (i, soDiem) => LE.left + (i / (soDiem - 1)) * rongVe
-  const toaDoY = (giaTri) => duongNen - ((giaTri - nho) / (lon - nho)) * caoVe
+  // Vùng vẽ thật sự (trừ lề), `baselineY` là toạ độ y của trục hoành, `rightX` là toạ độ x của mép phải vùng vẽ.
+  const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right)
+  const plotHeight = Math.max(0, height - MARGIN.top - MARGIN.bottom)
+  const baselineY = MARGIN.top + plotHeight
+  const rightX = MARGIN.left + plotWidth
+  const minTick = yTicks[0]
+  const maxTick = yTicks[yTicks.length - 1]
+
+  // Đổi chỉ số điểm (0..pointCount-1) sang toạ độ x, và giá trị đo sang toạ độ y (giá trị lớn thì y nhỏ vì trục y của SVG hướng xuống).
+  function xAt(index, pointCount) {
+    return MARGIN.left + (index / (pointCount - 1)) * plotWidth
+  }
+  function yAt(value) {
+    return baselineY - ((value - minTick) / (maxTick - minTick)) * plotHeight
+  }
 
   // Với mỗi đường: tính toạ độ từng điểm và đường cong nối chúng.
-  const cacDuong = series.map((duongDuLieu) => {
-    const cacDiem = duongDuLieu.values.map((giaTri, i) => ({
-      x: toaDoX(i, duongDuLieu.values.length),
-      y: toaDoY(giaTri),
+  const lines = series.map((seriesItem) => {
+    const points = seriesItem.values.map((value, index) => ({
+      x: xAt(index, seriesItem.values.length),
+      y: yAt(value),
     }))
-    return { ...duongDuLieu, cacDiem, duongCong: taoDuongCong(cacDiem) }
+    return { ...seriesItem, points, curvePath: buildCurvePath(points) }
   })
 
   // Số điểm chung của mọi đường: lấy đường ngắn nhất để chỉ số con trỏ luôn hợp lệ với mọi đường.
-  const soDiem = cacDuong.length === 0 ? 0 : Math.min(...cacDuong.map((d) => d.cacDiem.length))
+  let pointCount = 0
+  if (lines.length > 0) {
+    pointCount = Math.min(...lines.map((line) => line.points.length))
+  }
 
-  // Đổi vị trí chuột sang chỉ số điểm gần nhất để vạch dọc nhảy tới đó.
-  const khiRoChuot = (suKien) => {
-    if (soDiem < 2) return
-    const x = suKien.clientX - khungRef.current.getBoundingClientRect().left
-    const i = Math.round(((x - LE.left) / rongVe) * (soDiem - 1))
-    datChiSoDangRe(Math.min(soDiem - 1, Math.max(0, i)))
+  // Vạch dọc, chấm và tooltip luôn nằm ở điểm cuối cùng (số đo mới nhất) và không di chuyển theo chuột.
+  const hasLatestPoint = pointCount >= 2
+  const latestIndex = pointCount - 1
+  let latestX = 0
+  if (hasLatestPoint) {
+    latestX = lines[0].points[latestIndex].x
   }
 
   return (
     <div
-      ref={khungRef}
-      onMouseMove={khiRoChuot}
-      onMouseLeave={() => datChiSoDangRe(null)}
-      className="relative flex-1 min-h-0 border border-outline rounded-xl bg-canvas/60 overflow-hidden"
+      ref={containerRef}
+      className="telemetry-chart"
     >
-      {/* Khi rê chuột: tooltip ở góc trên trái, hiện giờ và giá trị thật của từng đường tại điểm đang rê tới. */}
-      {chiSoDangRe != null && (
-        <div className={`${CLASS_TOOLTIP} flex flex-col gap-1`} style={{ top: 8, left: LE.left + 8 }}>
-          <span className="font-semibold text-text">{pointLabels[chiSoDangRe]}</span>
-          {cacDuong.map((duongDuLieu) => (
-            <span key={duongDuLieu.id} style={{ color: duongDuLieu.color }}>
-              {duongDuLieu.label}: {duongDuLieu.format(duongDuLieu.values[chiSoDangRe])}
+      {/* Tooltip nằm ngay bên trái vạch dọc ở cuối biểu đồ, hiện giờ và giá trị thật của từng đường tại điểm cuối cùng. */}
+      {hasLatestPoint && (
+        <div className="telemetry-chart__tooltip" style={{ top: 8, right: width - latestX + 8 }}>
+          <span className="telemetry-chart__tooltip-time">{pointLabels[latestIndex]}</span>
+          {lines.map((line) => (
+            <span key={line.id} style={{ color: line.color }}>
+              {line.label}: {line.format(line.values[latestIndex])}
             </span>
           ))}
         </div>
       )}
 
-      {/* Đồ thị: lưới dọc, lưới ngang kèm số trục y, các đường, vạch dọc và chấm khi rê chuột, rồi nhãn trục x. */}
-      {rong > 0 && (
-        <svg className="absolute inset-0 w-full h-full" viewBox={`0 0 ${rong} ${cao}`} role="img" aria-label="Telemetry over time">
-          {labels.slice(1, -1).map((_, i) => {
-            const x = toaDoX(i + 1, labels.length)
-            return <line key={i} x1={x} y1={LE.top} x2={x} y2={duongNen} stroke="#eef2f6" />
+      {/* Đồ thị: lưới dọc, lưới ngang kèm số trục y, các đường, vạch dọc và chấm ở điểm cuối, rồi nhãn trục x. */}
+      {width > 0 && (
+        <svg className="telemetry-chart__svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Telemetry over time">
+          {labels.slice(1, labels.length - 1).map((label, index) => {
+            const x = xAt(index + 1, labels.length)
+            return <line key={index} x1={x} y1={MARGIN.top} x2={x} y2={baselineY} stroke="#eef2f6" />
           })}
 
-          {yTicks.slice(1).map((vach) => (
-            <g key={vach}>
-              <line x1={LE.left} y1={toaDoY(vach)} x2={xPhai} y2={toaDoY(vach)} stroke="#e2e8f0" strokeDasharray="4 4" />
-              <text x={LE.left - 14} y={toaDoY(vach) + 4} className={CLASS_NHAN_TRUC} textAnchor="end">
-                {ghepDonVi(vach, unit)}
+          {yTicks.slice(1).map((tick) => (
+            <g key={tick}>
+              <line x1={MARGIN.left} y1={yAt(tick)} x2={rightX} y2={yAt(tick)} stroke="#e2e8f0" strokeDasharray="4 4" />
+              <text x={MARGIN.left - 14} y={yAt(tick) + 4} className="telemetry-chart__axis-label" textAnchor="end">
+                {joinUnit(tick, unit)}
               </text>
             </g>
           ))}
 
-          {cacDuong.map((duongDuLieu) => (
-            <path key={duongDuLieu.id} d={duongDuLieu.duongCong} fill="none" stroke={duongDuLieu.color} strokeWidth="2.5" strokeLinecap="round" />
+          {lines.map((line) => (
+            <path key={line.id} d={line.curvePath} fill="none" stroke={line.color} strokeWidth="2.5" strokeLinecap="round" />
           ))}
 
-          {chiSoDangRe != null && (
+          {hasLatestPoint && (
             <>
               <line
-                x1={cacDuong[0].cacDiem[chiSoDangRe].x}
-                y1={LE.top}
-                x2={cacDuong[0].cacDiem[chiSoDangRe].x}
-                y2={duongNen}
+                x1={latestX}
+                y1={MARGIN.top}
+                x2={latestX}
+                y2={baselineY}
                 stroke="#94a3b8"
                 strokeDasharray="4 4"
               />
-              {cacDuong.map((duongDuLieu) => (
+              {lines.map((line) => (
                 <circle
-                  key={duongDuLieu.id}
-                  cx={duongDuLieu.cacDiem[chiSoDangRe].x}
-                  cy={duongDuLieu.cacDiem[chiSoDangRe].y}
+                  key={line.id}
+                  cx={line.points[latestIndex].x}
+                  cy={line.points[latestIndex].y}
                   r="5"
-                  fill={duongDuLieu.color}
+                  fill={line.color}
                   stroke="#fff"
                   strokeWidth="2"
                 />
@@ -144,17 +169,17 @@ export default function TelemetryChart({ series, labels, pointLabels = [], yTick
             </>
           )}
 
-          {labels.map((nhan, i) => (
-            <text
-              key={i}
-              x={toaDoX(i, labels.length)}
-              y={cao - 14}
-              textAnchor={i === labels.length - 1 ? 'end' : 'middle'}
-              className={CLASS_NHAN_TRUC}
-            >
-              {nhan}
-            </text>
-          ))}
+          {labels.map((label, index) => {
+            let textAnchor = 'middle'
+            if (index === labels.length - 1) {
+              textAnchor = 'end'
+            }
+            return (
+              <text key={index} x={xAt(index, labels.length)} y={height - 14} textAnchor={textAnchor} className="telemetry-chart__axis-label">
+                {label}
+              </text>
+            )
+          })}
         </svg>
       )}
     </div>
