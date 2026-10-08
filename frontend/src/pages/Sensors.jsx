@@ -121,7 +121,6 @@ export default function Sensors() {
         </Space.Compact>
         <CheckboxFilter
           label="Sensor Type"
-          header="Filter by type"
           options={LUA_CHON_LOAI}
           value={cacLoai}
           onChange={(giaTri) => {

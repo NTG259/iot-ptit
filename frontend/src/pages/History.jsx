@@ -137,7 +137,6 @@ export default function History() {
         </Space.Compact>
         <CheckboxFilter
           label="Status"
-          header="Filter by status"
           options={LUA_CHON_TRANG_THAI}
           value={cacTrangThai}
           onChange={(giaTri) => {
@@ -147,7 +146,6 @@ export default function History() {
         />
         <CheckboxFilter
           label="Action"
-          header="Filter by action"
           options={LUA_CHON_HANH_DONG}
           value={cacHanhDong}
           onChange={(giaTri) => {
@@ -157,7 +155,6 @@ export default function History() {
         />
         <CheckboxFilter
           label="Device Type"
-          header="Filter by device type"
           options={LUA_CHON_LOAI_THIET_BI}
           value={cacLoaiThietBi}
           onChange={(giaTri) => {

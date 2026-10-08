@@ -54,16 +54,13 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 shrink-0 bg-white border-r border-outline h-screen flex flex-col px-4 pt-5 pb-4">
-      {/* Logo: tên app và dòng chữ nhỏ bên dưới. */}
+      {/* Logo: tên app. */}
       <div className="px-2 pb-5 border-b border-outline">
         <p className="m-0 text-[1.0625rem] font-semibold text-text">VietFarm</p>
-        <p className="m-0 mt-1 font-mono text-xs tracking-[0.12em] text-muted/80">IOT ARCHITECTURE</p>
       </div>
 
-      <p className="mt-6 mb-3 px-4 font-mono text-xs tracking-[0.14em] text-muted">NAVIGATION</p>
-
       {/* Số 3 cạnh Sensors là số cảm biến của hệ thống (nhiệt độ, độ ẩm, ánh sáng). */}
-      <nav className="flex flex-col gap-2">
+      <nav className="mt-6 flex flex-col gap-2">
         <NavItem to={DUONG_DAN.BANG_DIEU_KHIEN} icon={LuLayoutDashboard} end>
           Dashboard
         </NavItem>
