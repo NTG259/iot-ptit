@@ -9,15 +9,15 @@
   background: var(--color-canvas-soft);
 }
 
-/* Hộp thông tin hiện khi rê chuột lên biểu đồ. */
+/* Hộp giá trị hiện khi rê chuột lên một nút. */
 .telemetry-chart__tooltip {
   position: absolute;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  font-weight: 600;
   z-index: 10;
   pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.25rem 0.625rem;
   background: #fff;
   border: 1px solid var(--color-outline);
   border-radius: 0.5rem;
@@ -27,9 +27,8 @@
   line-height: 1.4286;
 }
 
-.telemetry-chart__tooltip-time {
-  font-weight: 600;
-  color: var(--color-text);
+.telemetry-chart__node {
+  cursor: pointer;
 }
 
 /* Hình vẽ phủ kín khung biểu đồ. */

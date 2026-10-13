@@ -20,7 +20,6 @@ export default function DataTable({
   page,
   rowsPerPage,
   total,
-  noun = 'entries',
   rowsOptions = [10, 20, 50],
   onPageChange,
   onRowsPerPageChange,
@@ -68,7 +67,8 @@ export default function DataTable({
           total,
           showSizeChanger: true,
           pageSizeOptions: rowsOptions,
-          showTotal: (totalCount) => `${totalCount.toLocaleString('en-US')} ${noun}`,
+          showTotal: (totalCount, [from, to]) =>
+            `${from.toLocaleString('en-US')}-${to.toLocaleString('en-US')} / ${totalCount.toLocaleString('en-US')}`,
           onChange: handlePaginationChange,
         }}
         onChange={handleTableChange}

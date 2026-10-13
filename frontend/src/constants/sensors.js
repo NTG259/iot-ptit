@@ -2,7 +2,7 @@
  * Cấu hình hiển thị của 3 cảm biến trên Dashboard.
  * - id: khoá React; label / short: tên trên thẻ chỉ số / trên chú thích và tooltip biểu đồ.
  * - unit, decimals: cách định dạng giá trị; color: màu đường biểu đồ.
- * - yTicks: các vạch trục y của biểu đồ riêng của cảm biến, theo đơn vị thật (ánh sáng là giá trị ADC 0–1024).
+ * - yTicks: các vạch trục y của biểu đồ riêng của cảm biến, theo đơn vị thật (ánh sáng là giá trị ADC 0–1024, trục kéo lên 1280 để đường không chạm trần).
  */
 export const TEMPERATURE = {
   id: 'temperature',
@@ -29,7 +29,7 @@ export const LIGHT = {
   unit: 'lux',
   decimals: 0,
   color: '#d97706',
-  yTicks: [0, 256, 512, 768, 1024],
+  yTicks: [0, 256, 512, 768, 1024, 1280],
 }
 
 /** Dữ liệu một cảm biến khi chưa tải xong, cùng hình dạng với dữ liệu backend trả về. */

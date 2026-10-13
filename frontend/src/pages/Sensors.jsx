@@ -175,7 +175,6 @@ export default function Sensors() {
         page={page}
         rowsPerPage={rowsPerPage}
         total={totalRows}
-        noun="readings"
         onPageChange={setPage}
         onRowsPerPageChange={handleRowsPerPageChange}
         newestFirst={newestFirst}

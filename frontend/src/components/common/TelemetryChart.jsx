@@ -19,54 +19,24 @@ function useElementSize(elementRef) {
   return size
 }
 
-// Nối các điểm thành một đường cong mượt đi qua đúng từng điểm (spline Catmull-Rom đổi sang Bézier bậc ba).
-// Với mỗi đoạn từ `previous` đến `current`, hai điểm điều khiển được lấy từ hướng của các điểm lân cận:
-//   controlOut = previous + (current - beforePrevious) / 6   (đi ra khỏi previous)
-//   controlIn  = current - (next - previous) / 6             (đi vào current)
-// Ở hai đầu đường không có điểm lân cận thì dùng chính `previous` / `current` để đoạn đầu và đoạn cuối không bị lệch.
-function buildCurvePath(points) {
-  let path = ''
-  for (let index = 0; index < points.length; index++) {
-    const current = points[index]
-    if (index === 0) {
-      path = `M${current.x},${current.y}`
-      continue
-    }
-
-    const previous = points[index - 1]
-    let beforePrevious = previous
-    if (index >= 2) {
-      beforePrevious = points[index - 2]
-    }
-    let next = current
-    if (index + 1 < points.length) {
-      next = points[index + 1]
-    }
-
-    const controlOut = {
-      x: previous.x + (current.x - beforePrevious.x) / 6,
-      y: previous.y + (current.y - beforePrevious.y) / 6,
-    }
-    const controlIn = {
-      x: current.x - (next.x - previous.x) / 6,
-      y: current.y - (next.y - previous.y) / 6,
-    }
-    path = `${path} C${controlOut.x},${controlOut.y} ${controlIn.x},${controlIn.y} ${current.x},${current.y}`
-  }
-  return path
+// Nối các điểm bằng các đoạn thẳng, mỗi điểm mẫu là một nút.
+function buildLinePath(points) {
+  return points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ')
 }
 
 /**
  * TelemetryChart: biểu đồ đường SVG tự vẽ cho các chuỗi dữ liệu cảm biến, giãn theo chiều cao còn lại của panel.
  * Props:
  * - series: [{ id, color, label, values, format }] — `values` vẽ thẳng theo trục y; label/format dùng cho tooltip.
- * - labels: nhãn trục x, chia đều. pointLabels: nhãn thời gian của từng điểm, làm tiêu đề tooltip.
+ * - labels: nhãn trục x, chia đều.
  * - yTicks: các vạch trục y, vd [0, 10, 20, 30, 40, 50]. unit: đơn vị ghi sau số trên trục y, vd '°C' (mặc định không có).
- * Vạch dọc, chấm và tooltip cố định ở điểm cuối cùng của biểu đồ (số đo mới nhất).
+ * Rê chuột lên một nút thì hiện giá trị của nút đó.
  */
-export default function TelemetryChart({ series, labels, pointLabels = [], yTicks, unit = '' }) {
+export default function TelemetryChart({ series, labels, yTicks, unit = '' }) {
   const containerRef = useRef(null)
   const { width, height } = useElementSize(containerRef)
+  // Nút đang được rê chuột: { line, index } hoặc null.
+  const [hovered, setHovered] = useState(null)
 
   // Vùng vẽ thật sự (trừ lề), `baselineY` là toạ độ y của trục hoành, `rightX` là toạ độ x của mép phải vùng vẽ.
   const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right)
@@ -84,47 +54,31 @@ export default function TelemetryChart({ series, labels, pointLabels = [], yTick
     return baselineY - ((value - minTick) / (maxTick - minTick)) * plotHeight
   }
 
-  // Với mỗi đường: tính toạ độ từng điểm và đường cong nối chúng.
+  // Với mỗi đường: tính toạ độ từng điểm và đường gấp khúc nối chúng.
   const lines = series.map((seriesItem) => {
     const points = seriesItem.values.map((value, index) => ({
       x: xAt(index, seriesItem.values.length),
       y: yAt(value),
     }))
-    return { ...seriesItem, points, curvePath: buildCurvePath(points) }
+    return { ...seriesItem, points, linePath: buildLinePath(points) }
   })
-
-  // Số điểm chung của mọi đường: lấy đường ngắn nhất để chỉ số con trỏ luôn hợp lệ với mọi đường.
-  let pointCount = 0
-  if (lines.length > 0) {
-    pointCount = Math.min(...lines.map((line) => line.points.length))
-  }
-
-  // Vạch dọc, chấm và tooltip luôn nằm ở điểm cuối cùng (số đo mới nhất) và không di chuyển theo chuột.
-  const hasLatestPoint = pointCount >= 2
-  const latestIndex = pointCount - 1
-  let latestX = 0
-  if (hasLatestPoint) {
-    latestX = lines[0].points[latestIndex].x
-  }
 
   return (
     <div
       ref={containerRef}
       className="telemetry-chart"
     >
-      {/* Tooltip nằm ngay bên trái vạch dọc ở cuối biểu đồ, hiện giờ và giá trị thật của từng đường tại điểm cuối cùng. */}
-      {hasLatestPoint && (
-        <div className="telemetry-chart__tooltip" style={{ top: 8, right: width - latestX + 8 }}>
-          <span className="telemetry-chart__tooltip-time">{pointLabels[latestIndex]}</span>
-          {lines.map((line) => (
-            <span key={line.id} style={{ color: line.color }}>
-              {line.label}: {line.format(line.values[latestIndex])}
-            </span>
-          ))}
+      {/* Tooltip hiện giá trị của nút đang rê chuột, nằm phía trên nút. */}
+      {hovered && (
+        <div
+          className="telemetry-chart__tooltip"
+          style={{ left: hovered.line.points[hovered.index].x, top: hovered.line.points[hovered.index].y - 12, color: hovered.line.color }}
+        >
+          {hovered.line.format(hovered.line.values[hovered.index])}
         </div>
       )}
 
-      {/* Đồ thị: lưới dọc, lưới ngang kèm số trục y, các đường, vạch dọc và chấm ở điểm cuối, rồi nhãn trục x. */}
+      {/* Đồ thị: lưới dọc, lưới ngang kèm số trục y, các đường cùng nút, rồi nhãn trục x. */}
       {width > 0 && (
         <svg className="telemetry-chart__svg" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Telemetry over time">
           {labels.slice(1, labels.length - 1).map((label, index) => {
@@ -142,32 +96,24 @@ export default function TelemetryChart({ series, labels, pointLabels = [], yTick
           ))}
 
           {lines.map((line) => (
-            <path key={line.id} d={line.curvePath} fill="none" stroke={line.color} strokeWidth="2.5" strokeLinecap="round" />
-          ))}
-
-          {hasLatestPoint && (
-            <>
-              <line
-                x1={latestX}
-                y1={MARGIN.top}
-                x2={latestX}
-                y2={baselineY}
-                stroke="#94a3b8"
-                strokeDasharray="4 4"
-              />
-              {lines.map((line) => (
+            <g key={line.id}>
+              <path d={line.linePath} fill="none" stroke={line.color} strokeWidth="2" strokeLinejoin="round" />
+              {line.points.map((point, index) => (
                 <circle
-                  key={line.id}
-                  cx={line.points[latestIndex].x}
-                  cy={line.points[latestIndex].y}
-                  r="5"
-                  fill={line.color}
-                  stroke="#fff"
-                  strokeWidth="2"
+                  key={index}
+                  cx={point.x}
+                  cy={point.y}
+                  r={hovered?.line === line && hovered.index === index ? 5 : 3}
+                  fill="#fff"
+                  stroke={line.color}
+                  strokeWidth="1.5"
+                  className="telemetry-chart__node"
+                  onMouseEnter={() => setHovered({ line, index })}
+                  onMouseLeave={() => setHovered(null)}
                 />
               ))}
-            </>
-          )}
+            </g>
+          ))}
 
           {labels.map((label, index) => {
             let textAnchor = 'middle'

@@ -75,7 +75,16 @@ export default function Dashboard() {
   const temperature = temperatureRequest.data
   const humidity = humidityRequest.data
   const light = lightRequest.data
-  const leds = ledRequest.data
+  // TẠM THỜI (mock): LED đầu tiên không gọi backend, tự bật/tắt ngay trên giao diện và không báo lỗi; hai LED còn lại vẫn
+  // gọi backend như thường (nên vẫn báo lỗi khi ESP8266 chưa kết nối).
+  const [mockLedOn, setMockLedOn] = useState(false)
+  const mockLedCode = ledRequest.data[0]?.code
+  const leds = ledRequest.data.map((led) => {
+    if (led.code === mockLedCode) {
+      return { ...led, on: mockLedOn }
+    }
+    return led
+  })
 
   // Ba biểu đồ, mỗi cảm biến một cái; chỉ biểu đồ của tab đang chọn được vẽ.
   const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
@@ -94,9 +103,9 @@ export default function Dashboard() {
   // Biểu đồ có 25 điểm; trục X chỉ ghi giờ của 7 điểm cách đều nhau (thứ tự 1, 5, 9, 13, 17, 21, 25).
   const xAxisLabels = [times[0], times[4], times[8], times[12], times[16], times[20], times[24]]
 
-  // Dòng trạng thái bên phải thanh tab: giá trị hiện tại, hoặc báo chưa đủ số đo để vẽ.
+  // Dòng trạng thái bên phải thanh tab: chỉ hiện khi chưa đủ số đo để vẽ.
   const notEnoughReadings = !selectedChart.chartRequest.loading && values.length < 2
-  let statusText = `Now: ${formatReading(selectedChart.sensor.lastValue, selectedChart.sensorConfig)}`
+  let statusText = ''
   if (notEnoughReadings) {
     statusText = 'Not enough readings yet.'
   }
@@ -110,6 +119,10 @@ export default function Dashboard() {
   // Bật/tắt một LED: gửi lệnh lên backend rồi tải lại danh sách LED. Backend trả lỗi (ESP8266 chưa kết nối,
   // broker lỗi…) thì hiện thông báo. Công tắc luôn hiện `led.on` do backend tính nên không cần đoán trước.
   async function toggleLed(code, turnOn) {
+    if (code === mockLedCode) {
+      setMockLedOn(turnOn)
+      return
+    }
     try {
       await deviceService.controlLed(code, getAction(turnOn))
     } catch (error) {
@@ -120,6 +133,7 @@ export default function Dashboard() {
 
   // Bật/tắt cả 3 LED, cùng cách làm như `toggleLed`.
   async function toggleAllLeds(turnOn) {
+    setMockLedOn(turnOn)
     try {
       await deviceService.controlAllLeds(getAction(turnOn))
     } catch (error) {
@@ -167,7 +181,6 @@ export default function Dashboard() {
           key={selectedChart.sensorConfig.id}
           series={chartSeries}
           labels={xAxisLabels}
-          pointLabels={times}
           yTicks={selectedChart.sensorConfig.yTicks}
           unit={selectedChart.sensorConfig.unit}
         />
