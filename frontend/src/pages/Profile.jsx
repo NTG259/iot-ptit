@@ -194,22 +194,18 @@ export default function Profile() {
             <CopyField label="Email" value={user.email ?? '—'} />
           </div>
 
-          {(user.githubUrl || user.figmaUrl) && (
-            <div className="profile__links">
-              {user.githubUrl && (
-                <a href={user.githubUrl} target="_blank" rel="noreferrer" className="profile__link">
-                  <LuGithub size="1.25rem" />
-                  GitHub
-                </a>
-              )}
-              {user.figmaUrl && (
-                <a href={user.figmaUrl} target="_blank" rel="noreferrer" className="profile__link">
-                  <LuFigma size="1.25rem" />
-                  Figma
-                </a>
-              )}
-            </div>
-          )}
+          <div className="profile__links">
+            {user.githubUrl && (
+              <a href={user.githubUrl} target="_blank" rel="noreferrer" className="profile__link">
+                <LuGithub size="1.25rem" />
+                GitHub
+              </a>
+            )}
+            <a href="https://www.figma.com/design/8ZHdOoFR4NGW7gNx898aj4/Dashboard-IOT" target="_blank" rel="noreferrer" className="profile__link">
+              <LuFigma size="1.25rem" />
+              Figma
+            </a>
+          </div>
 
           {profileRequest.error && <p className="profile__refresh-error">Could not refresh profile: {profileRequest.error.message}</p>}
         </section>

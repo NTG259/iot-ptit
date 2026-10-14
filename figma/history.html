@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>History — VietFarm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 87.5%; }
+  body {
+    font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+    background: #f8fafc; color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+    height: 100vh; overflow: hidden; display: flex;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar { width:16rem; height:100vh; flex-shrink:0; display:flex; flex-direction:column; padding:1.25rem 1rem 1rem; background:#fff; border-right:1px solid #e2e8f0; }
+  .sidebar-logo { padding:0 .5rem 1.25rem; border-bottom:1px solid #e2e8f0; font-size:1.0625rem; font-weight:600; }
+  .sidebar-logo span { color:#059669; }
+  .nav { margin-top:1.5rem; display:flex; flex-direction:column; gap:.5rem; }
+  .nav-item { display:flex; align-items:center; gap:1rem; padding:.625rem 1rem; border:1px solid transparent; border-radius:.5rem; font-size:.9375rem; color:rgba(15,23,42,.8); text-decoration:none; }
+  .nav-item.active { background:#ecfdf5; border-color:#a7f3d0; color:#059669; font-weight:600; }
+  .sidebar-user { margin-top:auto; padding-top:1rem; border-top:1px solid #e2e8f0; display:flex; align-items:center; gap:.25rem; }
+  .user-link { min-width:0; flex:1; display:flex; align-items:center; gap:.75rem; padding:.5rem; border-radius:.5rem; text-decoration:none; }
+  .avatar { flex-shrink:0; width:2.5rem; height:2.5rem; border-radius:9999px; background:#059669; color:#fff; display:grid; place-items:center; font-size:.875rem; font-weight:600; }
+  .user-text { min-width:0; flex:1; }
+  .user-name { display:block; font-size:.875rem; font-weight:600; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .user-uname { display:block; font-size:.75rem; color:#64748b; font-family:ui-monospace,monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .logout-btn { flex-shrink:0; width:2.5rem; height:2.5rem; border:0; border-radius:.5rem; background:transparent; color:#64748b; display:grid; place-items:center; cursor:pointer; }
+
+  /* ─── Shell ─── */
+  .shell-content { flex:1; min-width:0; display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  .breadcrumb { height:3rem; flex-shrink:0; display:flex; align-items:center; padding:0 2rem; background:#fff; border-bottom:1px solid #e2e8f0; font-size:.875rem; letter-spacing:.1em; }
+  .bc-root { font-weight:600; color:#059669; }
+  .bc-sep { margin:0 .75rem; color:#cbd5e1; }
+  .bc-page { color:#0f172a; text-transform:uppercase; }
+
+  .main { flex:1; min-height:0; overflow-y:auto; padding:1rem 1.5rem; display:flex; flex-direction:column; gap:1rem; }
+  .page-title { font-size:1.5rem; font-weight:600; letter-spacing:-.03em; }
+  .page-subtitle { margin-top:.125rem; font-size:.875rem; color:#64748b; }
+
+  .panel { background:#fff; border:1px solid #e2e8f0; border-radius:.875rem; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+
+  /* ─── Toolbar ─── */
+  .toolbar { flex-shrink:0; padding:.75rem; display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; justify-content:space-between; }
+  .search-wrap { display:flex; }
+  .search-select { height:2.25rem; padding:0 .75rem; border:1px solid #e2e8f0; border-right:0; border-radius:.5rem 0 0 .5rem; font-family:inherit; font-size:.875rem; color:#0f172a; background:#fff; cursor:pointer; outline:none; min-width:7.5rem; }
+  .search-input-wrap { position:relative; }
+  .search-icon { position:absolute; left:.625rem; top:50%; transform:translateY(-50%); color:#64748b; pointer-events:none; }
+  .search-input { height:2.25rem; padding:0 .75rem 0 2rem; border:1px solid #e2e8f0; border-radius:0 .5rem .5rem 0; font-family:inherit; font-size:.875rem; color:#0f172a; background:#fff; outline:none; width:15rem; }
+
+  .filter-group { display:flex; align-items:center; gap:.5rem; }
+  .filter-label { font-size:.875rem; color:#64748b; white-space:nowrap; }
+  .checkbox-list { display:flex; gap:.5rem; }
+  .checkbox-item { display:flex; align-items:center; gap:.3rem; font-size:.875rem; cursor:pointer; }
+  .checkbox-box { width:.9rem; height:.9rem; border:1.5px solid #e2e8f0; border-radius:.2rem; background:#fff; display:grid; place-items:center; }
+  .checkbox-box.checked { background:#059669; border-color:#059669; }
+
+  .date-btn { height:2.25rem; padding:0 .75rem; border:1px solid #e2e8f0; border-radius:.5rem; background:#fff; font-family:inherit; font-size:.875rem; color:#64748b; display:flex; align-items:center; gap:.375rem; cursor:pointer; }
+
+  /* ─── Table ─── */
+  .table-panel { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+  .table-scroll { flex:1; min-height:0; overflow-y:auto; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { position:sticky; top:0; z-index:2; text-align:left; padding:.625rem 1rem; background:#fafafa; border-bottom:1px solid #e2e8f0; font-size:.875rem; font-weight:600; color:#64748b; white-space:nowrap; }
+  tbody td { padding:.625rem 1rem; border-bottom:1px solid #f1f5f9; font-size:.875rem; }
+
+  .device-name { font-weight:600; color:#0f172a; }
+  .device-type { color:#475569; }
+  .action { font-weight:500; }
+  .action-on  { color:#059669; }
+  .action-off { color:#64748b; }
+  .timestamp  { color:#475569; white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+  /* Badge with dot */
+  .badge {
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.15rem .5rem; border-radius:9999px;
+    font-size:.75rem; font-weight:600;
+  }
+  .badge-dot { width:.45rem; height:.45rem; border-radius:9999px; }
+  .badge-green  { background:#ecfdf5; color:#059669; }
+  .badge-green .badge-dot  { background:#059669; }
+  .badge-blue   { background:#eff6ff; color:#3b82f6; }
+  .badge-blue .badge-dot   { background:#3b82f6; }
+  .badge-red    { background:#fef2f2; color:#ef4444; }
+  .badge-red .badge-dot    { background:#ef4444; }
+
+  /* Pagination */
+  .pagination { flex-shrink:0; padding:.75rem 1rem; border-top:1px solid #e2e8f0; display:flex; align-items:center; justify-content:space-between; font-size:.875rem; color:#64748b; }
+  .page-btns { display:flex; gap:.375rem; }
+  .page-btn { min-width:2rem; height:2rem; padding:0 .5rem; border:1px solid #e2e8f0; border-radius:.375rem; background:#fff; font-family:inherit; font-size:.875rem; display:grid; place-items:center; cursor:pointer; color:#0f172a; }
+  .page-btn.active { background:#059669; border-color:#059669; color:#fff; font-weight:600; }
+  .rows-select { border:1px solid #e2e8f0; border-radius:.375rem; padding:0 .5rem; height:2rem; font-family:inherit; font-size:.875rem; color:#0f172a; background:#fff; }
+</style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Viet<span>Farm</span></div>
+    <nav class="nav">
+      <a href="#" class="nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>
+          <path d="M12 7v4M5 17l5-4M19 17l-5-4"/>
+        </svg>
+        Sensors
+      </a>
+      <a href="#" class="nav-item active">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 21h8M12 17v4M4 3h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+          <path d="M8 9h4M8 13h6"/>
+        </svg>
+        History
+      </a>
+    </nav>
+    <div class="sidebar-user">
+      <a href="#" class="user-link">
+        <div class="avatar">NC</div>
+        <div class="user-text">
+          <span class="user-name">Nguyễn Thành Công</span>
+          <span class="user-uname">@admin</span>
+        </div>
+      </a>
+      <button class="logout-btn" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="shell-content">
+    <div class="breadcrumb">
+      <span class="bc-root">SYSTEM</span>
+      <span class="bc-sep">/</span>
+      <span class="bc-page">History</span>
+    </div>
+
+    <div class="main">
+      <div>
+        <h1 class="page-title">Action History</h1>
+        <p class="page-subtitle">Real-time audit telemetry and automated action dispatch log across mesh nodes.</p>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="panel toolbar">
+        <div class="search-wrap">
+          <select class="search-select">
+            <option>Name</option>
+            <option>Type</option>
+            <option>Date time</option>
+          </select>
+          <div class="search-input-wrap">
+            <span class="search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
+            <input class="search-input" type="text" placeholder="Device name" />
+          </div>
+        </div>
+
+        <!-- Status filter -->
+        <div class="filter-group">
+          <span class="filter-label">Status</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Success
+            </label>
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Pending
+            </label>
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Failed
+            </label>
+          </div>
+        </div>
+
+        <!-- Action filter -->
+        <div class="filter-group">
+          <span class="filter-label">Action</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Turn ON
+            </label>
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Turn OFF
+            </label>
+          </div>
+        </div>
+
+        <!-- Device Type filter -->
+        <div class="filter-group">
+          <span class="filter-label">Device Type</span>
+          <div class="checkbox-list">
+            <label class="checkbox-item">
+              <div class="checkbox-box checked"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></div>
+              Smart LED
+            </label>
+          </div>
+        </div>
+
+        <div class="date-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Pick a date
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="panel table-panel">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Device</th>
+                <th>Device Type</th>
+                <th>Action</th>
+                <th>Status</th>
+                <th>Timestamp <span style="opacity:.5">↓</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>23</td>
+                <td><span class="device-name">LED 1</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-on">Turn ON</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:14:20</span></td>
+              </tr>
+              <tr>
+                <td>22</td>
+                <td><span class="device-name">LED 3</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-off">Turn OFF</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:14:15</span></td>
+              </tr>
+              <tr>
+                <td>21</td>
+                <td><span class="device-name">LED 2</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-off">Turn OFF</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:14:10</span></td>
+              </tr>
+              <tr>
+                <td>20</td>
+                <td><span class="device-name">LED 1</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-off">Turn OFF</span></td>
+                <td><span class="badge badge-blue"><span class="badge-dot"></span>Pending</span></td>
+                <td><span class="timestamp">14/10/2026 09:14:05</span></td>
+              </tr>
+              <tr>
+                <td>19</td>
+                <td><span class="device-name">LED 3</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-on">Turn ON</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:13:55</span></td>
+              </tr>
+              <tr>
+                <td>18</td>
+                <td><span class="device-name">LED 2</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-on">Turn ON</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:13:45</span></td>
+              </tr>
+              <tr>
+                <td>17</td>
+                <td><span class="device-name">LED 3</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-on">Turn ON</span></td>
+                <td><span class="badge badge-red"><span class="badge-dot"></span>Failed</span></td>
+                <td><span class="timestamp">14/10/2026 09:13:30</span></td>
+              </tr>
+              <tr>
+                <td>16</td>
+                <td><span class="device-name">LED 1</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-on">Turn ON</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:13:20</span></td>
+              </tr>
+              <tr>
+                <td>15</td>
+                <td><span class="device-name">LED 2</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-off">Turn OFF</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:13:10</span></td>
+              </tr>
+              <tr>
+                <td>14</td>
+                <td><span class="device-name">LED 1</span></td>
+                <td><span class="device-type">Smart LED</span></td>
+                <td><span class="action action-off">Turn OFF</span></td>
+                <td><span class="badge badge-green"><span class="badge-dot"></span>Success</span></td>
+                <td><span class="timestamp">14/10/2026 09:12:58</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span>Rows per page:</span>
+            <select class="rows-select"><option>10</option><option>25</option><option>50</option></select>
+            <span style="margin-left:.5rem">1–10 of 23</span>
+          </div>
+          <div class="page-btns">
+            <button class="page-btn">«</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">»</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

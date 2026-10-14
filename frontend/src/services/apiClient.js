@@ -1,6 +1,9 @@
 import { config } from '@/config'
 import { ROUTES } from '@/routes/paths'
 import { clearSession, getToken } from './session'
+import { handleMockRequest } from './mockHandlers'
+
+const MOCK_MODE = import.meta.env.VITE_MOCK === 'true'
 
 // Lỗi khi gọi API: `message` lấy từ backend, `httpStatus` là mã HTTP (vd 503 = ESP8266 chưa kết nối).
 export class ApiError extends Error {
@@ -52,6 +55,12 @@ async function readBody(response) {
 // Lớp bọc fetch để các service không gọi fetch() trực tiếp. Backend luôn trả về { success, message, data };
 // hàm này trả về `data`, lỗi thì ném ApiError kèm `message`. Tự gắn token đăng nhập vào header.
 async function callApi(path, { params, headers, ...fetchOptions } = {}) {
+  if (MOCK_MODE) {
+    // Merge params vào body để mockHandlers đọc được page/size từ GET request.
+    const mockBody = fetchOptions.body ? { ...JSON.parse(fetchOptions.body), ...params } : params
+    return handleMockRequest(fetchOptions.method ?? 'GET', path, mockBody)
+  }
+
   const token = getToken()
 
   const requestHeaders = { 'Content-Type': 'application/json' }

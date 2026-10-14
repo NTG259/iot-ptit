@@ -39,6 +39,14 @@
   background: var(--color-gray-100);
   color: var(--color-muted);
 }
+.led-card__state--pending {
+  background: #fff7e6;
+  color: #d46b08;
+}
+.led-card__state--success {
+  background: #f6ffed;
+  color: #389e0d;
+}
 
 .led-card__switch {
   margin-left: auto;

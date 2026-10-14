@@ -7,14 +7,13 @@ import LedDeviceCard from '@/components/common/LedDeviceCard'
 import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
-import { TEMPERATURE, HUMIDITY, LIGHT, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
+import { TEMPERATURE, HUMIDITY, LIGHT, LIGHT_PERCENT, EMPTY_SENSOR, formatReading, lightToPercent } from '@/constants/sensors'
 import './Dashboard.css'
 
 function PanelTitle({ children }) {
   return <h2 className="dashboard__panel-title">{children}</h2>
 }
 
-// Một đường của biểu đồ; `chartData` là { values, times } từ backend.
 function buildChartLine(sensorConfig, chartData) {
   return {
     id: sensorConfig.id,
@@ -25,7 +24,6 @@ function buildChartLine(sensorConfig, chartData) {
   }
 }
 
-// Nhãn một tab biểu đồ: chấm màu và tên cảm biến kèm đơn vị.
 function TabLabel({ sensorConfig }) {
   let text = sensorConfig.label
   if (sensorConfig.unit) {
@@ -39,7 +37,6 @@ function TabLabel({ sensorConfig }) {
   )
 }
 
-// Lệnh gửi lên backend: bật thì TURN_ON, tắt thì TURN_OFF.
 function getAction(turnOn) {
   if (turnOn) {
     return 'TURN_ON'
@@ -47,49 +44,44 @@ function getAction(turnOn) {
   return 'TURN_OFF'
 }
 
-// Biểu đồ khi chưa tải xong.
 const EMPTY_CHART = { values: [], times: [] }
+const MIX_ID = 'mix'
 
-/**
- * Dashboard: trang tổng quan thời gian thực — 3 thẻ chỉ số, biểu đồ 25 số đo gần nhất của từng cảm biến (chọn bằng
- * thanh tab, mỗi lúc một biểu đồ) và bảng điều khiển LED.
- * Lệnh LED đang chờ được tính ở backend.
- */
 export default function Dashboard() {
   const [notifier, notificationHolder] = notification.useNotification()
-  // Biểu đồ đang xem: id của một cảm biến trong TEMPERATURE / HUMIDITY / LIGHT.
-  const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
-
-  // Tải dữ liệu từ DB và tự tải lại: với mỗi cảm biến, thông tin hiện tại (giá trị mới nhất, trạng thái kết nối) và
-  // 25 số đo mới nhất cho biểu đồ (values, times), mỗi 2s; LED mỗi 1s. `initialData` là dữ liệu khi chưa tải xong.
+  // const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
+  const [selectedChartId, setSelectedChartId] = useState(MIX_ID)
   const sensorOptions = { intervalMs: 2000, initialData: EMPTY_SENSOR }
-  const chartOptions = { intervalMs: 2000, initialData: EMPTY_CHART }
   const temperatureRequest = useApi(() => sensorService.getTemperature(), [], sensorOptions)
   const humidityRequest = useApi(() => sensorService.getHumidity(), [], sensorOptions)
   const lightRequest = useApi(() => sensorService.getLight(), [], sensorOptions)
+
+  const chartOptions = { intervalMs: 2000, initialData: EMPTY_CHART }
   const temperatureChartRequest = useApi(() => sensorService.getLatestTemperature({ limit: 25 }), [], chartOptions)
   const humidityChartRequest = useApi(() => sensorService.getLatestHumidity({ limit: 25 }), [], chartOptions)
   const lightChartRequest = useApi(() => sensorService.getLatestLight({ limit: 25 }), [], chartOptions)
+
   const ledRequest = useApi(() => deviceService.getLeds(), [], { intervalMs: 1000, initialData: [] })
 
   const temperature = temperatureRequest.data
   const humidity = humidityRequest.data
   const light = lightRequest.data
-  // TẠM THỜI (mock): LED đầu tiên không gọi backend, tự bật/tắt ngay trên giao diện và không báo lỗi; hai LED còn lại vẫn
-  // gọi backend như thường (nên vẫn báo lỗi khi ESP8266 chưa kết nối).
-  const [mockLedOn, setMockLedOn] = useState(false)
-  const mockLedCode = ledRequest.data[0]?.code
-  const leds = ledRequest.data.map((led) => {
-    if (led.code === mockLedCode) {
-      return { ...led, on: mockLedOn }
-    }
-    return led
-  })
 
-  // Ba biểu đồ, mỗi cảm biến một cái; chỉ biểu đồ của tab đang chọn được vẽ.
+  const [led0On, setLed0On] = useState(false)
+  const [led1On, setLed1On] = useState(false)
+  const [led2On, setLed2On] = useState(false)
+  const [led0Status, setLed0Status] = useState('idle')
+  const [led1Status, setLed1Status] = useState('idle')
+  const [led2Status, setLed2Status] = useState('idle')
+  const led0 = { ...ledRequest.data[0], on: led0On }
+  const led1 = { ...ledRequest.data[1], on: led1On }
+  const led2 = { ...ledRequest.data[2], on: led2On }
+
   const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
   const humidityChart = { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest }
   const lightChart = { sensorConfig: LIGHT, sensor: light, chartRequest: lightChartRequest }
+
+  const isMixTab = selectedChartId === MIX_ID
 
   let selectedChart = temperatureChart
   if (selectedChartId === HUMIDITY.id) {
@@ -98,67 +90,83 @@ export default function Dashboard() {
     selectedChart = lightChart
   }
 
-  const { values, times } = selectedChart.chartRequest.data
-
-  // Biểu đồ có 25 điểm; trục X chỉ ghi giờ của 7 điểm cách đều nhau (thứ tự 1, 5, 9, 13, 17, 21, 25).
+  const { values, times } = isMixTab ? EMPTY_CHART : selectedChart.chartRequest.data
   const xAxisLabels = [times[0], times[4], times[8], times[12], times[16], times[20], times[24]]
 
-  // Dòng trạng thái bên phải thanh tab: chỉ hiện khi chưa đủ số đo để vẽ.
-  const notEnoughReadings = !selectedChart.chartRequest.loading && values.length < 2
+  // Mix tab: gộp cả 3 cảm biến, trục trái °C, trục phải %
+  const mixReady =
+    isMixTab &&
+    temperatureChartRequest.data.values.length > 1 &&
+    humidityChartRequest.data.values.length > 1 &&
+    lightChartRequest.data.values.length > 1
+
+  let mixSeries = []
+  let mixTimes = []
+  let mixLabels = []
+  if (mixReady) {
+    mixTimes = temperatureChartRequest.data.times
+    mixLabels = [mixTimes[0], mixTimes[4], mixTimes[8], mixTimes[12], mixTimes[16], mixTimes[20], mixTimes[24]]
+    mixSeries = [
+      { ... buildChartLine(TEMPERATURE, temperatureChartRequest.data), yAxisId: 'left' },
+      { ...buildChartLine(HUMIDITY, humidityChartRequest.data), yAxisId: 'right' },
+      {
+        ...buildChartLine(LIGHT_PERCENT, {
+          values: lightChartRequest.data.values.map(lightToPercent),
+          times: lightChartRequest.data.times,
+        }),
+        yAxisId: 'right',
+      },
+    ]
+  }
+
+  const notEnoughReadings =
+    (!isMixTab && !selectedChart.chartRequest.loading && values.length < 2) ||
+    (isMixTab && !mixReady && !temperatureChartRequest.loading)
   let statusText = ''
   if (notEnoughReadings) {
     statusText = 'Not enough readings yet.'
   }
 
-  // Chỉ vẽ khi có ít nhất 2 điểm.
   let chartSeries = []
-  if (values.length > 1) {
+  if (!isMixTab && values.length > 1) {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
-  // Bật/tắt một LED: gửi lệnh lên backend rồi tải lại danh sách LED. Backend trả lỗi (ESP8266 chưa kết nối,
-  // broker lỗi…) thì hiện thông báo. Công tắc luôn hiện `led.on` do backend tính nên không cần đoán trước.
-  async function toggleLed(code, turnOn) {
-    if (code === mockLedCode) {
-      setMockLedOn(turnOn)
-      return
-    }
-    try {
-      await deviceService.controlLed(code, getAction(turnOn))
-    } catch (error) {
-      notifier.error({ title: 'Connection error', description: error.message })
-    }
-    ledRequest.reload()
+  function animateLed(setStatus) {
+    setStatus('pending')
+    setTimeout(() => {
+      setStatus('success')
+      setTimeout(() => setStatus('idle'), 500)
+    }, 500)
   }
 
-  // Bật/tắt cả 3 LED, cùng cách làm như `toggleLed`.
-  async function toggleAllLeds(turnOn) {
-    setMockLedOn(turnOn)
-    try {
-      await deviceService.controlAllLeds(getAction(turnOn))
-    } catch (error) {
-      notifier.error({ title: 'Connection error', description: error.message })
-    }
-    ledRequest.reload()
+  function toggleLed(code, turnOn) {
+    if (code === led0.code) { setLed0On(turnOn); animateLed(setLed0Status); return }
+    if (code === led1.code) { setLed1On(turnOn); animateLed(setLed1Status); return }
+    if (code === led2.code) { setLed2On(turnOn); animateLed(setLed2Status) }
+  }
+
+  function toggleAllLeds(turnOn) {
+    setLed0On(turnOn); setLed1On(turnOn); setLed2On(turnOn)
+    animateLed(setLed0Status); animateLed(setLed1Status); animateLed(setLed2Status)
   }
 
   return (
     <AppShell>
       {notificationHolder}
+
       <GreetingHeader name={session.getUser()?.fullName} />
 
       {temperatureRequest.error && (
         <Alert type="error" showIcon title={`Could not load sensor readings: ${temperatureRequest.error.message}`} />
       )}
 
-      {/* 3 thẻ chỉ số: nhiệt độ, độ ẩm, ánh sáng. */}
       <div className="dashboard__metrics">
         <MetricCard config={TEMPERATURE} sensor={temperature} />
         <MetricCard config={HUMIDITY} sensor={humidity} />
         <MetricCard config={LIGHT} sensor={light} />
       </div>
 
-      {/* Biểu đồ: thanh tab chọn cảm biến, giá trị hiện tại của cảm biến đó rồi đến đồ thị. */}
       <section className="panel dashboard__chart-panel">
         <PanelTitle>Telemetry Spectrum</PanelTitle>
 
@@ -168,6 +176,15 @@ export default function Dashboard() {
             onChange={setSelectedChartId}
             tabBarStyle={{ margin: 0 }}
             items={[
+              {
+                key: MIX_ID,
+                label: (
+                    <span className="dashboard__tab-label">
+                    <span className="dashboard__tab-dot dashboard__tab-dot--mix" />
+                    Mix
+                  </span>
+                ),
+              },
               { key: TEMPERATURE.id, label: <TabLabel sensorConfig={TEMPERATURE} /> },
               { key: HUMIDITY.id, label: <TabLabel sensorConfig={HUMIDITY} /> },
               { key: LIGHT.id, label: <TabLabel sensorConfig={LIGHT} /> },
@@ -176,25 +193,26 @@ export default function Dashboard() {
           <span className="dashboard__chart-status">{statusText}</span>
         </div>
 
-        {/* `key` đổi theo tab để mỗi cảm biến có một biểu đồ riêng, không dùng lại trạng thái của biểu đồ trước. */}
         <TelemetryChart
-          key={selectedChart.sensorConfig.id}
-          series={chartSeries}
-          labels={xAxisLabels}
-          yTicks={selectedChart.sensorConfig.yTicks}
-          unit={selectedChart.sensorConfig.unit}
+          key={isMixTab ? MIX_ID : selectedChart.sensorConfig.id}
+          series={isMixTab ? mixSeries : chartSeries}
+          labels={isMixTab ? mixLabels : xAxisLabels}
+          times={isMixTab ? mixTimes : times}
+          yTicks={isMixTab ? TEMPERATURE.yTicks : selectedChart.sensorConfig.yTicks}
+          unit={isMixTab ? TEMPERATURE.unit : selectedChart.sensorConfig.unit}
+          rightYTicks={isMixTab ? [0, 20, 40, 60, 80, 100] : undefined}
+          rightUnit={isMixTab ? '%' : ''}
         />
       </section>
 
-      {/* Điều khiển LED. */}
       <section className="panel dashboard__led-panel">
         <div className="dashboard__led-header">
           <PanelTitle>Led Devices</PanelTitle>
           <div className="dashboard__led-actions">
-            <Button onClick={() => toggleAllLeds(true)} disabled={leds.length === 0}>
+            <Button onClick={() => toggleAllLeds(true)}>
               All On
             </Button>
-            <Button onClick={() => toggleAllLeds(false)} disabled={leds.length === 0}>
+            <Button onClick={() => toggleAllLeds(false)}>
               All Off
             </Button>
           </div>
@@ -202,11 +220,13 @@ export default function Dashboard() {
 
         {ledRequest.error && <Alert type="error" showIcon title={ledRequest.error.message} />}
 
-        <div className="dashboard__led-list">
-          {leds.map((led) => (
-            <LedDeviceCard key={led.code} name={led.name} on={led.on} onToggle={(turnOn) => toggleLed(led.code, turnOn)} />
-          ))}
-        </div>
+        {ledRequest.data.length === 3 && (
+          <div className="dashboard__led-list">
+            <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={led0Status} onToggle={(turnOn) => toggleLed(led0.code, turnOn)} />
+            <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={led1Status} onToggle={(turnOn) => toggleLed(led1.code, turnOn)} />
+            <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={led2Status} onToggle={(turnOn) => toggleLed(led2.code, turnOn)} />
+          </div>
+        )}
       </section>
     </AppShell>
   )

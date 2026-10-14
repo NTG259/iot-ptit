@@ -105,3 +105,8 @@ body {
   align-items: center;
   gap: 0.75rem;
 }
+
+/* Search group bám trái, mọi thứ còn lại (filter, date, refresh) bám phải. */
+.toolbar > :first-child {
+  margin-right: auto;
+}

@@ -32,6 +32,23 @@ export const LIGHT = {
   yTicks: [0, 256, 512, 768, 1024, 1280],
 }
 
+/** Cấu hình hiển thị ánh sáng dưới dạng phần trăm (0–100%) thay vì giá trị ADC thô. */
+export const LIGHT_PERCENT = {
+  id: 'lux',
+  label: 'Light',
+  short: 'Light',
+  unit: '%',
+  decimals: 0,
+  color: '#d97706',
+  yTicks: [0, 20, 40, 60, 80, 100],
+}
+
+/** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */
+export function lightToPercent(rawValue) {
+  if (rawValue === null || rawValue === undefined) return null
+  return Math.min(100, Math.round((rawValue / 1280) * 100))
+}
+
 /** Dữ liệu một cảm biến khi chưa tải xong, cùng hình dạng với dữ liệu backend trả về. */
 export const EMPTY_SENSOR = {
   lastValue: null,

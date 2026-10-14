@@ -1,25 +1,47 @@
 import { apiClient } from './apiClient'
 
 /**
- * Danh sách LED. Mỗi thiết bị: { code, name, state, online, pendingAction, on }
- * - state: trạng thái ESP8266 đã xác nhận ('ON' | 'OFF').
- * - online: ESP8266 có đang kết nối không.
- * - pendingAction: lệnh đã gửi nhưng chưa được xác nhận và sẽ làm đổi `state`; không có thì null.
- * - on: trạng thái công tắc nên hiện (true = bật): đích của lệnh đang chờ, không thì trạng thái thật.
+ * Lấy danh sách tất cả LED — dùng để hiển thị bảng điều khiển trên Dashboard.
+ * GET /devices
+ *
+ * Trả về: mảng [{ code, name, state, online, pendingAction, on }]
+ *   - code: mã định danh thiết bị, ví dụ "LED_01" — dùng làm key và URL khi gửi lệnh.
+ *   - name: tên hiển thị, ví dụ "Living Room LED".
+ *   - state: trạng thái đã được ESP8266 xác nhận qua MQTT — 'ON' | 'OFF'.
+ *   - online: ESP8266 có đang kết nối MQTT broker không (boolean).
+ *   - pendingAction: lệnh đã gửi nhưng ESP8266 chưa xác nhận — 'TURN_ON' | 'TURN_OFF' | null.
+ *   - on: trạng thái nên hiện trên công tắc (backend tính sẵn):
+ *       · Có pendingAction → on = đích của lệnh đang chờ (để UI phản hồi ngay).
+ *       · Không có pendingAction → on = state thật của thiết bị.
  */
 export function getLeds() {
   return apiClient.get('/devices')
 }
 
 /**
- * Bật/tắt một LED. action: 'TURN_ON' | 'TURN_OFF'.
- * Trả về lệnh vừa tạo (PENDING); lỗi 503 nếu ESP8266 chưa kết nối hoặc không gửi được qua MQTT broker.
+ * Gửi lệnh bật/tắt một LED cụ thể.
+ * POST /devices/{code}/control  →  body: { action }
+ *
+ * Tham số:
+ *   - code: mã thiết bị (string), ví dụ "LED_01".
+ *   - action: 'TURN_ON' | 'TURN_OFF'.
+ *
+ * Trả về: lệnh vừa tạo ở trạng thái PENDING (object).
+ * Lỗi 503: ESP8266 chưa kết nối hoặc không gửi được qua MQTT broker.
  */
 export function controlLed(code, action) {
   return apiClient.post(`/devices/${code}/control`, { action })
 }
 
-/** Bật/tắt tất cả LED (nút All On / All Off); lỗi giống `controlLed`. */
+/**
+ * Gửi cùng một lệnh cho tất cả LED — dùng cho nút "All On" / "All Off".
+ * POST /devices/control-all  →  body: { action }
+ *
+ * Tham số:
+ *   - action: 'TURN_ON' | 'TURN_OFF'.
+ *
+ * Lỗi giống controlLed (503 khi ESP8266 chưa kết nối).
+ */
 export function controlAllLeds(action) {
   return apiClient.post('/devices/control-all', { action })
 }
