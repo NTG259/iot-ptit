@@ -31,7 +31,7 @@ public class ActionHistory extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ActionStatus status = ActionStatus.PENDING;
 
-    /** Seconds since Vietnam midnight of createdAt, for searching a time of day (see SensorData#secondOfDay). */
-    @Formula("mod(cast(floor(date_part('epoch', created_at)) as bigint) + 25200, 86400)")
+    // Seconds since Vietnam midnight (UTC+7 = +25200 s); used for time-of-day filtering.
+    @Formula("MOD(UNIX_TIMESTAMP(created_at) + 25200, 86400)")
     private Long secondOfDay;
 }

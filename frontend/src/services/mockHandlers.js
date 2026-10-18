@@ -14,8 +14,10 @@ const MOCK_USER = {
   figmaUrl: '',
 }
 
-// Seed session ngay khi module load → RequireAuth thấy token, không cần qua trang Login.
-saveSession('mock-jwt-token-for-demo', MOCK_USER)
+// Seed session chỉ khi mock mode bật → RequireAuth thấy token, không cần qua trang Login.
+if (import.meta.env.VITE_MOCK === 'true') {
+  saveSession('mock-jwt-token-for-demo', MOCK_USER)
+}
 
 // Trạng thái LED lưu trong memory — thay đổi khi gọi controlLed/controlAllLeds.
 const ledState = {

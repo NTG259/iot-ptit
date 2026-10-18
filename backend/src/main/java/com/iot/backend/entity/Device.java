@@ -2,6 +2,7 @@ package com.iot.backend.entity;
 
 import com.iot.backend.entity.enums.DeviceState;
 import com.iot.backend.entity.enums.DeviceType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -25,6 +26,7 @@ public class Device extends BaseEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "device_type")
     private DeviceType type;
 
     @Enumerated(EnumType.STRING)

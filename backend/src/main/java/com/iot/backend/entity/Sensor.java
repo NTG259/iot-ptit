@@ -2,10 +2,13 @@ package com.iot.backend.entity;
 
 import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.entity.enums.SensorType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,12 +27,15 @@ public class Sensor extends BaseEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "sensor_type")
     private SensorType type;
 
     @Enumerated(EnumType.STRING)
     // No readings yet; SensorService#refreshStatuses keeps this in line with lastReadingAt.
     private SensorStatus status = SensorStatus.OFFLINE;
 
+    @Column(name = "last_reading_value")
+    @JdbcTypeCode(SqlTypes.DOUBLE)
     private Double lastValue;
     private Instant lastReadingAt;
 }

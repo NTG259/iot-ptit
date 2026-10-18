@@ -1,0 +1,7 @@
+# Mosquitto runtime files — only commit the config, not passwords or data
+mosquitto/config/passwd
+mosquitto/data/
+mosquitto/log/
+
+# Local environment overrides
+backend/.env

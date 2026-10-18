@@ -10,9 +10,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
-import org.hibernate.annotations.Formula;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -33,17 +35,13 @@ public class SensorData {
     @JoinColumn(name = "sensor_id")
     private Sensor sensor;
 
-    // "value" is a reserved word in SQL, so the column name must be quoted.
-    @Column(name = "\"value\"")
+    @Column(name = "reading_value")
+    @JdbcTypeCode(SqlTypes.DOUBLE)
     private Double value;
 
     private Instant measuredAt;
 
-    /**
-     * Seconds since midnight in Vietnam time (0..86399), for searching a time of day such as "17:20" on any date.
-     * Derived from the epoch plus Vietnam's fixed UTC+7 offset (25200 s; no daylight saving), so the database
-     * session's time zone does not matter. Read-only.
-     */
-    @Formula("mod(cast(floor(date_part('epoch', measured_at)) as bigint) + 25200, 86400)")
+    // Seconds since Vietnam midnight (UTC+7 = +25200 s); used for time-of-day filtering.
+    @Formula("MOD(UNIX_TIMESTAMP(measured_at) + 25200, 86400)")
     private Long secondOfDay;
 }
