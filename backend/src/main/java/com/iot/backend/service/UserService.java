@@ -30,6 +30,7 @@ public class UserService {
         user.setSchool(request.school());
         user.setGithubUrl(request.githubUrl());
         user.setFigmaUrl(request.figmaUrl());
+        user.setPostmanUrl(request.postmanUrl());
         return UserResponse.from(user);
     }
 

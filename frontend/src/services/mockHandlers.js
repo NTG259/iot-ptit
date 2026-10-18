@@ -12,6 +12,7 @@ const MOCK_USER = {
   school: 'Học viện Công nghệ Bưu chính Viễn thông',
   githubUrl: 'https://github.com/NTG259',
   figmaUrl: '',
+  postmanUrl: '',
 }
 
 // Seed session chỉ khi mock mode bật → RequireAuth thấy token, không cần qua trang Login.

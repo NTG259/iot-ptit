@@ -136,7 +136,7 @@ export default function Dashboard() {
       setTimeout(() => setStatus('idle'), 500)
     } catch (err) {
       setStatus('idle')
-      notifier.error({ message: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
+      notifier.error({ title: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
     }
   }
 
@@ -149,7 +149,7 @@ export default function Dashboard() {
       setTimeout(() => { setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle') }, 500)
     } catch (err) {
       setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle')
-      notifier.error({ message: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
+      notifier.error({ title: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
     } finally {
       setAllLoading(false)
     }

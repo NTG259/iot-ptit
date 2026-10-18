@@ -11,10 +11,12 @@ public record UserResponse(
         String role,
         String school,
         String githubUrl,
-        String figmaUrl
+        String figmaUrl,
+        String postmanUrl
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(user.getId(), user.getUsername(), user.getFullName(), user.getEmail(),
-                user.getStudentId(), user.getRole(), user.getSchool(), user.getGithubUrl(), user.getFigmaUrl());
+                user.getStudentId(), user.getRole(), user.getSchool(), user.getGithubUrl(), user.getFigmaUrl(),
+                user.getPostmanUrl());
     }
 }

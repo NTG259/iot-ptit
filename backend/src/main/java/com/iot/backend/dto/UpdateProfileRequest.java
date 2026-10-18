@@ -10,6 +10,7 @@ public record UpdateProfileRequest(
         String role,
         String school,
         String githubUrl,
-        String figmaUrl
+        String figmaUrl,
+        String postmanUrl
 ) {
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Alert, Button, Form, Input, Modal } from 'antd'
-import { LuCopy, LuCheck, LuGithub, LuFigma, LuPencil } from 'react-icons/lu'
+import { LuCopy, LuCheck, LuGithub, LuFigma, LuPencil, LuExternalLink } from 'react-icons/lu'
 import AppShell from '@/components/layout/AppShell'
 import { session, userService } from '@/services'
 import useApi from '@/hooks/useApi'
@@ -83,6 +83,7 @@ function EditProfileModal({ user, open, onClose, onSaved }) {
         school: cleanText(values.school),
         githubUrl: cleanText(values.githubUrl),
         figmaUrl: cleanText(values.figmaUrl),
+        postmanUrl: cleanText(values.postmanUrl),
       })
       onSaved(savedUser)
     } catch (error) {
@@ -147,6 +148,14 @@ function EditProfileModal({ user, open, onClose, onSaved }) {
         >
           <Input />
         </Form.Item>
+        <Form.Item
+          name="postmanUrl"
+          label="Postman / Swagger URL"
+          rules={[{ type: 'url', message: 'Enter a full URL (https://…).' }]}
+          className="edit-profile__field"
+        >
+          <Input placeholder="https://documenter.getpostman.com/… or https://…/swagger-ui" />
+        </Form.Item>
       </Form>
       {errorMessage && <Alert type="error" showIcon title={errorMessage} />}
     </Modal>
@@ -205,6 +214,12 @@ export default function Profile() {
               <LuFigma size="1.25rem" />
               Figma
             </a>
+            {user.postmanUrl && (
+              <a href={user.postmanUrl} target="_blank" rel="noreferrer" className="profile__link">
+                <LuExternalLink size="1.25rem" />
+                Postman / Swagger
+              </a>
+            )}
           </div>
 
           {profileRequest.error && <p className="profile__refresh-error">Could not refresh profile: {profileRequest.error.message}</p>}

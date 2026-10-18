@@ -22,4 +22,5 @@ public class User extends BaseEntity {
     private String school;
     private String githubUrl;
     private String figmaUrl;
+    private String postmanUrl;
 }
