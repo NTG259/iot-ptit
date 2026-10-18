@@ -26,21 +26,11 @@ export const LIGHT = {
   id: 'lux',
   label: 'Light',
   short: 'Light',
-  unit: 'lux',
-  decimals: 0,
-  color: '#d97706',
-  yTicks: [0, 256, 512, 768, 1024, 1280],
-}
-
-/** Cấu hình hiển thị ánh sáng dưới dạng phần trăm (0–100%) thay vì giá trị ADC thô. */
-export const LIGHT_PERCENT = {
-  id: 'lux',
-  label: 'Light',
-  short: 'Light',
   unit: '%',
   decimals: 0,
   color: '#d97706',
   yTicks: [0, 20, 40, 60, 80, 100],
+  convert: lightToPercent,
 }
 
 /** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */

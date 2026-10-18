@@ -7,7 +7,7 @@ import LedDeviceCard from '@/components/common/LedDeviceCard'
 import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
-import { TEMPERATURE, HUMIDITY, LIGHT, LIGHT_PERCENT, EMPTY_SENSOR, formatReading, lightToPercent } from '@/constants/sensors'
+import { TEMPERATURE, HUMIDITY, LIGHT, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
 import './Dashboard.css'
 
 function PanelTitle({ children }) {
@@ -15,11 +15,12 @@ function PanelTitle({ children }) {
 }
 
 function buildChartLine(sensorConfig, chartData) {
+  const values = sensorConfig.convert ? chartData.values.map(sensorConfig.convert) : chartData.values
   return {
     id: sensorConfig.id,
     color: sensorConfig.color,
     label: sensorConfig.short,
-    values: chartData.values,
+    values,
     format: (value) => formatReading(value, sensorConfig),
   }
 }
@@ -67,15 +68,13 @@ export default function Dashboard() {
   const humidity = humidityRequest.data
   const light = lightRequest.data
 
-  const [led0On, setLed0On] = useState(false)
-  const [led1On, setLed1On] = useState(false)
-  const [led2On, setLed2On] = useState(false)
   const [led0Status, setLed0Status] = useState('idle')
   const [led1Status, setLed1Status] = useState('idle')
   const [led2Status, setLed2Status] = useState('idle')
-  const led0 = { ...ledRequest.data[0], on: led0On }
-  const led1 = { ...ledRequest.data[1], on: led1On }
-  const led2 = { ...ledRequest.data[2], on: led2On }
+  const [allLoading, setAllLoading] = useState(false)
+  const led0 = ledRequest.data[0] ?? null
+  const led1 = ledRequest.data[1] ?? null
+  const led2 = ledRequest.data[2] ?? null
 
   const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
   const humidityChart = { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest }
@@ -110,10 +109,7 @@ export default function Dashboard() {
       { ... buildChartLine(TEMPERATURE, temperatureChartRequest.data), yAxisId: 'left' },
       { ...buildChartLine(HUMIDITY, humidityChartRequest.data), yAxisId: 'right' },
       {
-        ...buildChartLine(LIGHT_PERCENT, {
-          values: lightChartRequest.data.values.map(lightToPercent),
-          times: lightChartRequest.data.times,
-        }),
+        ...buildChartLine(LIGHT, lightChartRequest.data),
         yAxisId: 'right',
       },
     ]
@@ -132,23 +128,31 @@ export default function Dashboard() {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
-  function animateLed(setStatus) {
+  async function toggleLed(code, setStatus, turnOn) {
     setStatus('pending')
-    setTimeout(() => {
+    try {
+      await deviceService.controlLed(code, turnOn ? 'TURN_ON' : 'TURN_OFF')
       setStatus('success')
       setTimeout(() => setStatus('idle'), 500)
-    }, 500)
+    } catch (err) {
+      setStatus('idle')
+      notifier.error({ message: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
+    }
   }
 
-  function toggleLed(code, turnOn) {
-    if (code === led0.code) { setLed0On(turnOn); animateLed(setLed0Status); return }
-    if (code === led1.code) { setLed1On(turnOn); animateLed(setLed1Status); return }
-    if (code === led2.code) { setLed2On(turnOn); animateLed(setLed2Status) }
-  }
-
-  function toggleAllLeds(turnOn) {
-    setLed0On(turnOn); setLed1On(turnOn); setLed2On(turnOn)
-    animateLed(setLed0Status); animateLed(setLed1Status); animateLed(setLed2Status)
+  async function toggleAllLeds(turnOn) {
+    setAllLoading(true)
+    setLed0Status('pending'); setLed1Status('pending'); setLed2Status('pending')
+    try {
+      await deviceService.controlAllLeds(turnOn ? 'TURN_ON' : 'TURN_OFF')
+      setLed0Status('success'); setLed1Status('success'); setLed2Status('success')
+      setTimeout(() => { setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle') }, 500)
+    } catch (err) {
+      setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle')
+      notifier.error({ message: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
+    } finally {
+      setAllLoading(false)
+    }
   }
 
   return (
@@ -209,10 +213,10 @@ export default function Dashboard() {
         <div className="dashboard__led-header">
           <PanelTitle>Led Devices</PanelTitle>
           <div className="dashboard__led-actions">
-            <Button onClick={() => toggleAllLeds(true)}>
+            <Button loading={allLoading} onClick={() => toggleAllLeds(true)}>
               All On
             </Button>
-            <Button onClick={() => toggleAllLeds(false)}>
+            <Button loading={allLoading} onClick={() => toggleAllLeds(false)}>
               All Off
             </Button>
           </div>
@@ -220,11 +224,11 @@ export default function Dashboard() {
 
         {ledRequest.error && <Alert type="error" showIcon title={ledRequest.error.message} />}
 
-        {ledRequest.data.length === 3 && (
+        {led0 && led1 && led2 && (
           <div className="dashboard__led-list">
-            <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={led0Status} onToggle={(turnOn) => toggleLed(led0.code, turnOn)} />
-            <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={led1Status} onToggle={(turnOn) => toggleLed(led1.code, turnOn)} />
-            <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={led2Status} onToggle={(turnOn) => toggleLed(led2.code, turnOn)} />
+            <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={led0Status} onToggle={(turnOn) => toggleLed(led0.code, setLed0Status, turnOn)} />
+            <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={led1Status} onToggle={(turnOn) => toggleLed(led1.code, setLed1Status, turnOn)} />
+            <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={led2Status} onToggle={(turnOn) => toggleLed(led2.code, setLed2Status, turnOn)} />
           </div>
         )}
       </section>

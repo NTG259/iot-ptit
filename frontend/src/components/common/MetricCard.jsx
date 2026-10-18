@@ -6,10 +6,11 @@ import './MetricCard.css'
  * - `sensor`: dữ liệu backend (lastValue); chưa tải xong thì là EMPTY_SENSOR.
  */
 export default function MetricCard({ config, sensor }) {
-  const value = sensor.lastValue
+  const raw = sensor.lastValue
+  const value = (raw !== null && raw !== undefined && config.convert) ? config.convert(raw) : raw
 
   let valueText = '—'
-  if (value !== null) {
+  if (value !== null && value !== undefined) {
     valueText = value.toFixed(config.decimals)
   }
 
