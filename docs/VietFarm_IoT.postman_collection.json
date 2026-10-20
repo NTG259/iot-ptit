@@ -1,0 +1,364 @@
+{
+  "info": {
+    "name": "VietFarm IoT API",
+    "description": "REST API cho hệ thống IoT VietFarm — cảm biến và điều khiển đèn LED.\n\nSau khi login thành công, token sẽ tự động được lưu vào biến {{token}}.\nMọi request tiếp theo dùng Authorization: Bearer {{token}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', res.data.accessToken);",
+                  "    console.log('Token saved.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Đăng nhập. Token trả về sẽ tự động được lưu vào biến {{token}}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Nguyễn Trường Giang\",\n  \"email\": \"mambong2407@gmail.com\",\n  \"studentId\": \"B23DCCN259\",\n  \"role\": \"Developer\",\n  \"school\": \"PTIT\",\n  \"githubUrl\": \"https://github.com/NTG259\",\n  \"figmaUrl\": null,\n  \"postmanUrl\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        {
+          "name": "List Devices",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices"]
+            },
+            "description": "Trả về 3 đèn LED. `online` phản ánh trạng thái kết nối ESP8266."
+          }
+        },
+        {
+          "name": "Control LED 1 — Turn On",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/led1/control",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "led1", "control"]
+            },
+            "description": "Block ~1 giây chờ ESP8266 xác nhận qua MQTT."
+          }
+        },
+        {
+          "name": "Control LED 1 — Turn Off",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_OFF\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/led1/control",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "led1", "control"]
+            }
+          }
+        },
+        {
+          "name": "Control LED 2 — Turn On",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/led2/control",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "led2", "control"]
+            }
+          }
+        },
+        {
+          "name": "Control LED 3 — Turn On",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/led3/control",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "led3", "control"]
+            }
+          }
+        },
+        {
+          "name": "Control All — Turn On",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/control-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "control-all"]
+            }
+          }
+        },
+        {
+          "name": "Control All — Turn Off",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"TURN_OFF\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/control-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "control-all"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sensors",
+      "item": [
+        {
+          "name": "Get Temperature",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/temp",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "temp"]
+            }
+          }
+        },
+        {
+          "name": "Get Humidity",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/humi",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "humi"]
+            }
+          }
+        },
+        {
+          "name": "Get Light",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/light",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "light"]
+            },
+            "description": "`lastValue` là ADC thô (0–1023). Frontend dùng `100 - round(v/1280*100)` để ra %."
+          }
+        },
+        {
+          "name": "Latest Temperature (chart)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/temp/latest?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "temp", "latest"],
+              "query": [{ "key": "limit", "value": "25" }]
+            }
+          }
+        },
+        {
+          "name": "Latest Humidity (chart)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/humi/latest?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "humi", "latest"],
+              "query": [{ "key": "limit", "value": "25" }]
+            }
+          }
+        },
+        {
+          "name": "Latest Light (chart)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/light/latest?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "light", "latest"],
+              "query": [{ "key": "limit", "value": "25" }]
+            }
+          }
+        },
+        {
+          "name": "Search Sensors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors?page=1&size=8&newestFirst=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "types", "value": "TEMPERATURE", "disabled": true, "description": "Lặp lại param để truyền nhiều giá trị: types=TEMPERATURE&types=HUMIDITY" },
+                { "key": "status", "value": "ACTIVE", "disabled": true },
+                { "key": "updatedSince", "value": "2026-10-20T00:00:00Z", "disabled": true },
+                { "key": "newestFirst", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "8" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sensor Data",
+      "item": [
+        {
+          "name": "Search Sensor Readings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensor-data?page=1&size=10&newestFirst=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensor-data"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "searchBy", "value": "VALUE", "disabled": true, "description": "TIME | TYPE | NAME | VALUE" },
+                { "key": "types", "value": "TEMPERATURE", "disabled": true },
+                { "key": "from", "value": "2026-10-20T00:00:00Z", "disabled": true },
+                { "key": "to", "value": "2026-10-20T23:59:59Z", "disabled": true },
+                { "key": "newestFirst", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Action History",
+      "item": [
+        {
+          "name": "Search Action History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/action-histories?page=1&size=10&newestFirst=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["action-histories"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "searchBy", "value": "TIME", "disabled": true, "description": "TIME | TYPE | NAME" },
+                { "key": "status", "value": "SUCCESS", "disabled": true, "description": "PENDING | SUCCESS | FAILED — lặp param để lọc nhiều" },
+                { "key": "action", "value": "TURN_ON", "disabled": true, "description": "TURN_ON | TURN_OFF" },
+                { "key": "deviceType", "value": "SMART_LED", "disabled": true },
+                { "key": "from", "value": "2026-10-20T00:00:00Z", "disabled": true },
+                { "key": "to", "value": "2026-10-20T23:59:59Z", "disabled": true },
+                { "key": "newestFirst", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "size", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
