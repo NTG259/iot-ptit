@@ -1,3 +1,48 @@
+## Cấu trúc dự án
+
+```
+iot-ptit/
+├── backend/                        # Spring Boot REST API + MQTT
+│   ├── src/main/java/com/iot/backend/
+│   │   ├── config/                 # JWT, CORS, MQTT, Security config
+│   │   ├── controller/             # REST endpoints
+│   │   ├── dto/                    # Request/Response DTOs
+│   │   ├── entity/                 # JPA entities + enums
+│   │   ├── mqtt/                   # MQTT handler, publisher, presence
+│   │   ├── repository/             # Spring Data JPA repos
+│   │   └── service/                # Business logic
+│   ├── src/docs/postman/           # Postman collection & environment
+│   └── src/main/resources/
+│       └── application.yaml        # DB, MQTT, JWT config
+│
+├── frontend/                       # React + Vite
+│   └── src/
+│       ├── components/
+│       │   ├── common/             # Badge, DataTable, MetricCard, LedDeviceCard…
+│       │   └── layout/             # AppShell, Sidebar
+│       ├── pages/                  # Dashboard, Sensors, History, Profile, Login
+│       ├── services/               # API clients (auth, sensor, device…)
+│       ├── hooks/                  # useApi, useNow
+│       ├── routes/                 # AppRouter, RequireAuth, paths
+│       └── utils/                  # format, user helpers
+│
+├── iot-c/
+│   ├── sketch_sep20a/              # Arduino sketch (ESP8266 + DHT11 + LDR + LED)
+│   │   └── libraries/PubSubClient/ # MQTT client library
+│   └── sketch_wokwi/               # Wokwi simulation (ESP32)
+│
+├── mosquitto/                      # Mosquitto MQTT broker
+│   ├── config/mosquitto.conf
+│   └── data/ + log/
+│
+├── docs/                           # OpenAPI spec + Postman collection
+├── docker-compose.yml              # Khởi động toàn bộ stack
+├── start.bat                       # Windows shortcut
+└── IOT-docs.docx                   # Báo cáo đồ án
+```
+
+---
+
 # ==========================================
 # 1. CÁC LỆNH LẮNG NGHE (SUB)
 # ==========================================

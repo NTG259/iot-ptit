@@ -10,14 +10,13 @@ import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +28,6 @@ public class SensorDataService {
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
 
-    /** Stores one MQTT sensor message; each key is a sensor code ("temp", "humi", "light"). */
     @Transactional
     public void saveReadings(Map<String, Double> readings) {
         Instant now = Instant.now();
@@ -44,83 +42,54 @@ public class SensorDataService {
         data.setValue(value);
         data.setMeasuredAt(measuredAt);
         sensorDataRepository.save(data);
-
         sensor.setLastValue(value);
         sensor.setLastReadingAt(measuredAt);
         sensor.setStatus(SensorStatus.ACTIVE);
     }
 
-    /**
-     * Stored readings, newest first by default; every filter is optional and {@code page} is 1-based.
-     * {@code search} is matched against the field {@code searchBy} names (time, type, value or name); when that is null it is matched, in this order, as a Vietnam-time date/time prefix ("2026-10-03 17:20" means that
-     * whole minute), a Vietnam time of day on any date ("17:20" or "17:20:05"; combine with from/to for one day), an exact
-     * value when it is a number, or else against the sensor code or name.
-     */
     @Transactional(readOnly = true)
-    public PageResponse<SensorReadingResponse> search(String search, SearchBy searchBy, List<SensorType> types, Instant from, Instant to,
-                                                      boolean newestFirst, int page, int size) {
-        Specification<SensorData> spec = Specification.unrestricted();
-        if (StringUtils.hasText(search)) {
-            spec = spec.and(matching(search.trim(), searchBy));
-        }
-        if (types != null && !types.isEmpty()) {
-            spec = spec.and((root, query, cb) -> root.get("sensor").get("type").in(types));
-        }
-        if (from != null) {
-            spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("measuredAt"), from));
-        }
-        if (to != null) {
-            spec = spec.and((root, query, cb) -> cb.lessThanOrEqualTo(root.get("measuredAt"), to));
+    public PageResponse<SensorReadingResponse> search(String search, SearchBy searchBy, List<SensorType> types,
+                                                      Instant from, Instant to, boolean newestFirst, int page, int size) {
+        String s = StringUtils.hasText(search) ? search.trim() : null;
+
+        Integer year = null, month = null, day = null, hour = null, minute = null, second = null;
+        Double valueNum = null;
+
+        if (s != null) {
+            if (searchBy == SearchBy.VALUE) {
+                Double num = parseDouble(s);
+                if (num == null) return PageResponse.of(List.of(), 0L, page, size);
+                valueNum = num;
+            } else {
+                TimeSearch.TimeFilter tf = TimeSearch.parse(s);
+                if (tf == null) return PageResponse.of(List.of(), 0L, page, size);
+                year = tf.year(); month = tf.month(); day = tf.day();
+                hour = tf.hour(); minute = tf.minute(); second = tf.second();
+            }
         }
 
-        // One MQTT message stores all sensors with the same timestamp, so the id keeps that order stable.
-        Sort.Direction direction = newestFirst ? Sort.Direction.DESC : Sort.Direction.ASC;
-        PageRequest pageable = PageRequest.of(page - 1, size, Sort.by(direction, "measuredAt", "id"));
-        return PageResponse.of(sensorDataRepository.findAll(spec, pageable).map(SensorReadingResponse::from));
+        String typesCsv = SensorService.csvOrNull(types, SensorType::name);
+        Timestamp fromTs = from != null ? Timestamp.from(from) : null;
+        Timestamp toTs   = to   != null ? Timestamp.from(to)   : null;
+        long offset = (long) (page - 1) * size;
+
+        long total = sensorDataRepository.countRows(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum);
+        if (total == 0) return PageResponse.of(List.of(), 0L, page, size);
+
+        List<SensorDataRepository.SensorReadingProjection> rows = newestFirst
+                ? sensorDataRepository.searchRowsDesc(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum, size, offset)
+                : sensorDataRepository.searchRowsAsc(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum, size, offset);
+
+        List<SensorReadingResponse> items = rows.stream().map(r -> {
+            SensorType type = SensorType.valueOf(r.getSensorType());
+            return new SensorReadingResponse(r.getId(), r.getSensorCode(), r.getSensorName(),
+                    type, type.getUnit(), r.getReadingValue(), r.getMeasuredAt().toInstant(ZoneOffset.UTC));
+        }).toList();
+
+        return PageResponse.of(items, total, page, size);
     }
 
-    private static Specification<SensorData> matching(String search, SearchBy searchBy) {
-        if (searchBy == null) {
-            Specification<SensorData> time = TimeSearch.matching(search, "measuredAt", "secondOfDay");
-            if (time != null) {
-                return time;
-            }
-            Double number = parseNumber(search);
-            return number != null ? valueEquals(number) : name(search);
-        }
-        return switch (searchBy) {
-            case TIME -> {
-                Specification<SensorData> time = TimeSearch.matching(search, "measuredAt", "secondOfDay");
-                yield time != null ? time : (root, query, cb) -> cb.disjunction();
-            }
-            case TYPE -> {
-                String pattern = "%" + search.toLowerCase().replace(' ', '_') + "%";
-                yield (root, query, cb) -> cb.like(cb.lower(root.get("sensor").get("type").as(String.class)), pattern);
-            }
-            case VALUE -> {
-                Double number = parseNumber(search);
-                yield number != null ? valueEquals(number) : (root, query, cb) -> cb.disjunction();
-            }
-            case NAME -> name(search);
-        };
-    }
-
-    private static Specification<SensorData> valueEquals(Double number) {
-        return (root, query, cb) -> cb.equal(root.get("value"), number);
-    }
-
-    private static Specification<SensorData> name(String search) {
-        String pattern = "%" + search.toLowerCase() + "%";
-        return (root, query, cb) -> cb.or(
-                cb.like(cb.lower(root.get("sensor").get("code")), pattern),
-                cb.like(cb.lower(root.get("sensor").get("name")), pattern));
-    }
-
-    private static Double parseNumber(String text) {
-        try {
-            return Double.valueOf(text);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+    private static Double parseDouble(String text) {
+        try { return Double.valueOf(text); } catch (NumberFormatException e) { return null; }
     }
 }

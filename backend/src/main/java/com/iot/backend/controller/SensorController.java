@@ -23,16 +23,25 @@ public class SensorController {
 
     private final SensorService sensorService;
 
+    /**
+     * Tìm kiếm danh sách cảm biến.
+     *
+     * @param search      Từ khoá tìm theo code hoặc tên cảm biến (LIKE, không phân biệt hoa thường). Bỏ trống = không lọc.
+     * @param types       Lọc theo loại cảm biến: TEMPERATURE, HUMIDITY, LIGHT. Truyền nhiều giá trị bằng cách lặp param.
+     * @param status      Lọc theo trạng thái: ACTIVE (≤10 giây), STANDBY (≤60 giây), OFFLINE.
+     * @param updatedSince Chỉ lấy cảm biến có lần đọc cuối >= thời điểm này (ISO-8601, UTC).
+     * @param page        Trang hiện tại, bắt đầu từ 1.
+     * @param size        Số bản ghi mỗi trang, mặc định 8.
+     */
     @GetMapping
     public ApiResponse<PageResponse<SensorResponse>> search(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) List<SensorType> types,
             @RequestParam(required = false) SensorStatus status,
             @RequestParam(required = false) Instant updatedSince,
-            @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "8") int size) {
-        return ApiResponse.ok(sensorService.search(search, types, status, updatedSince, newestFirst, page, size));
+        return ApiResponse.ok(sensorService.search(search, types, status, updatedSince, page, size));
     }
 
     @GetMapping("/temp")

@@ -224,7 +224,7 @@ export default function History() {
           addonBefore="Date time"
           allowClear
           prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
-          placeholder="2026-10-03 17:20 or 17:20:05"
+          placeholder="2026-10-20, *-12-30, 17:20, *:30"
           value={inputText}
           onChange={handleInputChange}
           onPressEnter={handleSearchCommit}

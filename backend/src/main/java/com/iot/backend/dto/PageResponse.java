@@ -11,4 +11,9 @@ public record PageResponse<T>(List<T> items, int page, int size, long totalItems
         return new PageResponse<>(page.getContent(), page.getNumber() + 1, page.getSize(),
                 page.getTotalElements(), page.getTotalPages());
     }
+
+    public static <T> PageResponse<T> of(List<T> items, long totalItems, int page, int size) {
+        int totalPages = size == 0 ? 0 : (int) Math.ceil((double) totalItems / size);
+        return new PageResponse<>(items, page, size, totalItems, totalPages);
+    }
 }

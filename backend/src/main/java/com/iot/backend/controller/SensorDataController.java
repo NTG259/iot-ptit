@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.util.List;
 
-/** History of every stored reading across all sensors (the Sensors page). */
+/** Lịch sử toàn bộ số liệu đo được của tất cả cảm biến (trang Sensor Data). */
 @RestController
 @RequestMapping("/sensor-data")
 @RequiredArgsConstructor
@@ -23,6 +23,24 @@ public class SensorDataController {
 
     private final SensorDataService sensorDataService;
 
+    /**
+     * Tìm kiếm lịch sử số liệu cảm biến.
+     *
+     * @param search    Từ khoá tìm kiếm. Ý nghĩa phụ thuộc vào {@code searchBy}:
+     *                  <ul>
+     *                    <li>TIME  — chuỗi ngày giờ ("2026-10-03 17:20") hoặc giờ trong ngày ("17:20", "17:20:05")</li>
+     *                    <li>TYPE  — tên loại cảm biến (LIKE, ví dụ "temp")</li>
+     *                    <li>VALUE — số thực chính xác (ví dụ "36.5")</li>
+     *                    <li>NAME  — code hoặc tên cảm biến (LIKE)</li>
+     *                  </ul>
+     *                  Khi không truyền {@code searchBy}, tự động nhận dạng: thời gian → số → name.
+     * @param searchBy  Chỉ định trường cần tìm: TIME, TYPE, VALUE, NAME. Bỏ trống = tự động nhận dạng.
+     * @param types     Lọc theo loại cảm biến: TEMPERATURE, HUMIDITY, LIGHT. Lặp param để truyền nhiều giá trị.
+     * @param from      Chỉ lấy số liệu từ thời điểm này (ISO-8601, UTC, bao gồm).
+     * @param to        Chỉ lấy số liệu đến thời điểm này (ISO-8601, UTC, bao gồm).
+     * @param page      Trang hiện tại, bắt đầu từ 1.
+     * @param size      Số bản ghi mỗi trang, mặc định 10.
+     */
     @GetMapping
     public ApiResponse<PageResponse<SensorReadingResponse>> search(
             @RequestParam(required = false) String search,

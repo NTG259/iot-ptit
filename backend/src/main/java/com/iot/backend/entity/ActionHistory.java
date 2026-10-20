@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Formula;
 
 /** One command sent to a device over MQTT; status moves from PENDING once the LED status topic confirms it. */
 @Getter
@@ -30,8 +29,4 @@ public class ActionHistory extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private ActionStatus status = ActionStatus.PENDING;
-
-    // Seconds since Vietnam midnight (UTC+7 = +25200 s); used for time-of-day filtering.
-    @Formula("MOD(UNIX_TIMESTAMP(created_at) + 25200, 86400)")
-    private Long secondOfDay;
 }

@@ -12,7 +12,6 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -40,8 +39,4 @@ public class SensorData {
     private Double value;
 
     private Instant measuredAt;
-
-    // Seconds since Vietnam midnight (UTC+7 = +25200 s); used for time-of-day filtering.
-    @Formula("MOD(UNIX_TIMESTAMP(measured_at) + 25200, 86400)")
-    private Long secondOfDay;
 }

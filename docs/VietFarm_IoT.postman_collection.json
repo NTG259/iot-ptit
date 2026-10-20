@@ -14,6 +14,18 @@
       "key": "token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "deviceCode",
+      "value": "led1",
+      "type": "string",
+      "description": "Mã thiết bị: led1 | led2 | led3"
+    },
+    {
+      "key": "action",
+      "value": "TURN_ON",
+      "type": "string",
+      "description": "Hành động: TURN_ON | TURN_OFF"
     }
   ],
   "auth": {
@@ -113,100 +125,37 @@
           }
         },
         {
-          "name": "Control LED 1 — Turn On",
+          "name": "Control Device",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+              "raw": "{\n  \"action\": \"{{action}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/devices/led1/control",
+              "raw": "{{baseUrl}}/devices/{{deviceCode}}/control",
               "host": ["{{baseUrl}}"],
-              "path": ["devices", "led1", "control"]
+              "path": ["devices", "{{deviceCode}}", "control"]
             },
-            "description": "Block ~1 giây chờ ESP8266 xác nhận qua MQTT."
+            "description": "Điều khiển một đèn. Đổi biến `deviceCode` (led1/led2/led3) và `action` (TURN_ON/TURN_OFF). Block ~1 giây chờ ESP8266 xác nhận qua MQTT."
           }
         },
         {
-          "name": "Control LED 1 — Turn Off",
+          "name": "Control All",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_OFF\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/devices/led1/control",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "led1", "control"]
-            }
-          }
-        },
-        {
-          "name": "Control LED 2 — Turn On",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/devices/led2/control",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "led2", "control"]
-            }
-          }
-        },
-        {
-          "name": "Control LED 3 — Turn On",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/devices/led3/control",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "led3", "control"]
-            }
-          }
-        },
-        {
-          "name": "Control All — Turn On",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_ON\"\n}"
+              "raw": "{\n  \"action\": \"{{action}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/devices/control-all",
               "host": ["{{baseUrl}}"],
               "path": ["devices", "control-all"]
-            }
-          }
-        },
-        {
-          "name": "Control All — Turn Off",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"TURN_OFF\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/devices/control-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "control-all"]
-            }
+            "description": "Bật/tắt cả 3 đèn cùng lúc. Đổi biến `action` (TURN_ON/TURN_OFF)."
           }
         }
       ]

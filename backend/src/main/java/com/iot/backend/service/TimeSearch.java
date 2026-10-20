@@ -1,92 +1,100 @@
 package com.iot.backend.service;
 
-import org.springframework.data.jpa.domain.Specification;
-
-import java.time.DateTimeException;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Reads a search box entry as a time, shared by the sensor data and action history searches. Times are
- * Vietnam time, the same as the frontend shows; the entity's {@code secondOfDayAttribute} must be a
- * formula giving seconds since Vietnam midnight (see SensorData#secondOfDay).
+ * Parses a search-box entry as a date/time pattern with wildcard support.
+ * Each component may be a specific number or {@code *} (= match any value).
+ *
+ * <p>Accepted formats (Vietnam time, UTC+7):
+ * <ul>
+ *   <li>{@code yyyy-MM-dd} — e.g. {@code 2026-10-20}, {@code *-12-30}, {@code 2026-*-*}</li>
+ *   <li>{@code yyyy-MM-dd HH:mm} — e.g. {@code 2026-*-* 17:*}</li>
+ *   <li>{@code yyyy-MM-dd HH:mm:ss} — full pattern</li>
+ *   <li>{@code HH:mm} or {@code HH:mm:ss} — time-of-day only, e.g. {@code 17:20}, {@code *:20:*}</li>
+ * </ul>
+ * A {@code null} component in the result means "no filter on this component".
  */
-final class TimeSearch {
+public final class TimeSearch {
 
-    private static final ZoneId ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    // yyyy-MM-dd optionally followed by HH:mm:ss; each part is digits or *
+    private static final Pattern DATETIME = Pattern.compile(
+            "(\\d{4}|\\*)-(\\d{1,2}|\\*)-(\\d{1,2}|\\*)(?:[ T](\\d{1,2}|\\*)(?::(\\d{1,2}|\\*)(?::(\\d{1,2}|\\*))?)?)?");
 
-    /** "2026-10-03", "2026-10-03 17", "2026-10-03 17:20" or "2026-10-03 17:20:05" (a space or "T" before the time). */
-    private static final Pattern TIME_PREFIX =
-            Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})(?:[ T](\\d{1,2})(?::(\\d{2})(?::(\\d{2}))?)?)?");
+    // HH:mm optionally :ss; each part is digits or *
+    private static final Pattern TIME_OF_DAY = Pattern.compile(
+            "(\\d{1,2}|\\*):(\\d{1,2}|\\*)(?::(\\d{1,2}|\\*))?");
 
-    /** A time of day, "17:20" or "17:20:05" (the colon tells it apart from a value such as "17"). */
-    private static final Pattern TIME_OF_DAY = Pattern.compile("(\\d{1,2}):(\\d{2})(?::(\\d{2}))?");
+    // yyyy-MM or *-MM — partial date without day
+    private static final Pattern YEAR_MONTH = Pattern.compile("(\\d{4}|\\*)-(\\d{1,2}|\\*)");
 
-    private TimeSearch() {
+    // yyyy alone
+    private static final Pattern YEAR_ONLY = Pattern.compile("(\\d{4}|\\*)");
+
+    private TimeSearch() {}
+
+    /** Parsed time filter — null field = wildcard (no filter on that component). */
+    public record TimeFilter(
+            Integer year, Integer month, Integer day,
+            Integer hour, Integer minute, Integer second) {
+        boolean isEmpty() {
+            return year == null && month == null && day == null
+                    && hour == null && minute == null && second == null;
+        }
     }
 
     /**
-     * A filter for {@code text} read as a date/time prefix ("2026-10-03 17:20" means that whole minute) or as a
-     * time of day on any date ("17:20", "17:20:05"; combine with a from/to filter for one day), or null when
-     * the text is not a valid time, so the caller can fall back to its own text search.
+     * Parses {@code text} into a {@link TimeFilter}.
+     * Returns {@code null} when the text is not a recognisable time pattern or all components are wildcards.
      */
-    static <T> Specification<T> matching(String text, String timeAttribute, String secondOfDayAttribute) {
-        Instant[] range = parseTimePrefix(text);
-        if (range != null) {
-            return (root, query, cb) -> cb.and(
-                    cb.greaterThanOrEqualTo(root.get(timeAttribute), range[0]),
-                    cb.lessThan(root.get(timeAttribute), range[1]));
+    public static TimeFilter parse(String text) {
+        if (text == null || text.isBlank()) return null;
+        String t = text.trim();
+
+        Matcher dm = DATETIME.matcher(t);
+        if (dm.matches()) {
+            Integer year = num(dm.group(1)), month  = num(dm.group(2)), day    = num(dm.group(3));
+            Integer hour = num(dm.group(4)), minute = num(dm.group(5)), second = num(dm.group(6));
+            if (!valid(month, 1, 12) || !valid(day, 1, 31)
+                    || !valid(hour, 0, 23) || !valid(minute, 0, 59) || !valid(second, 0, 59)) return null;
+            TimeFilter tf = new TimeFilter(year, month, day, hour, minute, second);
+            return tf.isEmpty() ? null : tf;
         }
-        long[] seconds = parseTimeOfDay(text);
-        if (seconds != null) {
-            return (root, query, cb) -> cb.and(
-                    cb.greaterThanOrEqualTo(root.get(secondOfDayAttribute), seconds[0]),
-                    cb.lessThan(root.get(secondOfDayAttribute), seconds[1]));
+
+        Matcher tm = TIME_OF_DAY.matcher(t);
+        if (tm.matches()) {
+            Integer hour = num(tm.group(1)), minute = num(tm.group(2)), second = num(tm.group(3));
+            if (!valid(hour, 0, 23) || !valid(minute, 0, 59) || !valid(second, 0, 59)) return null;
+            TimeFilter tf = new TimeFilter(null, null, null, hour, minute, second);
+            return tf.isEmpty() ? null : tf;
         }
+
+        Matcher ym = YEAR_MONTH.matcher(t);
+        if (ym.matches()) {
+            Integer year = num(ym.group(1)), month = num(ym.group(2));
+            if (!valid(month, 1, 12)) return null;
+            TimeFilter tf = new TimeFilter(year, month, null, null, null, null);
+            return tf.isEmpty() ? null : tf;
+        }
+
+        Matcher yo = YEAR_ONLY.matcher(t);
+        if (yo.matches()) {
+            Integer year = num(yo.group(1));
+            TimeFilter tf = new TimeFilter(year, null, null, null, null, null);
+            return tf.isEmpty() ? null : tf;
+        }
+
         return null;
     }
 
-    /** The span a typed date/time covers, e.g. "2026-10-03 17:20" is [17:20:00, 17:21:00); null if not a time. */
-    private static Instant[] parseTimePrefix(String text) {
-        Matcher m = TIME_PREFIX.matcher(text);
-        if (!m.matches()) {
-            return null;
-        }
-        ChronoUnit unit = m.group(6) != null ? ChronoUnit.SECONDS
-                : m.group(5) != null ? ChronoUnit.MINUTES
-                : m.group(4) != null ? ChronoUnit.HOURS
-                : ChronoUnit.DAYS;
-        try {
-            LocalDateTime start = LocalDateTime.of(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)),
-                    Integer.parseInt(m.group(3)), intOrZero(m.group(4)), intOrZero(m.group(5)), intOrZero(m.group(6)));
-            Instant from = start.atZone(ZONE).toInstant();
-            return new Instant[] {from, from.plus(1, unit)};
-        } catch (DateTimeException e) {
-            return null; // e.g. "2026-13-40": the caller's text search then simply finds nothing
-        }
+    /** {@code null} if group is null or {@code "*"}, otherwise parsed as integer. */
+    private static Integer num(String s) {
+        return (s == null || s.equals("*")) ? null : Integer.parseInt(s);
     }
 
-    /** "17:20" is [17:20:00, 17:21:00) and "17:20:05" is that one second, in seconds since midnight; null if invalid. */
-    private static long[] parseTimeOfDay(String text) {
-        Matcher m = TIME_OF_DAY.matcher(text);
-        if (!m.matches()) {
-            return null;
-        }
-        int hour = Integer.parseInt(m.group(1));
-        int minute = Integer.parseInt(m.group(2));
-        int second = intOrZero(m.group(3));
-        if (hour > 23 || minute > 59 || second > 59) {
-            return null;
-        }
-        long from = hour * 3600L + minute * 60L + second;
-        return new long[] {from, from + (m.group(3) != null ? 1 : 60)};
-    }
-
-    private static int intOrZero(String digits) {
-        return digits == null ? 0 : Integer.parseInt(digits);
+    /** {@code null} value always passes (wildcard); a non-null value must be in [{@code lo}, {@code hi}]. */
+    private static boolean valid(Integer v, int lo, int hi) {
+        return v == null || (v >= lo && v <= hi);
     }
 }

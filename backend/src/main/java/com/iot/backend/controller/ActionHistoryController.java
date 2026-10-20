@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.Instant;
 import java.util.List;
 
+/** Lịch sử toàn bộ lệnh điều khiển thiết bị (trang Action History). */
 @RestController
 @RequestMapping("/action-histories")
 @RequiredArgsConstructor
@@ -24,6 +25,25 @@ public class ActionHistoryController {
 
     private final ActionHistoryService actionHistoryService;
 
+    /**
+     * Tìm kiếm lịch sử lệnh điều khiển.
+     *
+     * @param search     Từ khoá tìm kiếm. Ý nghĩa phụ thuộc vào {@code searchBy}:
+     *                   <ul>
+     *                     <li>TIME  — chuỗi ngày giờ ("2026-10-03 17:20") hoặc giờ trong ngày ("17:20")</li>
+     *                     <li>TYPE  — loại thiết bị (LIKE, ví dụ "smart_led")</li>
+     *                     <li>NAME  — code hoặc tên thiết bị (LIKE)</li>
+     *                   </ul>
+     *                   Khi không truyền {@code searchBy}, tự động nhận dạng: thời gian → name.
+     * @param searchBy   Chỉ định trường cần tìm: TIME, TYPE, NAME. Bỏ trống = tự động nhận dạng.
+     * @param status     Lọc theo trạng thái lệnh: PENDING, SUCCESS, FAILED. Lặp param để truyền nhiều giá trị.
+     * @param action     Lọc theo loại hành động: TURN_ON, TURN_OFF. Lặp param để truyền nhiều giá trị.
+     * @param deviceType Lọc theo loại thiết bị: SMART_LED. Lặp param để truyền nhiều giá trị.
+     * @param from       Chỉ lấy lệnh từ thời điểm này (ISO-8601, UTC, bao gồm).
+     * @param to         Chỉ lấy lệnh đến thời điểm này (ISO-8601, UTC, bao gồm).
+     * @param page       Trang hiện tại, bắt đầu từ 1.
+     * @param size       Số bản ghi mỗi trang, mặc định 10.
+     */
     @GetMapping
     public ApiResponse<PageResponse<ActionHistoryResponse>> search(
             @RequestParam(required = false) String search,

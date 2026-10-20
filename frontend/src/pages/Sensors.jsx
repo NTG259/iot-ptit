@@ -28,7 +28,7 @@ function getSearchPlaceholder(searchField) {
   if (searchField === 'TEMPERATURE') return 'e.g. 28.5'
   if (searchField === 'HUMIDITY') return 'e.g. 65.0'
   if (searchField === 'LIGHT') return 'e.g. 300'
-  return '2026-10-03 17:20 or 17:20:05'
+  return '2026-10-20, *-12-30, 17:20, *:30'
 }
 
 const COLUMNS = [
@@ -186,7 +186,7 @@ export default function Sensors() {
           />
         </Space.Compact>
 
-        <Button onClick={readingsRequest.reload}>Refresh</Button>
+        <Button onClick={() => { setSearchText(''); setSearchField('TIME'); setNewestFirst(true); setPage(1); setRowsPerPage(10); }}>Refresh</Button>
       </div>
 
       {/* Hiện banner lỗi nếu API trả lỗi (lỗi mạng, server, ...). */}
