@@ -8,10 +8,11 @@ spring:
       - optional:file:.env[.properties]
       - optional:file:backend/.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/iot_ptit?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/iot_ptit?sslMode=DISABLED&connectionTimeZone=UTC}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
   jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update
     open-in-view: false

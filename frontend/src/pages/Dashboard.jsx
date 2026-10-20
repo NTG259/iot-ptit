@@ -68,15 +68,15 @@ export default function Dashboard() {
   const humidity = humidityRequest.data
   const light = lightRequest.data
 
-  const [led0Status, setLed0Status] = useState('idle')
-  const [led1Status, setLed1Status] = useState('idle')
-  const [led2Status, setLed2Status] = useState('idle')
-  const [allLoading, setAllLoading] = useState(false)
+  const [pending, setPending] = useState(new Set())
+  const setPendingCode  = (code) => setPending(s => new Set(s).add(code))
+  const clearPendingCode = (code) => setPending(s => { const n = new Set(s); n.delete(code); return n })
+  const ledStatus = (code) => pending.has(code) ? 'pending' : 'idle'
   const led0 = ledRequest.data[0] ?? null
   const led1 = ledRequest.data[1] ?? null
   const led2 = ledRequest.data[2] ?? null
 
-  const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
+const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
   const humidityChart = { sensorConfig: HUMIDITY, sensor: humidity, chartRequest: humidityChartRequest }
   const lightChart = { sensorConfig: LIGHT, sensor: light, chartRequest: lightChartRequest }
 
@@ -128,30 +128,26 @@ export default function Dashboard() {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
-  async function toggleLed(code, setStatus, turnOn) {
-    setStatus('pending')
+  async function toggleLed(code, turnOn) {
+    setPendingCode(code)
     try {
       await deviceService.controlLed(code, turnOn ? 'TURN_ON' : 'TURN_OFF')
-      setStatus('success')
-      setTimeout(() => setStatus('idle'), 500)
     } catch (err) {
-      setStatus('idle')
       notifier.error({ title: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
+    } finally {
+      clearPendingCode(code)
     }
   }
 
   async function toggleAllLeds(turnOn) {
-    setAllLoading(true)
-    setLed0Status('pending'); setLed1Status('pending'); setLed2Status('pending')
+    const codes = [led0?.code, led1?.code, led2?.code].filter(Boolean)
+    codes.forEach(setPendingCode)
     try {
       await deviceService.controlAllLeds(turnOn ? 'TURN_ON' : 'TURN_OFF')
-      setLed0Status('success'); setLed1Status('success'); setLed2Status('success')
-      setTimeout(() => { setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle') }, 500)
     } catch (err) {
-      setLed0Status('idle'); setLed1Status('idle'); setLed2Status('idle')
       notifier.error({ title: 'Không thể điều khiển đèn', description: err.message, duration: 5 })
     } finally {
-      setAllLoading(false)
+      codes.forEach(clearPendingCode)
     }
   }
 
@@ -213,12 +209,20 @@ export default function Dashboard() {
         <div className="dashboard__led-header">
           <PanelTitle>Led Devices</PanelTitle>
           <div className="dashboard__led-actions">
-            <Button loading={allLoading} onClick={() => toggleAllLeds(true)}>
-              All On
-            </Button>
-            <Button loading={allLoading} onClick={() => toggleAllLeds(false)}>
-              All Off
-            </Button>
+            {(() => {
+              const allOn = led0?.on && led1?.on && led2?.on
+              return (
+                <Button
+                  type="primary"
+                  danger={allOn}
+                  loading={pending.size > 0}
+                  style={allOn ? {} : { backgroundColor: '#16a34a', borderColor: '#16a34a' }}
+                  onClick={() => toggleAllLeds(!allOn)}
+                >
+                  {allOn ? 'All Off' : 'All On'}
+                </Button>
+              )
+            })()}
           </div>
         </div>
 
@@ -226,9 +230,9 @@ export default function Dashboard() {
 
         {led0 && led1 && led2 && (
           <div className="dashboard__led-list">
-            <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={led0Status} onToggle={(turnOn) => toggleLed(led0.code, setLed0Status, turnOn)} />
-            <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={led1Status} onToggle={(turnOn) => toggleLed(led1.code, setLed1Status, turnOn)} />
-            <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={led2Status} onToggle={(turnOn) => toggleLed(led2.code, setLed2Status, turnOn)} />
+            <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={ledStatus(led0.code)} onToggle={(turnOn) => toggleLed(led0.code, turnOn)} />
+            <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={ledStatus(led1.code)} onToggle={(turnOn) => toggleLed(led1.code, turnOn)} />
+            <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={ledStatus(led2.code)} onToggle={(turnOn) => toggleLed(led2.code, turnOn)} />
           </div>
         )}
       </section>

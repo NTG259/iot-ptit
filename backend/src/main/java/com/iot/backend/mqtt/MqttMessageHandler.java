@@ -36,6 +36,7 @@ public class MqttMessageHandler implements IMqttMessageListener {
     private final SensorDataService sensorDataService;
     private final DeviceService deviceService;
     private final EspPresence espPresence;
+    private final LedConfirmation ledConfirmation;
 
     @Override
     public void messageArrived(String topic, MqttMessage message) {
@@ -46,6 +47,8 @@ public class MqttMessageHandler implements IMqttMessageListener {
                 sensorDataService.saveReadings(jsonMapper.readValue(payload, SENSOR_PAYLOAD));
             } else if (topic.equals(properties.topics().ledStatus())) {
                 deviceService.syncStates(jsonMapper.readValue(payload, LED_STATUS_PAYLOAD));
+                // confirm() after syncStates so waiting HTTP threads see the updated states.
+                ledConfirmation.confirm();
             }
             // After handling, so a command waiting on this reply sees the refreshed LED states.
             espPresence.seen();

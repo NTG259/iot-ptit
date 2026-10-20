@@ -73,7 +73,9 @@ const COLUMNS = [
  */
 export default function History() {
   // ─── STATE BỘ LỌC VÀ PHÂN TRANG ─────────────────────────────────────────────
-  // searchText: nội dung ô tìm kiếm — được trim() trước khi gửi lên backend.
+  // inputText: nội dung hiện tại trong ô nhập — thay đổi từng ký tự nhưng chưa gửi backend.
+  const [inputText, setInputText] = useState('')
+  // searchText: từ khoá đã commit — chỉ đổi khi nhấn Enter hoặc xoá (nút X).
   const [searchText, setSearchText] = useState('')
   // searchField: trường backend dùng để so khớp searchText — 'NAME' | 'TYPE' | 'TIME'.
   //   · NAME → so với tên thiết bị (ví dụ "Living Room LED").
@@ -160,10 +162,20 @@ export default function History() {
   // ─── XỬ LÝ THAY ĐỔI BỘ LỌC ──────────────────────────────────────────────────
   // Mọi handler đều reset page về 1 để tránh đứng ở trang 5 nhưng kết quả chỉ có 1 trang.
 
-  // Đổi trường tìm kiếm → xoá luôn searchText vì định dạng nhập khác nhau giữa các trường.
-  // Nhập từng ký tự vào ô search → gửi lên backend ngay.
-  function handleSearchTextChange(event) {
-    setSearchText(event.target.value)
+  // Nhập từng ký tự → chỉ cập nhật ô hiển thị, chưa gửi backend.
+  // Nếu xoá hết (nút X hoặc backspace) → commit luôn để xoá kết quả tìm kiếm.
+  function handleInputChange(event) {
+    const value = event.target.value
+    setInputText(value)
+    if (value === '') {
+      setSearchText('')
+      setPage(1)
+    }
+  }
+
+  // Nhấn Enter → commit từ khoá hiện tại vào searchText, gửi lên backend.
+  function handleSearchCommit() {
+    setSearchText(inputText)
     setPage(1)
   }
   // Bật/tắt tick trạng thái lệnh — newStatuses là mảng các giá trị đang được tick.
@@ -213,8 +225,9 @@ export default function History() {
           allowClear
           prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
           placeholder="2026-10-03 17:20 or 17:20:05"
-          value={searchText}
-          onChange={handleSearchTextChange}
+          value={inputText}
+          onChange={handleInputChange}
+          onPressEnter={handleSearchCommit}
           style={{ width: 360 }}
         />
 

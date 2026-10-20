@@ -36,7 +36,7 @@ export const LIGHT = {
 /** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */
 export function lightToPercent(rawValue) {
   if (rawValue === null || rawValue === undefined) return null
-  return Math.min(100, Math.round((rawValue / 1280) * 100))
+  return Math.max(0, 100 - Math.min(100, Math.round((rawValue / 1280) * 100)))
 }
 
 /** Dữ liệu một cảm biến khi chưa tải xong, cùng hình dạng với dữ liệu backend trả về. */
