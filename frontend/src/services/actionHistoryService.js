@@ -11,7 +11,6 @@ import { apiClient } from './apiClient'
  *   - status: lọc theo trạng thái lệnh — 'PENDING' | 'SUCCESS' | 'FAILED', một giá trị hoặc mảng. null = không lọc.
  *   - action: lọc theo loại lệnh — 'TURN_ON' | 'TURN_OFF', một giá trị hoặc mảng. null = không lọc.
  *   - deviceType: lọc theo loại thiết bị — 'SMART_LED', một giá trị hoặc mảng. null = không lọc.
- *   - from, to: khoảng thời gian tạo lệnh (ISO 8601 UTC+7). null = không giới hạn thời gian.
  *   - newestFirst: true = mới nhất trước, false = cũ nhất trước.
  *   - page: trang hiện tại (bắt đầu từ 1).
  *   - size: số hàng mỗi trang.
@@ -26,6 +25,6 @@ import { apiClient } from './apiClient'
  *       · createdAt: thời điểm tạo lệnh (ISO 8601) — render thành "YYYY-MM-DD HH:mm:ss" giờ Việt Nam.
  *   - totalItems: tổng số bản ghi khớp bộ lọc (dùng tính số trang trên DataTable).
  */
-export function getActionHistory({ search, searchBy, status, action, deviceType, from, to, newestFirst, page, size } = {}) {
-  return apiClient.get('/action-histories', { search, searchBy, status, action, deviceType, from, to, newestFirst, page, size })
+export function getActionHistory({ search, searchBy, status, action, deviceType, newestFirst, page, size } = {}) {
+  return apiClient.get('/action-histories', { search, searchBy, status, action, deviceType, newestFirst, page, size })
 }

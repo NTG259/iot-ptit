@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Input } from 'antd'
+import { Alert, Button, Input } from 'antd'
 import { LuSearch } from 'react-icons/lu'
 import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
@@ -80,7 +80,7 @@ export default function History() {
   // searchField: trường backend dùng để so khớp searchText — 'NAME' | 'TYPE' | 'TIME'.
   //   · NAME → so với tên thiết bị (ví dụ "Living Room LED").
   //   · TYPE → so với loại thiết bị (ví dụ "Smart LED").
-  //   · TIME → so với ngày giờ lệnh được tạo (ví dụ "2026-10-03 17:20" hoặc "17:20:05").
+  //   · TIME → so với ngày giờ lệnh được tạo (ví dụ "2026-10-03", "2026-10-03 17:20").
   //   Khi đổi trường, searchText bị xoá để tránh gửi từ khoá không hợp lệ với trường mới.
   // selectedStatuses: mảng trạng thái lệnh đang được tick — ['SUCCESS', 'PENDING', 'FAILED'].
   //   · SUCCESS: lệnh đã được ESP8266 xác nhận thực hiện thành công.
@@ -111,15 +111,13 @@ export default function History() {
   //   1. Bất kỳ bộ lọc nào rỗng (bỏ tick hết) → trả EMPTY_PAGE ngay, không gọi API.
   //      (Ba bộ lọc kiểm tra: selectedStatuses, selectedActions, selectedDeviceTypes)
   //   2. Tick đủ tất cả giá trị của một bộ lọc → gửi null cho bộ lọc đó (không lọc).
-  //   3. dayRange(selectedDate) → { from, to } ISO 8601 UTC+7, cả hai null nếu không chọn ngày.
   //
   // Tham số gửi lên: GET /action-histories
   //   - search: từ khoá tìm kiếm (đã trim).
-  //   - searchBy: trường so khớp ('NAME' | 'TYPE' | 'TIME').
+  //   - searchBy: trường so khớp ('TIME').
   //   - status: mảng trạng thái lọc, hoặc null nếu chọn hết.
   //   - action: mảng loại lệnh lọc, hoặc null nếu chọn hết.
   //   - deviceType: mảng loại thiết bị lọc, hoặc null nếu chọn hết.
-  //   - from, to: khoảng thời gian (ISO 8601 UTC+7), hoặc null nếu không chọn ngày.
   //   - newestFirst, page, size: sắp xếp và phân trang.
   //
   // Dữ liệu nhận về: { items: ActionHistory[], totalItems: number }
@@ -224,7 +222,7 @@ export default function History() {
           addonBefore="Date time"
           allowClear
           prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
-          placeholder="2026-10-20, *-12-30, 17:20, *:30"
+          placeholder="2026-10-20, 2026-10, 17:30"
           value={inputText}
           onChange={handleInputChange}
           onPressEnter={handleSearchCommit}
@@ -244,6 +242,16 @@ export default function History() {
             Bỏ tick hết → không gọi API. Tick đủ → không gửi bộ lọc deviceType. */}
         <CheckboxFilter label="Device Type" options={DEVICE_TYPE_OPTIONS} value={selectedDeviceTypes} onChange={handleDeviceTypesChange} />
 
+        <Button onClick={() => {
+          setInputText('')
+          setSearchText('')
+          setSelectedStatuses(['SUCCESS', 'PENDING', 'FAILED'])
+          setSelectedActions(['TURN_ON', 'TURN_OFF'])
+          setSelectedDeviceTypes(['SMART_LED'])
+          setNewestFirst(true)
+          setPage(1)
+          setRowsPerPage(10)
+        }}>Refresh</Button>
       </div>
 
       {/* Hiện banner lỗi nếu API trả lỗi (lỗi mạng, server, ...). */}
