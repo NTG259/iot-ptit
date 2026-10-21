@@ -5,14 +5,13 @@ import AppShell from '@/components/layout/AppShell'
 import Badge from '@/components/common/Badge'
 import DataTable from '@/components/common/DataTable'
 
-import { lightToPercent } from '@/constants/sensors'
 import { sensorService } from '@/services'
 import useApi from '@/hooks/useApi'
 import './Sensors.css'
 
 const SENSOR_TYPES = {
-  TEMPERATURE: { label: 'Temperature', tone: 'green', unitClass: 'sensors__value-unit--temperature', decimals: 1 },
-  HUMIDITY: { label: 'Humidity', tone: 'cyan', unitClass: 'sensors__value-unit--humidity', decimals: 1 },
+  TEMPERATURE: { label: 'Temperature', tone: 'green', unitClass: 'sensors__value-unit--temperature', decimals: 2 },
+  HUMIDITY: { label: 'Humidity', tone: 'cyan', unitClass: 'sensors__value-unit--humidity', decimals: 2 },
   LIGHT: { label: 'Light', tone: 'orange', unitClass: 'sensors__value-unit--light', decimals: 0 },
 }
 
@@ -26,7 +25,7 @@ const SEARCH_FIELDS = [
 function getSearchPlaceholder(searchField) {
   if (searchField === 'TEMPERATURE') return 'e.g. 28.5'
   if (searchField === 'HUMIDITY') return 'e.g. 65.0'
-  if (searchField === 'LIGHT') return 'e.g. 300'
+  if (searchField === 'LIGHT') return 'e.g. 75'
   return '2026-10-20, 2026-10, 17:30'
 }
 
@@ -43,12 +42,10 @@ const COLUMNS = [
     dataIndex: 'value',
     render: (value, row) => {
       const typeConfig = SENSOR_TYPES[row.sensorType]
-      const displayValue = row.sensorType === 'LIGHT' ? lightToPercent(value) : value
-      const displayUnit = row.sensorType === 'LIGHT' ? '%' : row.unit
       return (
         <span className="sensors__value">
-          <span className="sensors__value-number">{displayValue.toFixed(typeConfig.decimals)}</span>
-          <span className={`sensors__value-unit ${typeConfig.unitClass}`}>{displayUnit}</span>
+          <span className="sensors__value-number">{value.toFixed(typeConfig.decimals)}</span>
+          <span className={`sensors__value-unit ${typeConfig.unitClass}`}>{row.unit}</span>
         </span>
       )
     },

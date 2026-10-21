@@ -38,14 +38,23 @@ public class SensorDataService {
                 () -> log.warn("Ignoring reading for unknown sensor code '{}'", code)));
     }
 
+    private static double toStoredValue(SensorType type, double value) {
+        if (type == SensorType.LIGHT) {
+            // Convert raw ADC (0–1280) to brightness percentage (0–100).
+            return Math.max(0, 100 - Math.min(100, (int) Math.round((value / 1280.0) * 100)));
+        }
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     private void saveReading(Sensor sensor, Double value, LocalDateTime measuredAt) {
+        double rounded = toStoredValue(sensor.getType(), value);
         SensorData data = new SensorData();
         data.setSensor(sensor);
-        data.setValue(value);
+        data.setValue(rounded);
         data.setMeasuredAt(measuredAt);
         data.setMeasuredAtStr(measuredAt.format(VN_FMT));
         sensorDataRepository.save(data);
-        sensor.setLastValue(value);
+        sensor.setLastValue(rounded);
         sensor.setLastReadingAt(measuredAt);
         sensor.setStatus(SensorStatus.ACTIVE);
     }

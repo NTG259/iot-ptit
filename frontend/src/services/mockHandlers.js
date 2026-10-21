@@ -84,7 +84,7 @@ function generateReadings(count) {
   const sensors = {
     TEMPERATURE: { name: 'Temperature Sensor', unit: '°C', base: 28, amp: 2, decimals: 1 },
     HUMIDITY:    { name: 'Humidity Sensor',     unit: '%',  base: 65, amp: 5, decimals: 1 },
-    LIGHT:       { name: 'Light Sensor',        unit: 'lux', base: 500, amp: 150, decimals: 0 },
+    LIGHT:       { name: 'Light Sensor',        unit: '%',   base: 60,  amp: 25,  decimals: 0 },
   }
   const rows = []
   for (let i = 0; i < count; i++) {
@@ -142,7 +142,7 @@ export function handleMockRequest(method, path, body) {
     return { code: 'HUMI_01', name: 'Humidity Sensor', unit: '%', status: 'ACTIVE', lastValue: parseFloat(vary(65, 5).toFixed(1)) }
   }
   if (method === 'GET' && path === '/sensors/light') {
-    return { code: 'LIGHT_01', name: 'Light Sensor', unit: 'lux', status: 'ACTIVE', lastValue: Math.round(vary(500, 150)) }
+    return { code: 'LIGHT_01', name: 'Light Sensor', unit: '%', status: 'ACTIVE', lastValue: Math.round(vary(60, 25)) }
   }
 
   // Sensor chart data

@@ -35,7 +35,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             JOIN sensors s ON sd.sensor_id = s.id
             WHERE (:types   IS NULL OR FIND_IN_SET(s.sensor_type, :types) > 0)
               AND (:timeStr IS NULL OR sd.measured_at_str LIKE :timeStr)
-              AND (:value   IS NULL OR ROUND(sd.reading_value, 1) = ROUND(:value, 1))
+              AND (:value   IS NULL OR sd.reading_value = :value)
             ORDER BY sd.measured_at DESC, sd.id DESC
             LIMIT :size OFFSET :offset
             """)
@@ -57,7 +57,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             JOIN sensors s ON sd.sensor_id = s.id
             WHERE (:types   IS NULL OR FIND_IN_SET(s.sensor_type, :types) > 0)
               AND (:timeStr IS NULL OR sd.measured_at_str LIKE :timeStr)
-              AND (:value   IS NULL OR ROUND(sd.reading_value, 1) = ROUND(:value, 1))
+              AND (:value   IS NULL OR sd.reading_value = :value)
             ORDER BY sd.measured_at ASC, sd.id ASC
             LIMIT :size OFFSET :offset
             """)
@@ -74,7 +74,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             JOIN sensors s ON sd.sensor_id = s.id
             WHERE (:types   IS NULL OR FIND_IN_SET(s.sensor_type, :types) > 0)
               AND (:timeStr IS NULL OR sd.measured_at_str LIKE :timeStr)
-              AND (:value   IS NULL OR ROUND(sd.reading_value, 1) = ROUND(:value, 1))
+              AND (:value   IS NULL OR sd.reading_value = :value)
             """)
     long countRows(
             @Param("types")   String types,

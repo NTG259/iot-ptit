@@ -22,7 +22,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -90,9 +92,11 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    private static final DateTimeFormatter VN_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     // 120 readings spread over the last 24 hours, one every 12 minutes, cycling through all 3 sensors.
     private void seedSensorData(List<Sensor> sensors) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         int total = 120;
         long intervalSeconds = 24 * 3600L / total; // 720 s = 12 min
 
@@ -101,24 +105,24 @@ public class DataInitializer implements CommandLineRunner {
         Sensor light = bySensorType(sensors, SensorType.LIGHT);
 
         for (int i = 0; i < total; i++) {
-            Instant t = now.minusSeconds((long) (total - i) * intervalSeconds);
+            LocalDateTime t = now.minusSeconds((long) (total - i) * intervalSeconds);
             double phase = (2 * Math.PI * i) / total;
 
             sensorDataRepository.save(reading(temp,  t, 27.0 + 3.0 * Math.sin(phase)));
             sensorDataRepository.save(reading(humi,  t, 65.0 + 8.0 * Math.sin(phase + 1.0)));
-            sensorDataRepository.save(reading(light, t, 500.0 + 200.0 * Math.sin(phase + 2.0)));
+            sensorDataRepository.save(reading(light, t, 60.0 + 25.0 * Math.sin(phase + 2.0)));
         }
 
         // Update cached last value on each sensor
-        Instant lastT = now.minusSeconds(intervalSeconds);
+        LocalDateTime lastT = now.minusSeconds(intervalSeconds);
         double lastPhase = (2 * Math.PI * (total - 1)) / total;
         updateSensorCache(temp,  lastT, 27.0 + 3.0 * Math.sin(lastPhase));
         updateSensorCache(humi,  lastT, 65.0 + 8.0 * Math.sin(lastPhase + 1.0));
-        updateSensorCache(light, lastT, 500.0 + 200.0 * Math.sin(lastPhase + 2.0));
+        updateSensorCache(light, lastT, 60.0 + 25.0 * Math.sin(lastPhase + 2.0));
     }
 
-    private void updateSensorCache(Sensor sensor, Instant at, double value) {
-        sensor.setLastValue(round(value, 1));
+    private void updateSensorCache(Sensor sensor, LocalDateTime at, double value) {
+        sensor.setLastValue(round(value, 2));
         sensor.setLastReadingAt(at);
         sensor.setStatus(SensorStatus.ACTIVE);
         sensorRepository.save(sensor);
@@ -127,7 +131,7 @@ public class DataInitializer implements CommandLineRunner {
     // 20 action history entries spread over the last 10 hours (one every 30 min), cycling LEDs.
     // Uses native SQL so @CreationTimestamp doesn't override the backdated timestamps.
     private void seedActionHistory(List<Device> devices) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         DeviceAction[] actions = {DeviceAction.TURN_ON, DeviceAction.TURN_OFF};
         ActionStatus[] statuses = {ActionStatus.SUCCESS, ActionStatus.SUCCESS, ActionStatus.SUCCESS, ActionStatus.FAILED};
 
@@ -135,7 +139,7 @@ public class DataInitializer implements CommandLineRunner {
             Device device = devices.get(i % devices.size());
             DeviceAction action = actions[i % 2];
             ActionStatus status = statuses[i % statuses.length];
-            Timestamp ts = Timestamp.from(now.minusSeconds((long) (20 - i) * 1800));
+            Timestamp ts = Timestamp.valueOf(now.minusSeconds((long) (20 - i) * 1800));
 
             jdbcTemplate.update(
                 "INSERT INTO action_histories (device_id, action, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
@@ -150,11 +154,12 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
-    private static SensorData reading(Sensor sensor, Instant measuredAt, double value) {
+    private static SensorData reading(Sensor sensor, LocalDateTime measuredAt, double value) {
         SensorData sd = new SensorData();
         sd.setSensor(sensor);
         sd.setMeasuredAt(measuredAt);
-        sd.setValue(round(value, 1));
+        sd.setMeasuredAtStr(measuredAt.format(VN_FMT));
+        sd.setValue(round(value, 2));
         return sd;
     }
 

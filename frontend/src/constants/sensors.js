@@ -23,14 +23,13 @@ export const HUMIDITY = {
   yTicks: [0, 20, 40, 60, 80, 100],
 }
 export const LIGHT = {
-  id: 'lux',
+  id: 'light',
   label: 'Light',
   short: 'Light',
   unit: '%',
   decimals: 0,
   color: '#d97706',
   yTicks: [0, 20, 40, 60, 80, 100],
-  convert: lightToPercent,
 }
 
 /** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */
