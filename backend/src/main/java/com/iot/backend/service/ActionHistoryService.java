@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -48,7 +47,7 @@ public class ActionHistoryService {
         List<ActionHistoryResponse> items = rows.stream().map(r ->
                 new ActionHistoryResponse(r.getId(), r.getDeviceCode(), r.getDeviceName(),
                         DeviceType.valueOf(r.getDeviceType()), DeviceAction.valueOf(r.getAction()),
-                        ActionStatus.valueOf(r.getStatus()), r.getCreatedAt().toInstant(ZoneOffset.ofHours(7)))).toList();
+                        ActionStatus.valueOf(r.getStatus()), r.getCreatedAtStr())).toList();
 
         return PageResponse.of(items, total, page, size);
     }

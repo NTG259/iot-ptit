@@ -81,7 +81,7 @@ public class SensorDataService {
         List<SensorReadingResponse> items = rows.stream().map(r -> {
             SensorType type = SensorType.valueOf(r.getSensorType());
             return new SensorReadingResponse(r.getId(), r.getSensorCode(), r.getSensorName(),
-                    type, type.getUnit(), r.getReadingValue(), r.getMeasuredAt().toInstant(ZoneOffset.ofHours(7)));
+                    type, type.getUnit(), r.getReadingValue(), r.getMeasuredAtStr());
         }).toList();
 
         return PageResponse.of(items, total, page, size);

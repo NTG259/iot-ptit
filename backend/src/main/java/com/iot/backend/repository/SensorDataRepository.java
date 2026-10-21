@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
@@ -21,17 +20,17 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
     List<SensorData> findLatestBySensorId(@Param("sensorId") Long sensorId, @Param("limit") int limit);
 
     interface SensorReadingProjection {
-        Long getId(); Double getReadingValue(); LocalDateTime getMeasuredAt();
+        Long getId(); Double getReadingValue(); String getMeasuredAtStr();
         String getSensorCode(); String getSensorName(); String getSensorType();
     }
 
     @Query(nativeQuery = true, value = """
             SELECT sd.id,
-                   sd.reading_value AS readingValue,
-                   sd.measured_at   AS measuredAt,
-                   s.code           AS sensorCode,
-                   s.name           AS sensorName,
-                   s.sensor_type    AS sensorType
+                   sd.reading_value  AS readingValue,
+                   sd.measured_at_str AS measuredAtStr,
+                   s.code            AS sensorCode,
+                   s.name            AS sensorName,
+                   s.sensor_type     AS sensorType
             FROM sensor_data sd
             JOIN sensors s ON sd.sensor_id = s.id
             WHERE (:types   IS NULL OR FIND_IN_SET(s.sensor_type, :types) > 0)
@@ -49,11 +48,11 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
 
     @Query(nativeQuery = true, value = """
             SELECT sd.id,
-                   sd.reading_value AS readingValue,
-                   sd.measured_at   AS measuredAt,
-                   s.code           AS sensorCode,
-                   s.name           AS sensorName,
-                   s.sensor_type    AS sensorType
+                   sd.reading_value  AS readingValue,
+                   sd.measured_at_str AS measuredAtStr,
+                   s.code            AS sensorCode,
+                   s.name            AS sensorName,
+                   s.sensor_type     AS sensorType
             FROM sensor_data sd
             JOIN sensors s ON sd.sensor_id = s.id
             WHERE (:types   IS NULL OR FIND_IN_SET(s.sensor_type, :types) > 0)

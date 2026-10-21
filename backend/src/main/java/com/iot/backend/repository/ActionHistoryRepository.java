@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,7 +20,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
     Optional<ActionHistory> findFirstByDeviceOrderByIdDesc(Device device);
 
     interface ActionHistoryProjection {
-        Long getId(); String getAction(); String getStatus(); LocalDateTime getCreatedAt();
+        Long getId(); String getAction(); String getStatus(); String getCreatedAtStr();
         String getDeviceCode(); String getDeviceName(); String getDeviceType();
     }
 
@@ -29,10 +28,10 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             SELECT ah.id,
                    ah.action,
                    ah.status,
-                   ah.created_at AS createdAt,
-                   d.code        AS deviceCode,
-                   d.name        AS deviceName,
-                   d.device_type AS deviceType
+                   ah.created_at_str AS createdAtStr,
+                   d.code            AS deviceCode,
+                   d.name            AS deviceName,
+                   d.device_type     AS deviceType
             FROM action_histories ah
             JOIN devices d ON ah.device_id = d.id
             WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
@@ -54,10 +53,10 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             SELECT ah.id,
                    ah.action,
                    ah.status,
-                   ah.created_at AS createdAt,
-                   d.code        AS deviceCode,
-                   d.name        AS deviceName,
-                   d.device_type AS deviceType
+                   ah.created_at_str AS createdAtStr,
+                   d.code            AS deviceCode,
+                   d.name            AS deviceName,
+                   d.device_type     AS deviceType
             FROM action_histories ah
             JOIN devices d ON ah.device_id = d.id
             WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)

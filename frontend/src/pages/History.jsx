@@ -5,7 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
 import Badge from '@/components/common/Badge'
 import DataTable from '@/components/common/DataTable'
-import { formatDateTime } from '@/utils/format'
+
 import { actionHistoryService } from '@/services'
 import useApi from '@/hooks/useApi'
 import './History.css'
@@ -60,7 +60,7 @@ const COLUMNS = [
   {
     title: 'Timestamp',
     dataIndex: 'createdAt',
-    render: (createdAt) => <span className="data-table__timestamp">{formatDateTime(new Date(createdAt))}</span>,
+    render: (createdAt) => <span className="data-table__timestamp">{createdAt}</span>,
   },
 ]
 

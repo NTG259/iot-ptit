@@ -4,7 +4,7 @@ import { LuSearch } from 'react-icons/lu'
 import AppShell from '@/components/layout/AppShell'
 import Badge from '@/components/common/Badge'
 import DataTable from '@/components/common/DataTable'
-import { formatDateTime } from '@/utils/format'
+
 import { lightToPercent } from '@/constants/sensors'
 import { sensorService } from '@/services'
 import useApi from '@/hooks/useApi'
@@ -57,7 +57,7 @@ const COLUMNS = [
   {
     title: 'Timestamp',
     dataIndex: 'measuredAt',
-    render: (measuredAt) => <span className="data-table__timestamp">{formatDateTime(new Date(measuredAt))}</span>,
+    render: (measuredAt) => <span className="data-table__timestamp">{measuredAt}</span>,
   },
 ]
 
