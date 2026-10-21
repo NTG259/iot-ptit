@@ -181,13 +181,13 @@ export default function Sensors() {
           <Select value={searchField} options={SEARCH_FIELDS} onChange={handleSearchFieldChange} style={{ width: 120 }} />
           <Input
             allowClear
-            prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
             placeholder={getSearchPlaceholder(searchField)}
             value={inputText}
             onChange={handleInputChange}
             onPressEnter={handleSearchCommit}
-            style={{ width: 260 }}
+            style={{ width: 240 }}
           />
+          <Button icon={<LuSearch />} onClick={handleSearchCommit} />
         </Space.Compact>
 
         <Button onClick={() => { setInputText(''); setSearchText(''); setSearchField('TIME'); setNewestFirst(true); setPage(1); setRowsPerPage(10); }}>Refresh</Button>

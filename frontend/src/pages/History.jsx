@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Button, Input } from 'antd'
+import { Alert, Button, Input, Space } from 'antd'
 import { LuSearch } from 'react-icons/lu'
 import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
@@ -206,16 +206,18 @@ export default function History() {
             - Input: nhập từ khoá — thay đổi ngay lập tức (không debounce).
               allowClear: hiện nút X để xoá nhanh.
               placeholder đổi theo searchField để gợi ý định dạng nhập đúng. */}
-        <Input
-          addonBefore="Date time"
-          allowClear
-          prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
-          placeholder="2026-10-20, 2026-10, 17:30"
-          value={inputText}
-          onChange={handleInputChange}
-          onPressEnter={handleSearchCommit}
-          style={{ width: 360 }}
-        />
+        <Space.Compact>
+          <Input
+            addonBefore="Date time"
+            allowClear
+            placeholder="2026-10-20, 2026-10, 17:30"
+            value={inputText}
+            onChange={handleInputChange}
+            onPressEnter={handleSearchCommit}
+            style={{ width: 320 }}
+          />
+          <Button icon={<LuSearch />} onClick={handleSearchCommit} />
+        </Space.Compact>
 
         {/* Bộ lọc trạng thái lệnh: SUCCESS | PENDING | FAILED.
             Bỏ tick hết → không gọi API. Tick đủ cả ba → không gửi bộ lọc status (trả mọi trạng thái).
