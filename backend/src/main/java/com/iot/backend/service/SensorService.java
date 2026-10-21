@@ -14,8 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Function;
@@ -28,8 +28,7 @@ public class SensorService {
 
     private static final Duration ACTIVE_WINDOW  = Duration.ofSeconds(10);
     private static final Duration STANDBY_WINDOW = Duration.ofSeconds(60);
-    private static final DateTimeFormatter CHART_TIME =
-            DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+    private static final DateTimeFormatter CHART_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
@@ -47,17 +46,17 @@ public class SensorService {
                 .reversed();
         return new SensorChartResponse(
                 readings.stream().map(SensorData::getValue).toList(),
-                readings.stream().map(r -> CHART_TIME.format(r.getMeasuredAt())).toList());
+                readings.stream().map(r -> r.getMeasuredAt().format(CHART_TIME)).toList());
     }
 
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void refreshStatuses() {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         sensorRepository.findAll().forEach(sensor -> sensor.setStatus(statusAt(sensor.getLastReadingAt(), now)));
     }
 
-    static SensorStatus statusAt(Instant lastReadingAt, Instant now) {
+    static SensorStatus statusAt(LocalDateTime lastReadingAt, LocalDateTime now) {
         if (lastReadingAt == null || lastReadingAt.isBefore(now.minus(STANDBY_WINDOW))) return SensorStatus.OFFLINE;
         return lastReadingAt.isBefore(now.minus(ACTIVE_WINDOW)) ? SensorStatus.STANDBY : SensorStatus.ACTIVE;
     }

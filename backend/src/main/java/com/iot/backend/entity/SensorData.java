@@ -15,7 +15,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 /** Time-series reading; append-only, so it skips BaseEntity's updated_at. */
 @Getter
@@ -41,7 +41,7 @@ public class SensorData {
     @JdbcTypeCode(SqlTypes.DOUBLE)
     private Double value;
 
-    private Instant measuredAt;
+    private LocalDateTime measuredAt;
 
     /** Vietnam-time string "yyyy-MM-dd HH:mm:ss"; used for LIKE prefix search. */
     @Column(name = "measured_at_str", length = 19)

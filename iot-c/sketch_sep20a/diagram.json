@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "author": "NTG259",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp8266",
+      "id": "esp",
+      "top": 100,
+      "left": 220,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht",
+      "top": 80,
+      "left": 0,
+      "attrs": {
+        "temperature": "25",
+        "humidity": "65"
+      }
+    },
+    {
+      "type": "wokwi-photoresistor-sensor",
+      "id": "ldr",
+      "top": 300,
+      "left": 0,
+      "attrs": {
+        "lightLevel": "50"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 88,
+      "left": 490,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 70,
+      "left": 570,
+      "attrs": {
+        "color": "red",
+        "label": "LED1 D5"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r2",
+      "top": 208,
+      "left": 490,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led2",
+      "top": 190,
+      "left": 570,
+      "attrs": {
+        "color": "green",
+        "label": "LED2 D6"
+      }
+    },
+    {
+      "type": "wokwi-resistor",
+      "id": "r3",
+      "top": 328,
+      "left": 490,
+      "rotate": 90,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led3",
+      "top": 310,
+      "left": 570,
+      "attrs": {
+        "color": "blue",
+        "label": "LED3 D4"
+      }
+    }
+  ],
+  "connections": [
+    ["dht:VCC", "esp:3V3", "red", []],
+    ["dht:SDA", "esp:D2", "green", []],
+    ["dht:GND", "esp:GND", "black", []],
+
+    ["ldr:VCC", "esp:3V3", "red", []],
+    ["ldr:OUT", "esp:A0", "yellow", []],
+    ["ldr:GND", "esp:GND", "black", []],
+
+    ["esp:D5", "r1:1", "green", []],
+    ["r1:2", "led1:A", "green", []],
+    ["led1:K", "esp:GND", "black", []],
+
+    ["esp:D6", "r2:1", "blue", []],
+    ["r2:2", "led2:A", "blue", []],
+    ["led2:K", "esp:GND", "black", []],
+
+    ["esp:D4", "r3:1", "purple", []],
+    ["r3:2", "led3:A", "purple", []],
+    ["led3:K", "esp:GND", "black", []]
+  ]
+}

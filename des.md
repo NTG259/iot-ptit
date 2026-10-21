@@ -81,7 +81,7 @@ iot-ptit/
 |---|---|
 | NodeMCU ESP8266 | Vi điều khiển trung tâm, kết nối Wi-Fi, chạy MQTT client |
 | DHT11 | Đo nhiệt độ (°C) và độ ẩm không khí (%) |
-| LDR (Light Dependent Resistor) | Đo cường độ ánh sáng — trả về giá trị ADC thô 0–1023 |
+| LDR (Light Dependent Resistor) | Đo cường độ ánh sáng — ESP8266 gửi ADC thô 0–1023; backend chuyển sang độ sáng % (0–100) trước khi lưu |
 | LED × 3 | Thiết bị chấp hành, điều khiển qua MQTT |
 
 ### 3.2 Sơ đồ chân kết nối (sketch_sep20a — sketch chính)
@@ -106,7 +106,7 @@ NodeMCU ESP8266
 
 | Topic | Chiều | Nội dung |
 |---|---|---|
-| `esp8266/sensor` | ESP8266 → Backend | `{"temp":27.5, "humi":60.0, "light":512}` — gửi mỗi 2 giây |
+| `esp8266/sensor` | ESP8266 → Backend | `{"temp":27.5, "humi":60.0, "light":512}` — gửi mỗi 2 giây; `light` là ADC thô (0–1023), backend chuyển sang % |
 | `esp8266/led/status` | ESP8266 → Backend | `{"led1":"ON", "led2":"OFF", "led3":"OFF"}` — gửi sau mỗi lệnh |
 | `esp8266/command` | Backend → ESP8266 | `LED1_ON`, `LED1_OFF`, `LED2_ON`, `LED2_OFF`, `LED3_ON`, `LED3_OFF`, `ALL_ON`, `ALL_OFF`, `GET_STATUS` |
 
@@ -126,8 +126,9 @@ ESP8266 (mỗi 2 giây)
        ▼ Backend: MqttMessageHandler.messageArrived()
            └─ SensorDataService.saveReadings(payload)
                └─ tra sensors table theo code "temp"/"humi"/"light"
-               └─ INSERT vào sensor_data (sensor_id, reading_value, measured_at)
-               └─ cập nhật sensors.last_reading_value + sensors.last_reading_at
+               └─ chuyển `light` ADC thô → độ sáng %: `round((1 - light / 1024.0) * 100)`
+               └─ INSERT vào sensor_data (sensor_id, reading_value, measured_at, measured_at_str)
+               └─ cập nhật sensors.last_value + sensors.last_reading_at
            └─ EspPresence.seen() — ghi nhận ESP8266 vừa hoạt động
        │
        ▼ Frontend (polling mỗi 2 giây)
@@ -192,8 +193,23 @@ Hook `useApi` (`src/hooks/useApi.js`) thực hiện polling bằng `setInterval`
 | `User` | `users` | Tài khoản; các trường: username, passwordHash, fullName, email, studentId, role, school, githubUrl, figmaUrl, postmanUrl |
 | `Device` | `devices` | LED; trường `state` (enum ON/OFF, không phải boolean) |
 | `Sensor` | `sensors` | Cảm biến; có cache `lastValue` + `lastReadingAt` + `status` (ACTIVE/STANDBY/OFFLINE) |
-| `SensorData` | `sensor_data` | Chuỗi thời gian số đo; cột `reading_value`, `measured_at`; append-only |
-| `ActionHistory` | `action_histories` | Lịch sử lệnh LED; `status`: PENDING → SUCCESS/FAILED |
+| `SensorData` | `sensor_data` | Chuỗi thời gian số đo; cột `reading_value`, `measured_at`, `measured_at_str` (VARCHAR giờ VN, phục vụ LIKE prefix search); append-only |
+| `ActionHistory` | `action_histories` | Lịch sử lệnh LED; `status`: PENDING → SUCCESS/FAILED; có `created_at_str` (VARCHAR giờ VN, phục vụ LIKE prefix search) |
+
+> **Cột `_str`:** `BaseEntity` sinh tự động `created_at_str`; `SensorData` thêm `measured_at_str` — cả hai lưu theo định dạng `"YYYY-MM-DD HH:mm:ss"` giờ VN (UTC+7). Mục đích: cho phép `LIKE 'prefix%'` trên cột VARCHAR thay vì dùng hàm trên cột DATETIME, giúp index hoạt động hiệu quả.
+
+### 5.1.1 Enum IDs
+
+Mỗi enum có thêm field `int id` và static `fromId(int id)`. API nhận filter dạng integer; service chuyển về tên enum để truy vấn `FIND_IN_SET` trong SQL.
+
+| Enum | Giá trị | ID |
+|---|---|---|
+| `SensorType` | TEMPERATURE, HUMIDITY, LIGHT | 1, 2, 3 |
+| `ActionStatus` | PENDING, SUCCESS, FAILED | 1, 2, 3 |
+| `DeviceAction` | TURN_ON, TURN_OFF | 1, 2 |
+| `DeviceType` | SMART_LED | 1 |
+
+---
 
 ### 5.2 MQTT layer
 
@@ -212,9 +228,9 @@ Hook `useApi` (`src/hooks/useApi.js`) thực hiện polling bằng `setInterval`
 | `AuthController` | `POST /auth/login` |
 | `UserController` | `GET /users/me`, `PUT /users/me` |
 | `SensorController` | `GET /sensors`, `GET /sensors/temp`, `GET /sensors/humi`, `GET /sensors/light`, `GET /sensors/temp/latest`, `GET /sensors/humi/latest`, `GET /sensors/light/latest` |
-| `SensorDataController` | `GET /sensor-data` (lịch sử số đo, phân trang) |
+| `SensorDataController` | `GET /sensor-data` — lịch sử số đo, phân trang; filter: `timeSearch` (LIKE prefix trên `measured_at_str`), `valueSearch`, `typeIds` (integer, nhiều giá trị ngăn cách bằng dấu phẩy: 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT) |
 | `DeviceController` | `GET /devices`, `POST /devices/{code}/control`, `POST /devices/control-all` |
-| `ActionHistoryController` | `GET /action-histories` (lịch sử lệnh, phân trang, lọc) |
+| `ActionHistoryController` | `GET /action-histories` — lịch sử lệnh, phân trang; filter: `search` (LIKE prefix trên `created_at_str`), `statusIds` (1=PENDING, 2=SUCCESS, 3=FAILED), `actionIds` (1=TURN_ON, 2=TURN_OFF), `deviceTypeIds` (1=SMART_LED) |
 
 > Base URL: `http://localhost:8081/api`
 
@@ -238,3 +254,6 @@ Các điểm dưới đây đã được cập nhật trong `IOT-docs.docx` đ�
 | API lịch sử | `GET /devices/history` | **`GET /action-histories`** |
 | Real-time | WebSocket (subscribe:sensor, sensor:update, device:status) | **HTTP polling** (không có WebSocket) |
 | Profile | GitHub + Figma | Thêm: **email, school, postmanUrl** |
+| Light sensor lưu | Giá trị ADC thô (0–1023) | **Độ sáng %** (0–100): `round((1 - adc/1024.0) * 100)`; ESP8266 vẫn gửi ADC thô, backend chuyển đổi |
+| Filter enum params | String (`types=TEMPERATURE`) | **Integer ID** (`typeIds=1`); enum có thêm `id` field và `fromId()` |
+| Tìm kiếm theo thời gian | Không có | **LIKE prefix** trên cột `_str` (VARCHAR giờ VN); ví dụ: `"2026-10-20"`, `"17:30"`, `"2026-10"` |

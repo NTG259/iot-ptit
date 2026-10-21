@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "author": "NTG259",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 80, "left": 160, "attrs": {} },
+    { "type": "wokwi-dht22", "id": "dht", "top": 60, "left": -80, "attrs": { "temperature": "25", "humidity": "65" } },
+    { "type": "wokwi-photoresistor-sensor", "id": "ldr", "top": 240, "left": -80, "attrs": { "lightLevel": "50" } },
+    { "type": "wokwi-resistor", "id": "r1", "top": 64, "left": 430, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "led1", "top": 44, "left": 510, "attrs": { "color": "red", "label": "LED1" } },
+    { "type": "wokwi-resistor", "id": "r2", "top": 184, "left": 430, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "led2", "top": 164, "left": 510, "attrs": { "color": "green", "label": "LED2" } },
+    { "type": "wokwi-resistor", "id": "r3", "top": 304, "left": 430, "rotate": 90, "attrs": { "value": "220" } },
+    { "type": "wokwi-led", "id": "led3", "top": 284, "left": 510, "attrs": { "color": "blue", "label": "LED3" } }
+  ],
+  "connections": [
+    ["dht:VCC", "esp:3V3", "red", []],
+    ["dht:SDA", "esp:15", "green", []],
+    ["dht:GND", "esp:GND.1", "black", []],
+
+    ["ldr:VCC", "esp:3V3", "red", []],
+    ["ldr:OUT", "esp:34", "yellow", []],
+    ["ldr:GND", "esp:GND.1", "black", []],
+
+    ["esp:26", "r1:1", "green", []],
+    ["r1:2", "led1:A", "green", []],
+    ["led1:K", "esp:GND.1", "black", []],
+
+    ["esp:27", "r2:1", "blue", []],
+    ["r2:2", "led2:A", "blue", []],
+    ["led2:K", "esp:GND.1", "black", []],
+
+    ["esp:25", "r3:1", "purple", []],
+    ["r3:2", "led3:A", "purple", []],
+    ["led3:K", "esp:GND.1", "black", []]
+  ]
+}

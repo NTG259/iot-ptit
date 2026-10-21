@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +15,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
 
     List<ActionHistory> findByDeviceAndStatus(Device device, ActionStatus status);
 
-    List<ActionHistory> findByStatusAndCreatedAtBefore(ActionStatus status, Instant cutoff);
+    List<ActionHistory> findByStatusAndCreatedAtBefore(ActionStatus status, LocalDateTime cutoff);
 
     Optional<ActionHistory> findFirstByDeviceOrderByIdDesc(Device device);
 

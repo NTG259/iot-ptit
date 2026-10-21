@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -84,7 +83,7 @@ public class DeviceService {
         ActionHistory history = new ActionHistory();
         history.setDevice(device);
         history.setAction(action);
-        history.setCreatedAtStr(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.ofHours(7)).format(VN_FMT));
+        history.setCreatedAtStr(LocalDateTime.now(ZoneOffset.ofHours(7)).format(VN_FMT));
         history = actionHistoryRepository.save(history);
 
         try {
@@ -117,7 +116,7 @@ public class DeviceService {
     @Scheduled(fixedDelay = 5000)
     @Transactional
     public void failTimedOutActions() {
-        Instant cutoff = Instant.now().minus(PENDING_TIMEOUT);
+        LocalDateTime cutoff = LocalDateTime.now(ZoneOffset.ofHours(7)).minus(PENDING_TIMEOUT);
         List<ActionHistory> timedOut = actionHistoryRepository.findByStatusAndCreatedAtBefore(ActionStatus.PENDING, cutoff);
         timedOut.forEach(history -> history.setStatus(ActionStatus.FAILED));
         if (!timedOut.isEmpty()) {

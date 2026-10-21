@@ -13,7 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 /** A measuring channel (temperature, humidity, light). The latest reading is cached here for the sensors list. */
 @Getter
@@ -37,5 +37,5 @@ public class Sensor extends BaseEntity {
     @Column(name = "last_reading_value")
     @JdbcTypeCode(SqlTypes.DOUBLE)
     private Double lastValue;
-    private Instant lastReadingAt;
+    private LocalDateTime lastReadingAt;
 }
