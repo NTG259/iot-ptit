@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
@@ -31,8 +30,7 @@ public class ActionHistoryService {
         String timeStr = null;
 
         if (s != null) {
-            timeStr = TimeSearch.toLikePattern(s);
-            if (timeStr == null) return PageResponse.of(List.of(), 0L, page, size);
+            timeStr = s + "%";
         }
 
         String statusCsv     = SensorService.csvOrNull(status,     ActionStatus::name);

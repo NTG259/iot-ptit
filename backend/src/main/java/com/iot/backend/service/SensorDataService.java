@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -23,6 +25,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class SensorDataService {
+
+    private static final DateTimeFormatter VN_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
@@ -40,7 +44,7 @@ public class SensorDataService {
         data.setSensor(sensor);
         data.setValue(value);
         data.setMeasuredAt(measuredAt);
-        data.setMeasuredAtStr(TimeSearch.format(measuredAt));
+        data.setMeasuredAtStr(LocalDateTime.ofInstant(measuredAt, ZoneOffset.ofHours(7)).format(VN_FMT));
         sensorDataRepository.save(data);
         sensor.setLastValue(value);
         sensor.setLastReadingAt(measuredAt);
@@ -60,8 +64,7 @@ public class SensorDataService {
                 valueNum = parseDouble(s);
                 if (valueNum == null) return PageResponse.of(List.of(), 0L, page, size);
             } else {
-                timeStr = TimeSearch.toLikePattern(s);
-                if (timeStr == null) return PageResponse.of(List.of(), 0L, page, size);
+                timeStr = s + "%";
             }
         }
 

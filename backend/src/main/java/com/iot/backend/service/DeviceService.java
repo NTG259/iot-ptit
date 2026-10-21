@@ -21,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +34,7 @@ public class DeviceService {
 
     /** A command with no matching LED status reply within this time is marked FAILED. */
     private static final Duration PENDING_TIMEOUT = Duration.ofSeconds(10);
+    private static final DateTimeFormatter VN_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final DeviceRepository deviceRepository;
     private final ActionHistoryRepository actionHistoryRepository;
@@ -80,7 +84,7 @@ public class DeviceService {
         ActionHistory history = new ActionHistory();
         history.setDevice(device);
         history.setAction(action);
-        history.setCreatedAtStr(TimeSearch.format(Instant.now()));
+        history.setCreatedAtStr(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.ofHours(7)).format(VN_FMT));
         history = actionHistoryRepository.save(history);
 
         try {
