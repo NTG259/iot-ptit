@@ -54,8 +54,9 @@ const mockHistory = [
 // Dữ liệu đo cảm biến giả — 120 bản ghi cho bảng Sensors.
 const SENSOR_READINGS = generateReadings(120)
 
-function ts(offsetSeconds) {
-  return new Date(Date.now() + offsetSeconds * 1000).toISOString()
+function ts(offsetSeconds = 0) {
+  return new Date(Date.now() + offsetSeconds * 1000)
+    .toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })
 }
 
 function vary(base, amplitude, period = 40) {
@@ -98,7 +99,7 @@ function generateReadings(count) {
       sensorType: type,
       value: val,
       unit: s.unit,
-      measuredAt: new Date(Date.now() - msAgo).toISOString(),
+      measuredAt: new Date(Date.now() - msAgo).toLocaleString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }),
     })
   }
   return rows
@@ -116,7 +117,7 @@ function paginate(items, page, size) {
 
 function buildLed(code, name) {
   const on = ledState[code] ?? false
-  return { code, name, state: on ? 'ON' : 'OFF', online: true, pendingAction: null, on }
+  return { code, name, pendingAction: null, on }
 }
 
 // Điểm vào duy nhất: nhận method + path + body, trả về `data` field (như callApi của apiClient).
@@ -135,13 +136,13 @@ export function handleMockRequest(method, path, body) {
 
   // Sensor current values
   if (method === 'GET' && path === '/sensors/temp') {
-    return { code: 'TEMP_01', name: 'Temperature Sensor', unit: '°C', status: 'ACTIVE', lastValue: parseFloat(vary(28, 2).toFixed(1)), lastReadingAt: ts(0) }
+    return { code: 'TEMP_01', name: 'Temperature Sensor', unit: '°C', status: 'ACTIVE', lastValue: parseFloat(vary(28, 2).toFixed(1)) }
   }
   if (method === 'GET' && path === '/sensors/humi') {
-    return { code: 'HUMI_01', name: 'Humidity Sensor', unit: '%', status: 'ACTIVE', lastValue: parseFloat(vary(65, 5).toFixed(1)), lastReadingAt: ts(0) }
+    return { code: 'HUMI_01', name: 'Humidity Sensor', unit: '%', status: 'ACTIVE', lastValue: parseFloat(vary(65, 5).toFixed(1)) }
   }
   if (method === 'GET' && path === '/sensors/light') {
-    return { code: 'LIGHT_01', name: 'Light Sensor', unit: 'lux', status: 'ACTIVE', lastValue: Math.round(vary(500, 150)), lastReadingAt: ts(0) }
+    return { code: 'LIGHT_01', name: 'Light Sensor', unit: 'lux', status: 'ACTIVE', lastValue: Math.round(vary(500, 150)) }
   }
 
   // Sensor chart data
@@ -197,17 +198,6 @@ export function handleMockRequest(method, path, body) {
   if (method === 'GET' && path === '/action-histories') {
     const { page, size } = body ?? {}
     return paginate([...mockHistory], page, size)
-  }
-
-  // Sensor list (trang Sensors — tab đầu)
-  if (method === 'GET' && path === '/sensors') {
-    const { page, size } = body ?? {}
-    const sensors = [
-      { code: 'TEMP_01', name: 'Temperature Sensor', type: 'TEMPERATURE', unit: '°C', status: 'ACTIVE', lastValue: parseFloat(vary(28, 2).toFixed(1)), lastReadingAt: ts(0) },
-      { code: 'HUMI_01', name: 'Humidity Sensor', type: 'HUMIDITY', unit: '%', status: 'ACTIVE', lastValue: parseFloat(vary(65, 5).toFixed(1)), lastReadingAt: ts(0) },
-      { code: 'LIGHT_01', name: 'Light Sensor', type: 'LIGHT', unit: 'lux', status: 'ACTIVE', lastValue: Math.round(vary(500, 150)), lastReadingAt: ts(0) },
-    ]
-    return paginate(sensors, page, size)
   }
 
   // Fallback — trả null để không crash

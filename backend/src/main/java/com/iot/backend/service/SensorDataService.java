@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -33,18 +32,18 @@ public class SensorDataService {
 
     @Transactional
     public void saveReadings(Map<String, Double> readings) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         readings.forEach((code, value) -> sensorRepository.findByCode(code).ifPresentOrElse(
                 sensor -> saveReading(sensor, value, now),
                 () -> log.warn("Ignoring reading for unknown sensor code '{}'", code)));
     }
 
-    private void saveReading(Sensor sensor, Double value, Instant measuredAt) {
+    private void saveReading(Sensor sensor, Double value, LocalDateTime measuredAt) {
         SensorData data = new SensorData();
         data.setSensor(sensor);
         data.setValue(value);
         data.setMeasuredAt(measuredAt);
-        data.setMeasuredAtStr(LocalDateTime.ofInstant(measuredAt, ZoneOffset.ofHours(7)).format(VN_FMT));
+        data.setMeasuredAtStr(measuredAt.format(VN_FMT));
         sensorDataRepository.save(data);
         sensor.setLastValue(value);
         sensor.setLastReadingAt(measuredAt);
@@ -52,20 +51,13 @@ public class SensorDataService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<SensorReadingResponse> search(String search, SearchBy searchBy, List<SensorType> types,
+    public PageResponse<SensorReadingResponse> search(String timeSearch, String valueSearch, List<SensorType> types,
                                                       boolean newestFirst, int page, int size) {
-        String s = StringUtils.hasText(search) ? search.trim() : null;
-
-        String timeStr = null;
+        String timeStr = StringUtils.hasText(timeSearch) ? timeSearch.trim() + "%" : null;
         Double valueNum = null;
-
-        if (s != null) {
-            if (searchBy == SearchBy.VALUE) {
-                valueNum = parseDouble(s);
-                if (valueNum == null) return PageResponse.of(List.of(), 0L, page, size);
-            } else {
-                timeStr = s + "%";
-            }
+        if (StringUtils.hasText(valueSearch)) {
+            valueNum = parseDouble(valueSearch.trim());
+            if (valueNum == null) return PageResponse.of(List.of(), 0L, page, size);
         }
 
         String typesCsv = SensorService.csvOrNull(types, SensorType::name);

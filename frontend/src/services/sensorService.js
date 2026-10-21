@@ -1,17 +1,6 @@
 import { apiClient } from './apiClient'
 
 /**
- * Danh sách cảm biến, có phân trang. Mọi tham số đều tuỳ chọn; bỏ trống thì backend dùng mặc định.
- * - search: tìm theo tên/mã; types: mảng loại cảm biến; status: ACTIVE | STANDBY | OFFLINE.
- * - updatedSince: chỉ lấy cảm biến có số đo từ thời điểm này; newestFirst: sắp xếp mới nhất trước.
- * - page (bắt đầu từ 1), size: phân trang. Tên các tham số này chính là tên query backend nhận nên giữ tiếng Anh.
- * Mỗi cảm biến có giá trị mới nhất (lastValue, lastReadingAt) và trạng thái kết nối (status: ACTIVE | STANDBY | OFFLINE).
- */
-export function getSensors({ search, types, status, updatedSince, newestFirst, page, size } = {}) {
-  return apiClient.get('/sensors', { search, types, status, updatedSince, newestFirst, page, size })
-}
-
-/**
  * Thông tin hiện tại của từng cảm biến — dùng cho 3 thẻ chỉ số trên Dashboard.
  *
  * Trả về: { code, name, unit, status, lastValue, lastReadingAt }
@@ -65,12 +54,11 @@ export function getLatestLight({ limit } = {}) {
 
 /**
  * Lịch sử số đo của mọi cảm biến (trang Sensors), có phân trang. Mọi tham số đều tuỳ chọn.
- * - search: tên/mã cảm biến, một giá trị, hoặc ngày giờ / giờ trong ngày theo giờ Việt Nam,
- *   vd "2026-10-03 17:20" hay "17:20:05".
- * - searchBy: TIME | TYPE | NAME | VALUE, ô search được so khớp với trường nào (bỏ trống thì backend tự đoán).
- * - types: mảng loại cảm biến; from, to: khoảng thời gian; newestFirst: sắp xếp mới nhất trước.
+ * - timeSearch: chuỗi lọc ngày giờ (LIKE prefix trên measured_at_str), vd "2026-10-20" hay "17:30".
+ * - valueSearch: giá trị đo khớp chính xác, vd "65.0". AND với timeSearch nếu cả hai có.
+ * - types: mảng loại cảm biến lọc; newestFirst: sắp xếp mới nhất trước.
  * - page (bắt đầu từ 1), size: phân trang.
  */
-export function getReadings({ search, searchBy, types, from, to, newestFirst, page, size } = {}) {
-  return apiClient.get('/sensor-data', { search, searchBy, types, from, to, newestFirst, page, size })
+export function getReadings({ timeSearch, valueSearch, types, newestFirst, page, size } = {}) {
+  return apiClient.get('/sensor-data', { timeSearch, valueSearch, types, newestFirst, page, size })
 }

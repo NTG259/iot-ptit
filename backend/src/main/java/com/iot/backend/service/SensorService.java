@@ -1,12 +1,10 @@
 package com.iot.backend.service;
 
-import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorChartResponse;
 import com.iot.backend.dto.SensorResponse;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.enums.SensorStatus;
-import com.iot.backend.entity.enums.SensorType;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
@@ -14,15 +12,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
-import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.ZoneOffset;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Function;
 
 import static java.util.stream.Collectors.joining;
 
@@ -37,30 +33,6 @@ public class SensorService {
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
-
-    @Transactional(readOnly = true)
-    public PageResponse<SensorResponse> search(String search, List<SensorType> types, SensorStatus status,
-                                               Instant updatedSince, int page, int size) {
-        String searchPat    = StringUtils.hasText(search) ? "%" + search.trim().toLowerCase() + "%" : null;
-        String typesCsv     = csvOrNull(types, SensorType::name);
-        String statusStr    = status != null ? status.name() : null;
-        Timestamp updatedTs = updatedSince != null ? Timestamp.from(updatedSince) : null;
-
-        long total = sensorRepository.countRows(searchPat, typesCsv, statusStr, updatedTs);
-        if (total == 0) return PageResponse.of(List.of(), 0L, page, size);
-
-        List<SensorRepository.SensorProjection> rows =
-                sensorRepository.searchRows(searchPat, typesCsv, statusStr, updatedTs, size, (long) (page - 1) * size);
-
-        List<SensorResponse> items = rows.stream().map(r -> {
-            SensorType type = SensorType.valueOf(r.getSensorType());
-            return new SensorResponse(r.getId(), r.getCode(), r.getName(), type, type.getUnit(),
-                    SensorStatus.valueOf(r.getStatus()), r.getLastReadingValue(),
-                    r.getLastReadingAt() != null ? r.getLastReadingAt().toInstant(ZoneOffset.UTC) : null);
-        }).toList();
-
-        return PageResponse.of(items, total, page, size);
-    }
 
     @Transactional(readOnly = true)
     public SensorResponse getSensor(String code) {
@@ -95,7 +67,7 @@ public class SensorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sensor", code));
     }
 
-    static <T> String csvOrNull(List<T> list, java.util.function.Function<T, String> mapper) {
+    static <T> String csvOrNull(List<T> list, Function<T, String> mapper) {
         return (list == null || list.isEmpty()) ? null : list.stream().map(mapper).collect(joining(","));
     }
 }

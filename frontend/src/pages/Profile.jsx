@@ -210,10 +210,12 @@ export default function Profile() {
                 GitHub
               </a>
             )}
-            <a href="https://www.figma.com/design/8ZHdOoFR4NGW7gNx898aj4/Dashboard-IOT" target="_blank" rel="noreferrer" className="profile__link">
-              <LuFigma size="1.25rem" />
-              Figma
-            </a>
+            {user.figmaUrl && (
+              <a href={user.figmaUrl} target="_blank" rel="noreferrer" className="profile__link">
+                <LuFigma size="1.25rem" />
+                Figma
+              </a>
+            )}
             {user.postmanUrl && (
               <a href={user.postmanUrl} target="_blank" rel="noreferrer" className="profile__link">
                 <LuExternalLink size="1.25rem" />

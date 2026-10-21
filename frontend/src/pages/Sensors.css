@@ -1,4 +1,15 @@
 /* Bảng số đo ở trang Sensors. */
+
+.sensors__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+}
+.sensors__chip {
+  font-size: 0.8125rem;
+  border-radius: 99px;
+}
 .sensors__name {
   font-weight: 500;
   white-space: nowrap;

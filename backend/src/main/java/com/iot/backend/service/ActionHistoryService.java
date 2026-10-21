@@ -20,7 +20,7 @@ public class ActionHistoryService {
     private final ActionHistoryRepository actionHistoryRepository;
 
     @Transactional(readOnly = true)
-    public PageResponse<ActionHistoryResponse> search(String search, SearchBy searchBy,
+    public PageResponse<ActionHistoryResponse> search(String search,
                                                       List<ActionStatus> status, List<DeviceAction> action,
                                                       List<DeviceType> deviceType,
                                                       boolean newestFirst, int page, int size) {

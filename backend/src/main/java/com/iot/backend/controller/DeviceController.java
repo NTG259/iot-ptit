@@ -4,7 +4,6 @@ import com.iot.backend.dto.ActionHistoryResponse;
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.DeviceControlRequest;
 import com.iot.backend.dto.DeviceResponse;
-import com.iot.backend.mqtt.EspPresence;
 import com.iot.backend.service.DeviceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,14 +25,11 @@ public class DeviceController {
     // kể cả khi ESP phản hồi nhanh hơn — đảm bảo animation pending không bị flash quá nhanh.
 
     private final DeviceService deviceService;
-    private final EspPresence espPresence;
 
     @GetMapping
     public ApiResponse<List<DeviceResponse>> list() {
-        // All LEDs hang off the one ESP8266, so they share its online flag.
-        boolean online = espPresence.isOnline();
         return ApiResponse.ok(deviceService.findAll().stream()
-                .map(d -> DeviceResponse.from(d, online, deviceService.pendingAction(d)))
+                .map(d -> DeviceResponse.from(d, deviceService.pendingAction(d)))
                 .toList());
     }
 

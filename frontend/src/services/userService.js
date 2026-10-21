@@ -13,8 +13,8 @@ export async function getProfile() {
  * PUT thay toàn bộ hồ sơ, nên phải gửi đủ mọi trường chứ không chỉ trường đã sửa; trường bỏ trống gửi null.
  * fullName bắt buộc, email phải đúng định dạng.
  */
-export async function saveProfile({ fullName, email, studentId, role, school, githubUrl, figmaUrl }) {
-  const user = await apiClient.put('/users/me', { fullName, email, studentId, role, school, githubUrl, figmaUrl })
+export async function saveProfile({ fullName, email, studentId, role, school, githubUrl, figmaUrl, postmanUrl }) {
+  const user = await apiClient.put('/users/me', { fullName, email, studentId, role, school, githubUrl, figmaUrl, postmanUrl })
   updateUser(user)
   return user
 }

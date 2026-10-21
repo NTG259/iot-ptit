@@ -4,7 +4,6 @@ import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorReadingResponse;
 import com.iot.backend.entity.enums.SensorType;
-import com.iot.backend.service.SearchBy;
 import com.iot.backend.service.SensorDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,29 +22,18 @@ public class SensorDataController {
     private final SensorDataService sensorDataService;
 
     /**
-     * Tìm kiếm lịch sử số liệu cảm biến.
-     *
-     * @param search    Từ khoá tìm kiếm. Ý nghĩa phụ thuộc vào {@code searchBy}:
-     *                  <ul>
-     *                    <li>TIME  — chuỗi ngày giờ ("2026-10-03 17:20") hoặc giờ trong ngày ("17:20", "17:20:05")</li>
-     *                    <li>TYPE  — tên loại cảm biến (LIKE, ví dụ "temp")</li>
-     *                    <li>VALUE — số thực chính xác (ví dụ "36.5")</li>
-     *                    <li>NAME  — code hoặc tên cảm biến (LIKE)</li>
-     *                  </ul>
-     *                  Khi không truyền {@code searchBy}, tự động nhận dạng: thời gian → số → name.
-     * @param searchBy  Chỉ định trường cần tìm: TIME, TYPE, VALUE, NAME. Bỏ trống = tự động nhận dạng.
-     * @param types     Lọc theo loại cảm biến: TEMPERATURE, HUMIDITY, LIGHT. Lặp param để truyền nhiều giá trị.
-     * @param page      Trang hiện tại, bắt đầu từ 1.
-     * @param size      Số bản ghi mỗi trang, mặc định 10.
+     * @param timeSearch  Chuỗi ngày giờ lọc theo measured_at_str (LIKE prefix), ví dụ "2026-10-20" hoặc "17:30".
+     * @param valueSearch Giá trị đo cần khớp chính xác, ví dụ "65.0". Kết hợp AND với timeSearch nếu cả hai có.
+     * @param types       Lọc theo loại cảm biến. Lặp param để truyền nhiều giá trị.
      */
     @GetMapping
     public ApiResponse<PageResponse<SensorReadingResponse>> search(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) SearchBy searchBy,
+            @RequestParam(required = false) String timeSearch,
+            @RequestParam(required = false) String valueSearch,
             @RequestParam(required = false) List<SensorType> types,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(sensorDataService.search(search, searchBy, types, newestFirst, page, size));
+        return ApiResponse.ok(sensorDataService.search(timeSearch, valueSearch, types, newestFirst, page, size));
     }
 }
