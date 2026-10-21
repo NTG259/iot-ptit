@@ -28,7 +28,7 @@ function getSearchPlaceholder(searchField) {
   if (searchField === 'TEMPERATURE') return 'e.g. 28.5'
   if (searchField === 'HUMIDITY') return 'e.g. 65.0'
   if (searchField === 'LIGHT') return 'e.g. 300'
-  return '2026-10-20, *-12-30, 17:20, *:30'
+  return '2026-10-20, 2026-10, 17:30'
 }
 
 const COLUMNS = [

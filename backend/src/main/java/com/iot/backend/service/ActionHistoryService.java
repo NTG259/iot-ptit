@@ -48,7 +48,7 @@ public class ActionHistoryService {
         List<ActionHistoryResponse> items = rows.stream().map(r ->
                 new ActionHistoryResponse(r.getId(), r.getDeviceCode(), r.getDeviceName(),
                         DeviceType.valueOf(r.getDeviceType()), DeviceAction.valueOf(r.getAction()),
-                        ActionStatus.valueOf(r.getStatus()), r.getCreatedAt().toInstant(ZoneOffset.UTC))).toList();
+                        ActionStatus.valueOf(r.getStatus()), r.getCreatedAt().toInstant(ZoneOffset.ofHours(7)))).toList();
 
         return PageResponse.of(items, total, page, size);
     }
