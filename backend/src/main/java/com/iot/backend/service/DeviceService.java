@@ -80,6 +80,7 @@ public class DeviceService {
         ActionHistory history = new ActionHistory();
         history.setDevice(device);
         history.setAction(action);
+        history.setCreatedAtStr(TimeSearch.format(Instant.now()));
         history = actionHistoryRepository.save(history);
 
         try {

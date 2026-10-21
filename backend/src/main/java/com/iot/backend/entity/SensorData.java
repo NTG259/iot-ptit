@@ -23,7 +23,10 @@ import java.time.Instant;
 @NoArgsConstructor
 @Entity
 // Indexed for the history page, which filters and sorts readings by time.
-@Table(name = "sensor_data", indexes = @Index(name = "idx_sensor_data_measured_at", columnList = "measured_at"))
+@Table(name = "sensor_data", indexes = {
+        @Index(name = "idx_sensor_data_measured_at",     columnList = "measured_at"),
+        @Index(name = "idx_sensor_data_measured_at_str", columnList = "measured_at_str")
+})
 public class SensorData {
 
     @Id
@@ -39,4 +42,8 @@ public class SensorData {
     private Double value;
 
     private Instant measuredAt;
+
+    /** Vietnam-time string "yyyy-MM-dd HH:mm:ss"; used for LIKE prefix search. */
+    @Column(name = "measured_at_str", length = 19)
+    private String measuredAtStr;
 }

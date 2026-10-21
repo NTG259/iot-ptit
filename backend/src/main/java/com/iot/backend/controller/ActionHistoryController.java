@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.List;
 
 /** Lịch sử toàn bộ lệnh điều khiển thiết bị (trang Action History). */
@@ -39,8 +38,6 @@ public class ActionHistoryController {
      * @param status     Lọc theo trạng thái lệnh: PENDING, SUCCESS, FAILED. Lặp param để truyền nhiều giá trị.
      * @param action     Lọc theo loại hành động: TURN_ON, TURN_OFF. Lặp param để truyền nhiều giá trị.
      * @param deviceType Lọc theo loại thiết bị: SMART_LED. Lặp param để truyền nhiều giá trị.
-     * @param from       Chỉ lấy lệnh từ thời điểm này (ISO-8601, UTC, bao gồm).
-     * @param to         Chỉ lấy lệnh đến thời điểm này (ISO-8601, UTC, bao gồm).
      * @param page       Trang hiện tại, bắt đầu từ 1.
      * @param size       Số bản ghi mỗi trang, mặc định 10.
      */
@@ -51,11 +48,9 @@ public class ActionHistoryController {
             @RequestParam(required = false) List<ActionStatus> status,
             @RequestParam(required = false) List<DeviceAction> action,
             @RequestParam(required = false) List<DeviceType> deviceType,
-            @RequestParam(required = false) Instant from,
-            @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(actionHistoryService.search(search, searchBy, status, action, deviceType, from, to, newestFirst, page, size));
+        return ApiResponse.ok(actionHistoryService.search(search, searchBy, status, action, deviceType, newestFirst, page, size));
     }
 }

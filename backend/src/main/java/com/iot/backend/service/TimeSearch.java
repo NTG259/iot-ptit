@@ -1,100 +1,34 @@
 package com.iot.backend.service;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
-/**
- * Parses a search-box entry as a date/time pattern with wildcard support.
- * Each component may be a specific number or {@code *} (= match any value).
- *
- * <p>Accepted formats (Vietnam time, UTC+7):
- * <ul>
- *   <li>{@code yyyy-MM-dd} — e.g. {@code 2026-10-20}, {@code *-12-30}, {@code 2026-*-*}</li>
- *   <li>{@code yyyy-MM-dd HH:mm} — e.g. {@code 2026-*-* 17:*}</li>
- *   <li>{@code yyyy-MM-dd HH:mm:ss} — full pattern</li>
- *   <li>{@code HH:mm} or {@code HH:mm:ss} — time-of-day only, e.g. {@code 17:20}, {@code *:20:*}</li>
- * </ul>
- * A {@code null} component in the result means "no filter on this component".
- */
+/** Utilities for storing and searching datetime values as Vietnam-time strings. */
 public final class TimeSearch {
 
-    // yyyy-MM-dd optionally followed by HH:mm:ss; each part is digits or *
-    private static final Pattern DATETIME = Pattern.compile(
-            "(\\d{4}|\\*)-(\\d{1,2}|\\*)-(\\d{1,2}|\\*)(?:[ T](\\d{1,2}|\\*)(?::(\\d{1,2}|\\*)(?::(\\d{1,2}|\\*))?)?)?");
-
-    // HH:mm optionally :ss; each part is digits or *
-    private static final Pattern TIME_OF_DAY = Pattern.compile(
-            "(\\d{1,2}|\\*):(\\d{1,2}|\\*)(?::(\\d{1,2}|\\*))?");
-
-    // yyyy-MM or *-MM — partial date without day
-    private static final Pattern YEAR_MONTH = Pattern.compile("(\\d{4}|\\*)-(\\d{1,2}|\\*)");
-
-    // yyyy alone
-    private static final Pattern YEAR_ONLY = Pattern.compile("(\\d{4}|\\*)");
+    static final ZoneOffset VN = ZoneOffset.ofHours(7);
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private TimeSearch() {}
 
-    /** Parsed time filter — null field = wildcard (no filter on that component). */
-    public record TimeFilter(
-            Integer year, Integer month, Integer day,
-            Integer hour, Integer minute, Integer second) {
-        boolean isEmpty() {
-            return year == null && month == null && day == null
-                    && hour == null && minute == null && second == null;
-        }
+    /** Formats an Instant as a Vietnam-time string {@code "yyyy-MM-dd HH:mm:ss"}. */
+    public static String format(Instant instant) {
+        return LocalDateTime.ofInstant(instant, VN).format(FMT);
     }
 
     /**
-     * Parses {@code text} into a {@link TimeFilter}.
-     * Returns {@code null} when the text is not a recognisable time pattern or all components are wildcards.
+     * Converts a user search string to a SQL LIKE pattern with a trailing {@code %}.
+     * Only digits, {@code -}, {@code :}, and space are allowed (datetime characters).
+     * Returns {@code null} when the input is blank or contains other characters.
      */
-    public static TimeFilter parse(String text) {
+    public static String toLikePattern(String text) {
         if (text == null || text.isBlank()) return null;
         String t = text.trim();
-
-        Matcher dm = DATETIME.matcher(t);
-        if (dm.matches()) {
-            Integer year = num(dm.group(1)), month  = num(dm.group(2)), day    = num(dm.group(3));
-            Integer hour = num(dm.group(4)), minute = num(dm.group(5)), second = num(dm.group(6));
-            if (!valid(month, 1, 12) || !valid(day, 1, 31)
-                    || !valid(hour, 0, 23) || !valid(minute, 0, 59) || !valid(second, 0, 59)) return null;
-            TimeFilter tf = new TimeFilter(year, month, day, hour, minute, second);
-            return tf.isEmpty() ? null : tf;
+        for (char c : t.toCharArray()) {
+            if (c != '-' && c != ':' && c != ' ' && (c < '0' || c > '9')) return null;
         }
-
-        Matcher tm = TIME_OF_DAY.matcher(t);
-        if (tm.matches()) {
-            Integer hour = num(tm.group(1)), minute = num(tm.group(2)), second = num(tm.group(3));
-            if (!valid(hour, 0, 23) || !valid(minute, 0, 59) || !valid(second, 0, 59)) return null;
-            TimeFilter tf = new TimeFilter(null, null, null, hour, minute, second);
-            return tf.isEmpty() ? null : tf;
-        }
-
-        Matcher ym = YEAR_MONTH.matcher(t);
-        if (ym.matches()) {
-            Integer year = num(ym.group(1)), month = num(ym.group(2));
-            if (!valid(month, 1, 12)) return null;
-            TimeFilter tf = new TimeFilter(year, month, null, null, null, null);
-            return tf.isEmpty() ? null : tf;
-        }
-
-        Matcher yo = YEAR_ONLY.matcher(t);
-        if (yo.matches()) {
-            Integer year = num(yo.group(1));
-            TimeFilter tf = new TimeFilter(year, null, null, null, null, null);
-            return tf.isEmpty() ? null : tf;
-        }
-
-        return null;
-    }
-
-    /** {@code null} if group is null or {@code "*"}, otherwise parsed as integer. */
-    private static Integer num(String s) {
-        return (s == null || s.equals("*")) ? null : Integer.parseInt(s);
-    }
-
-    /** {@code null} value always passes (wildcard); a non-null value must be in [{@code lo}, {@code hi}]. */
-    private static boolean valid(Integer v, int lo, int hi) {
-        return v == null || (v >= lo && v <= hi);
+        return t + "%";
     }
 }

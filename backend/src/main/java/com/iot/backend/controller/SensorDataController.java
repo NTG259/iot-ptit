@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.Instant;
 import java.util.List;
 
 /** Lịch sử toàn bộ số liệu đo được của tất cả cảm biến (trang Sensor Data). */
@@ -36,8 +35,6 @@ public class SensorDataController {
      *                  Khi không truyền {@code searchBy}, tự động nhận dạng: thời gian → số → name.
      * @param searchBy  Chỉ định trường cần tìm: TIME, TYPE, VALUE, NAME. Bỏ trống = tự động nhận dạng.
      * @param types     Lọc theo loại cảm biến: TEMPERATURE, HUMIDITY, LIGHT. Lặp param để truyền nhiều giá trị.
-     * @param from      Chỉ lấy số liệu từ thời điểm này (ISO-8601, UTC, bao gồm).
-     * @param to        Chỉ lấy số liệu đến thời điểm này (ISO-8601, UTC, bao gồm).
      * @param page      Trang hiện tại, bắt đầu từ 1.
      * @param size      Số bản ghi mỗi trang, mặc định 10.
      */
@@ -46,11 +43,9 @@ public class SensorDataController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) SearchBy searchBy,
             @RequestParam(required = false) List<SensorType> types,
-            @RequestParam(required = false) Instant from,
-            @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(sensorDataService.search(search, searchBy, types, from, to, newestFirst, page, size));
+        return ApiResponse.ok(sensorDataService.search(search, searchBy, types, newestFirst, page, size));
     }
 }

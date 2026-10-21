@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,14 +38,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
               AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
               AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
-              AND (:from       IS NULL OR ah.created_at >= :from)
-              AND (:to         IS NULL OR ah.created_at <= :to)
-              AND (:year   IS NULL OR YEAR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :year)
-              AND (:month  IS NULL OR MONTH(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))  = :month)
-              AND (:day    IS NULL OR DAY(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))    = :day)
-              AND (:hour   IS NULL OR HOUR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :hour)
-              AND (:minute IS NULL OR MINUTE(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :minute)
-              AND (:second IS NULL OR SECOND(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :second)
+              AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             ORDER BY ah.created_at DESC, ah.id DESC
             LIMIT :size OFFSET :offset
             """)
@@ -54,14 +46,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             @Param("status")     String status,
             @Param("action")     String action,
             @Param("deviceType") String deviceType,
-            @Param("from")       Timestamp from,
-            @Param("to")         Timestamp to,
-            @Param("year")       Integer year,
-            @Param("month")      Integer month,
-            @Param("day")        Integer day,
-            @Param("hour")       Integer hour,
-            @Param("minute")     Integer minute,
-            @Param("second")     Integer second,
+            @Param("timeStr")    String timeStr,
             @Param("size")       int size,
             @Param("offset")     long offset);
 
@@ -78,14 +63,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
               AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
               AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
-              AND (:from       IS NULL OR ah.created_at >= :from)
-              AND (:to         IS NULL OR ah.created_at <= :to)
-              AND (:year   IS NULL OR YEAR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :year)
-              AND (:month  IS NULL OR MONTH(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))  = :month)
-              AND (:day    IS NULL OR DAY(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))    = :day)
-              AND (:hour   IS NULL OR HOUR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :hour)
-              AND (:minute IS NULL OR MINUTE(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :minute)
-              AND (:second IS NULL OR SECOND(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :second)
+              AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             ORDER BY ah.created_at ASC, ah.id ASC
             LIMIT :size OFFSET :offset
             """)
@@ -93,14 +71,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             @Param("status")     String status,
             @Param("action")     String action,
             @Param("deviceType") String deviceType,
-            @Param("from")       Timestamp from,
-            @Param("to")         Timestamp to,
-            @Param("year")       Integer year,
-            @Param("month")      Integer month,
-            @Param("day")        Integer day,
-            @Param("hour")       Integer hour,
-            @Param("minute")     Integer minute,
-            @Param("second")     Integer second,
+            @Param("timeStr")    String timeStr,
             @Param("size")       int size,
             @Param("offset")     long offset);
 
@@ -111,25 +82,11 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
               AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
               AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
-              AND (:from       IS NULL OR ah.created_at >= :from)
-              AND (:to         IS NULL OR ah.created_at <= :to)
-              AND (:year   IS NULL OR YEAR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :year)
-              AND (:month  IS NULL OR MONTH(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))  = :month)
-              AND (:day    IS NULL OR DAY(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))    = :day)
-              AND (:hour   IS NULL OR HOUR(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200))   = :hour)
-              AND (:minute IS NULL OR MINUTE(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :minute)
-              AND (:second IS NULL OR SECOND(FROM_UNIXTIME(UNIX_TIMESTAMP(ah.created_at) + 25200)) = :second)
+              AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             """)
     long countRows(
             @Param("status")     String status,
             @Param("action")     String action,
             @Param("deviceType") String deviceType,
-            @Param("from")       Timestamp from,
-            @Param("to")         Timestamp to,
-            @Param("year")       Integer year,
-            @Param("month")      Integer month,
-            @Param("day")        Integer day,
-            @Param("hour")       Integer hour,
-            @Param("minute")     Integer minute,
-            @Param("second")     Integer second);
+            @Param("timeStr")    String timeStr);
 }

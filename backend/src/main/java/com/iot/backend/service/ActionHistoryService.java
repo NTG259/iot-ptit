@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -25,33 +24,28 @@ public class ActionHistoryService {
     @Transactional(readOnly = true)
     public PageResponse<ActionHistoryResponse> search(String search, SearchBy searchBy,
                                                       List<ActionStatus> status, List<DeviceAction> action,
-                                                      List<DeviceType> deviceType, Instant from, Instant to,
+                                                      List<DeviceType> deviceType,
                                                       boolean newestFirst, int page, int size) {
         String s = StringUtils.hasText(search) ? search.trim() : null;
 
-        Integer year = null, month = null, day = null, hour = null, minute = null, second = null;
+        String timeStr = null;
 
         if (s != null) {
-            TimeSearch.TimeFilter tf = TimeSearch.parse(s);
-            if (tf == null) return PageResponse.of(List.of(), 0L, page, size);
-            year = tf.year(); month = tf.month(); day = tf.day();
-            hour = tf.hour(); minute = tf.minute(); second = tf.second();
+            timeStr = TimeSearch.toLikePattern(s);
+            if (timeStr == null) return PageResponse.of(List.of(), 0L, page, size);
         }
 
         String statusCsv     = SensorService.csvOrNull(status,     ActionStatus::name);
         String actionCsv     = SensorService.csvOrNull(action,     DeviceAction::name);
         String deviceTypeCsv = SensorService.csvOrNull(deviceType, DeviceType::name);
-        Timestamp fromTs = from != null ? Timestamp.from(from) : null;
-        Timestamp toTs   = to   != null ? Timestamp.from(to)   : null;
         long offset = (long) (page - 1) * size;
 
-        long total = actionHistoryRepository.countRows(statusCsv, actionCsv, deviceTypeCsv, fromTs, toTs,
-                year, month, day, hour, minute, second);
+        long total = actionHistoryRepository.countRows(statusCsv, actionCsv, deviceTypeCsv, timeStr);
         if (total == 0) return PageResponse.of(List.of(), 0L, page, size);
 
         List<ActionHistoryRepository.ActionHistoryProjection> rows = newestFirst
-                ? actionHistoryRepository.searchRowsDesc(statusCsv, actionCsv, deviceTypeCsv, fromTs, toTs, year, month, day, hour, minute, second, size, offset)
-                : actionHistoryRepository.searchRowsAsc(statusCsv, actionCsv, deviceTypeCsv, fromTs, toTs, year, month, day, hour, minute, second, size, offset);
+                ? actionHistoryRepository.searchRowsDesc(statusCsv, actionCsv, deviceTypeCsv, timeStr, size, offset)
+                : actionHistoryRepository.searchRowsAsc(statusCsv, actionCsv, deviceTypeCsv, timeStr, size, offset);
 
         List<ActionHistoryResponse> items = rows.stream().map(r ->
                 new ActionHistoryResponse(r.getId(), r.getDeviceCode(), r.getDeviceName(),

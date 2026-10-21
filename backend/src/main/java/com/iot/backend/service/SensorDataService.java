@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -41,6 +40,7 @@ public class SensorDataService {
         data.setSensor(sensor);
         data.setValue(value);
         data.setMeasuredAt(measuredAt);
+        data.setMeasuredAtStr(TimeSearch.format(measuredAt));
         sensorDataRepository.save(data);
         sensor.setLastValue(value);
         sensor.setLastReadingAt(measuredAt);
@@ -49,36 +49,31 @@ public class SensorDataService {
 
     @Transactional(readOnly = true)
     public PageResponse<SensorReadingResponse> search(String search, SearchBy searchBy, List<SensorType> types,
-                                                      Instant from, Instant to, boolean newestFirst, int page, int size) {
+                                                      boolean newestFirst, int page, int size) {
         String s = StringUtils.hasText(search) ? search.trim() : null;
 
-        Integer year = null, month = null, day = null, hour = null, minute = null, second = null;
+        String timeStr = null;
         Double valueNum = null;
 
         if (s != null) {
             if (searchBy == SearchBy.VALUE) {
-                Double num = parseDouble(s);
-                if (num == null) return PageResponse.of(List.of(), 0L, page, size);
-                valueNum = num;
+                valueNum = parseDouble(s);
+                if (valueNum == null) return PageResponse.of(List.of(), 0L, page, size);
             } else {
-                TimeSearch.TimeFilter tf = TimeSearch.parse(s);
-                if (tf == null) return PageResponse.of(List.of(), 0L, page, size);
-                year = tf.year(); month = tf.month(); day = tf.day();
-                hour = tf.hour(); minute = tf.minute(); second = tf.second();
+                timeStr = TimeSearch.toLikePattern(s);
+                if (timeStr == null) return PageResponse.of(List.of(), 0L, page, size);
             }
         }
 
         String typesCsv = SensorService.csvOrNull(types, SensorType::name);
-        Timestamp fromTs = from != null ? Timestamp.from(from) : null;
-        Timestamp toTs   = to   != null ? Timestamp.from(to)   : null;
         long offset = (long) (page - 1) * size;
 
-        long total = sensorDataRepository.countRows(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum);
+        long total = sensorDataRepository.countRows(typesCsv, timeStr, valueNum);
         if (total == 0) return PageResponse.of(List.of(), 0L, page, size);
 
         List<SensorDataRepository.SensorReadingProjection> rows = newestFirst
-                ? sensorDataRepository.searchRowsDesc(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum, size, offset)
-                : sensorDataRepository.searchRowsAsc(typesCsv, fromTs, toTs, year, month, day, hour, minute, second, valueNum, size, offset);
+                ? sensorDataRepository.searchRowsDesc(typesCsv, timeStr, valueNum, size, offset)
+                : sensorDataRepository.searchRowsAsc(typesCsv, timeStr, valueNum, size, offset);
 
         List<SensorReadingResponse> items = rows.stream().map(r -> {
             SensorType type = SensorType.valueOf(r.getSensorType());
