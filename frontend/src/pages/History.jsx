@@ -73,6 +73,7 @@ const COLUMNS = [
  */
 export default function History() {
   // ─── STATE BỘ LỌC VÀ PHÂN TRANG ─────────────────────────────────────────────
+  const [inputText, setInputText] = useState('')
   const [searchText, setSearchText] = useState('')
   // searchField: trường backend dùng để so khớp searchText — 'NAME' | 'TYPE' | 'TIME'.
   //   · NAME → so với tên thiết bị (ví dụ "Living Room LED").
@@ -157,10 +158,12 @@ export default function History() {
   // ─── XỬ LÝ THAY ĐỔI BỘ LỌC ──────────────────────────────────────────────────
   // Mọi handler đều reset page về 1 để tránh đứng ở trang 5 nhưng kết quả chỉ có 1 trang.
 
-  function handleSearchChange(event) {
-    setSearchText(event.target.value)
-    setPage(1)
+  function handleInputChange(event) {
+    const value = event.target.value
+    setInputText(value)
+    if (value === '') { setSearchText(''); setPage(1) }
   }
+  function handleSearchCommit() { setSearchText(inputText); setPage(1) }
   // Bật/tắt tick trạng thái lệnh — newStatuses là mảng các giá trị đang được tick.
   function handleStatusesChange(newStatuses) {
     setSelectedStatuses(newStatuses)
@@ -208,8 +211,9 @@ export default function History() {
           allowClear
           prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
           placeholder="2026-10-20, 2026-10, 17:30"
-          value={searchText}
-          onChange={handleSearchChange}
+          value={inputText}
+          onChange={handleInputChange}
+          onPressEnter={handleSearchCommit}
           style={{ width: 360 }}
         />
 
@@ -227,6 +231,7 @@ export default function History() {
         <CheckboxFilter label="Device Type" options={DEVICE_TYPE_OPTIONS} value={selectedDeviceTypes} onChange={handleDeviceTypesChange} />
 
         <Button onClick={() => {
+          setInputText('')
           setSearchText('')
           setSelectedStatuses(['SUCCESS', 'PENDING', 'FAILED'])
           setSelectedActions(['TURN_ON', 'TURN_OFF'])

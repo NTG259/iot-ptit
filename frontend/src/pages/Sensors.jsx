@@ -75,6 +75,7 @@ const EMPTY_PAGE = { items: [], totalItems: 0 }
 export default function Sensors() {
   // ─── STATE BỘ LỌC VÀ PHÂN TRANG ─────────────────────────────────────────────
   // searchText: nội dung ô tìm kiếm — được trim() trước khi gửi lên backend.
+  const [inputText, setInputText] = useState('')
   const [searchText, setSearchText] = useState('')
   // searchField: trường backend dùng để so khớp searchText — 'NAME' | 'TYPE' | 'VALUE' | 'TIME'.
   //   · NAME  → so với tên cảm biến (ví dụ "DHT11 Temp").
@@ -142,14 +143,16 @@ export default function Sensors() {
   // Ví dụ: đang nhập "28.5" cho VALUE, chuyển sang TIME thì "28.5" không hợp lệ.
   function handleSearchFieldChange(newField) {
     setSearchField(newField)
+    setInputText('')
     setSearchText('')
     setPage(1)
   }
-  // Nhập từng ký tự vào ô search → gửi lên backend ngay (không debounce), poll 2s đủ nhanh.
-  function handleSearchTextChange(event) {
-    setSearchText(event.target.value)
-    setPage(1)
+  function handleInputChange(event) {
+    const value = event.target.value
+    setInputText(value)
+    if (value === '') { setSearchText(''); setPage(1) }
   }
+  function handleSearchCommit() { setSearchText(inputText); setPage(1) }
   // Đổi số hàng mỗi trang → về trang 1 để tránh trang hiện tại vượt quá số trang mới.
   function handleRowsPerPageChange(newRowsPerPage) {
     setRowsPerPage(newRowsPerPage)
@@ -180,13 +183,14 @@ export default function Sensors() {
             allowClear
             prefix={<LuSearch size="1rem" color="var(--color-muted)" />}
             placeholder={getSearchPlaceholder(searchField)}
-            value={searchText}
-            onChange={handleSearchTextChange}
+            value={inputText}
+            onChange={handleInputChange}
+            onPressEnter={handleSearchCommit}
             style={{ width: 260 }}
           />
         </Space.Compact>
 
-        <Button onClick={() => { setSearchText(''); setSearchField('TIME'); setNewestFirst(true); setPage(1); setRowsPerPage(10); }}>Refresh</Button>
+        <Button onClick={() => { setInputText(''); setSearchText(''); setSearchField('TIME'); setNewestFirst(true); setPage(1); setRowsPerPage(10); }}>Refresh</Button>
       </div>
 
       {/* Hiện banner lỗi nếu API trả lỗi (lỗi mạng, server, ...). */}
