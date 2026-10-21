@@ -21,15 +21,19 @@ const DEVICE_TYPE_LABELS = { SMART_LED: 'Smart LED' }
 
 // Các ô tick của ba bộ lọc.
 const STATUS_OPTIONS = [
-  { value: 'SUCCESS', label: 'Success' },
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'FAILED', label: 'Failed' },
+  { value: 'SUCCESS', id: 2, label: 'Success' },
+  { value: 'PENDING', id: 1, label: 'Pending' },
+  { value: 'FAILED',  id: 3, label: 'Failed' },
 ]
 const ACTION_OPTIONS = [
-  { value: 'TURN_ON', label: 'Turn ON' },
-  { value: 'TURN_OFF', label: 'Turn OFF' },
+  { value: 'TURN_ON',  id: 1, label: 'Turn ON' },
+  { value: 'TURN_OFF', id: 2, label: 'Turn OFF' },
 ]
-const DEVICE_TYPE_OPTIONS = [{ value: 'SMART_LED', label: 'Smart LED' }]
+const DEVICE_TYPE_OPTIONS = [{ value: 'SMART_LED', id: 1, label: 'Smart LED' }]
+
+function toIds(selected, options) {
+  return selected.map(v => options.find(o => o.value === v).id)
+}
 
 // Các trường mà ô tìm kiếm có thể so khớp.
 
@@ -140,9 +144,9 @@ export default function History() {
       return actionHistoryService.getActionHistory({
         search: searchText.trim(),
         searchBy: 'TIME',
-        status: allStatusesSelected ? null : selectedStatuses,
-        action: allActionsSelected ? null : selectedActions,
-        deviceType: allDeviceTypesSelected ? null : selectedDeviceTypes,
+        statusIds:     allStatusesSelected    ? null : toIds(selectedStatuses,    STATUS_OPTIONS),
+        actionIds:     allActionsSelected     ? null : toIds(selectedActions,     ACTION_OPTIONS),
+        deviceTypeIds: allDeviceTypesSelected ? null : toIds(selectedDeviceTypes, DEVICE_TYPE_OPTIONS),
         newestFirst,
         page,
         size: rowsPerPage,

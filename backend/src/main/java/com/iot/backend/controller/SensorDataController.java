@@ -3,7 +3,6 @@ package com.iot.backend.controller;
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorReadingResponse;
-import com.iot.backend.entity.enums.SensorType;
 import com.iot.backend.service.SensorDataService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,16 +23,16 @@ public class SensorDataController {
     /**
      * @param timeSearch  Chuỗi ngày giờ lọc theo measured_at_str (LIKE prefix), ví dụ "2026-10-20" hoặc "17:30".
      * @param valueSearch Giá trị đo cần khớp chính xác, ví dụ "65.0". Kết hợp AND với timeSearch nếu cả hai có.
-     * @param types       Lọc theo loại cảm biến. Lặp param để truyền nhiều giá trị.
+     * @param typeIds     Lọc theo ID loại cảm biến (1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT). Lặp param để truyền nhiều giá trị.
      */
     @GetMapping
     public ApiResponse<PageResponse<SensorReadingResponse>> search(
             @RequestParam(required = false) String timeSearch,
             @RequestParam(required = false) String valueSearch,
-            @RequestParam(required = false) List<SensorType> types,
+            @RequestParam(required = false) List<Integer> typeIds,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(sensorDataService.search(timeSearch, valueSearch, types, newestFirst, page, size));
+        return ApiResponse.ok(sensorDataService.search(timeSearch, valueSearch, typeIds, newestFirst, page, size));
     }
 }

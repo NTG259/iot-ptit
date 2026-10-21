@@ -267,16 +267,15 @@
               "host": ["{{baseUrl}}"],
               "path": ["sensor-data"],
               "query": [
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "searchBy", "value": "VALUE", "disabled": true, "description": "TIME | TYPE | NAME | VALUE" },
-                { "key": "types", "value": "TEMPERATURE", "disabled": true },
-                { "key": "from", "value": "2026-10-20T00:00:00Z", "disabled": true },
-                { "key": "to", "value": "2026-10-20T23:59:59Z", "disabled": true },
-                { "key": "newestFirst", "value": "true" },
-                { "key": "page", "value": "1" },
-                { "key": "size", "value": "10" }
+                { "key": "timeSearch", "value": "2026-10-20", "disabled": true, "description": "string — lọc theo ngày/giờ (LIKE prefix trên measured_at_str). Ví dụ: \"2026-10-20\", \"17:30\", \"2026-10-20 17\"." },
+                { "key": "valueSearch", "value": "28.5", "disabled": true, "description": "number (string) — khớp đúng giá trị đo. Ví dụ: \"28.5\", \"65\"." },
+                { "key": "typeIds", "value": "1", "disabled": true, "description": "integer — ID loại cảm biến, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Bỏ trống = không lọc." },
+                { "key": "newestFirst", "value": "true", "description": "boolean — true: mới nhất trước (mặc định); false: cũ nhất trước." },
+                { "key": "page", "value": "1", "description": "integer — trang hiện tại, bắt đầu từ 1." },
+                { "key": "size", "value": "10", "description": "integer — số hàng mỗi trang." }
               ]
-            }
+            },
+            "description": "Lịch sử số đo của mọi cảm biến, có lọc và phân trang. Kết hợp timeSearch + typeIds để lọc đồng thời ngày giờ và loại cảm biến."
           }
         }
       ]
@@ -293,18 +292,16 @@
               "host": ["{{baseUrl}}"],
               "path": ["action-histories"],
               "query": [
-                { "key": "search", "value": "", "disabled": true },
-                { "key": "searchBy", "value": "TIME", "disabled": true, "description": "TIME | TYPE | NAME" },
-                { "key": "status", "value": "SUCCESS", "disabled": true, "description": "PENDING | SUCCESS | FAILED — lặp param để lọc nhiều" },
-                { "key": "action", "value": "TURN_ON", "disabled": true, "description": "TURN_ON | TURN_OFF" },
-                { "key": "deviceType", "value": "SMART_LED", "disabled": true },
-                { "key": "from", "value": "2026-10-20T00:00:00Z", "disabled": true },
-                { "key": "to", "value": "2026-10-20T23:59:59Z", "disabled": true },
-                { "key": "newestFirst", "value": "true" },
-                { "key": "page", "value": "1" },
-                { "key": "size", "value": "10" }
+                { "key": "search", "value": "2026-10-20", "disabled": true, "description": "string — lọc theo ngày/giờ (LIKE prefix trên created_at_str). Ví dụ: \"2026-10-20\", \"17:30\", \"2026-10-20 17\"." },
+                { "key": "statusIds", "value": "2,3", "disabled": true, "description": "integer — ID trạng thái lệnh, nhiều giá trị ngăn cách bằng dấu phẩy. 1=PENDING, 2=SUCCESS, 3=FAILED. Bỏ trống = không lọc." },
+                { "key": "actionIds", "value": "1", "disabled": true, "description": "integer — ID loại hành động, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TURN_ON, 2=TURN_OFF. Bỏ trống = không lọc." },
+                { "key": "deviceTypeIds", "value": "1", "disabled": true, "description": "integer — ID loại thiết bị, nhiều giá trị ngăn cách bằng dấu phẩy. 1=SMART_LED. Bỏ trống = không lọc." },
+                { "key": "newestFirst", "value": "true", "description": "boolean — true: mới nhất trước (mặc định); false: cũ nhất trước." },
+                { "key": "page", "value": "1", "description": "integer — trang hiện tại, bắt đầu từ 1." },
+                { "key": "size", "value": "10", "description": "integer — số hàng mỗi trang." }
               ]
-            }
+            },
+            "description": "Lịch sử lệnh điều khiển thiết bị, có lọc và phân trang. Kết hợp search + statusIds + actionIds để lọc đồng thời ngày giờ và trạng thái."
           }
         }
       ]

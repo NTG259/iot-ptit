@@ -10,9 +10,9 @@ import useApi from '@/hooks/useApi'
 import './Sensors.css'
 
 const SENSOR_TYPES = {
-  TEMPERATURE: { label: 'Temperature', tone: 'green', unitClass: 'sensors__value-unit--temperature', decimals: 2 },
-  HUMIDITY: { label: 'Humidity', tone: 'cyan', unitClass: 'sensors__value-unit--humidity', decimals: 2 },
-  LIGHT: { label: 'Light', tone: 'orange', unitClass: 'sensors__value-unit--light', decimals: 0 },
+  TEMPERATURE: { id: 1, label: 'Temperature', tone: 'green', unitClass: 'sensors__value-unit--temperature', decimals: 2 },
+  HUMIDITY: { id: 2, label: 'Humidity', tone: 'cyan', unitClass: 'sensors__value-unit--humidity', decimals: 2 },
+  LIGHT: { id: 3, label: 'Light', tone: 'orange', unitClass: 'sensors__value-unit--light', decimals: 0 },
 }
 
 const SEARCH_FIELDS = [
@@ -86,7 +86,7 @@ export default function Sensors() {
     () => sensorService.getReadings({
       timeSearch: timeFilter,
       valueSearch: sensorFilter?.value ?? null,
-      types: sensorFilter ? [sensorFilter.type] : null,
+      typeIds: sensorFilter ? [SENSOR_TYPES[sensorFilter.type].id] : null,
       newestFirst,
       page,
       size: rowsPerPage,

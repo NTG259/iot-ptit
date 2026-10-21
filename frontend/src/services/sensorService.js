@@ -56,9 +56,9 @@ export function getLatestLight({ limit } = {}) {
  * Lịch sử số đo của mọi cảm biến (trang Sensors), có phân trang. Mọi tham số đều tuỳ chọn.
  * - timeSearch: chuỗi lọc ngày giờ (LIKE prefix trên measured_at_str), vd "2026-10-20" hay "17:30".
  * - valueSearch: giá trị đo khớp chính xác, vd "65.0". AND với timeSearch nếu cả hai có.
- * - types: mảng loại cảm biến lọc; newestFirst: sắp xếp mới nhất trước.
+ * - typeIds: mảng ID loại cảm biến lọc (1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT); newestFirst: sắp xếp mới nhất trước.
  * - page (bắt đầu từ 1), size: phân trang.
  */
-export function getReadings({ timeSearch, valueSearch, types, newestFirst, page, size } = {}) {
-  return apiClient.get('/sensor-data', { timeSearch, valueSearch, types, newestFirst, page, size })
+export function getReadings({ timeSearch, valueSearch, typeIds, newestFirst, page, size } = {}) {
+  return apiClient.get('/sensor-data', { timeSearch, valueSearch, typeIds, newestFirst, page, size })
 }

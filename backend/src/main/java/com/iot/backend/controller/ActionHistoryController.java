@@ -3,9 +3,6 @@ package com.iot.backend.controller;
 import com.iot.backend.dto.ActionHistoryResponse;
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.PageResponse;
-import com.iot.backend.entity.enums.ActionStatus;
-import com.iot.backend.entity.enums.DeviceAction;
-import com.iot.backend.entity.enums.DeviceType;
 import com.iot.backend.service.ActionHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,21 +31,21 @@ public class ActionHistoryController {
      *                   </ul>
      *                   Khi không truyền {@code searchBy}, tự động nhận dạng: thời gian → name.
      * @param searchBy   Chỉ định trường cần tìm: TIME, TYPE, NAME. Bỏ trống = tự động nhận dạng.
-     * @param status     Lọc theo trạng thái lệnh: PENDING, SUCCESS, FAILED. Lặp param để truyền nhiều giá trị.
-     * @param action     Lọc theo loại hành động: TURN_ON, TURN_OFF. Lặp param để truyền nhiều giá trị.
-     * @param deviceType Lọc theo loại thiết bị: SMART_LED. Lặp param để truyền nhiều giá trị.
-     * @param page       Trang hiện tại, bắt đầu từ 1.
-     * @param size       Số bản ghi mỗi trang, mặc định 10.
+     * @param statusIds     Lọc theo ID trạng thái lệnh (1=PENDING, 2=SUCCESS, 3=FAILED). Lặp param để truyền nhiều giá trị.
+     * @param actionIds     Lọc theo ID loại hành động (1=TURN_ON, 2=TURN_OFF). Lặp param để truyền nhiều giá trị.
+     * @param deviceTypeIds Lọc theo ID loại thiết bị (1=SMART_LED). Lặp param để truyền nhiều giá trị.
+     * @param page          Trang hiện tại, bắt đầu từ 1.
+     * @param size          Số bản ghi mỗi trang, mặc định 10.
      */
     @GetMapping
     public ApiResponse<PageResponse<ActionHistoryResponse>> search(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) List<ActionStatus> status,
-            @RequestParam(required = false) List<DeviceAction> action,
-            @RequestParam(required = false) List<DeviceType> deviceType,
+            @RequestParam(required = false) List<Integer> statusIds,
+            @RequestParam(required = false) List<Integer> actionIds,
+            @RequestParam(required = false) List<Integer> deviceTypeIds,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(actionHistoryService.search(search, status, action, deviceType, newestFirst, page, size));
+        return ApiResponse.ok(actionHistoryService.search(search, statusIds, actionIds, deviceTypeIds, newestFirst, page, size));
     }
 }

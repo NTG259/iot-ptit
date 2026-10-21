@@ -21,9 +21,12 @@ public class ActionHistoryService {
 
     @Transactional(readOnly = true)
     public PageResponse<ActionHistoryResponse> search(String search,
-                                                      List<ActionStatus> status, List<DeviceAction> action,
-                                                      List<DeviceType> deviceType,
+                                                      List<Integer> statusIds, List<Integer> actionIds,
+                                                      List<Integer> deviceTypeIds,
                                                       boolean newestFirst, int page, int size) {
+        List<ActionStatus> status     = statusIds     == null ? null : statusIds.stream().map(ActionStatus::fromId).toList();
+        List<DeviceAction> action     = actionIds     == null ? null : actionIds.stream().map(DeviceAction::fromId).toList();
+        List<DeviceType>   deviceType = deviceTypeIds == null ? null : deviceTypeIds.stream().map(DeviceType::fromId).toList();
         String s = StringUtils.hasText(search) ? search.trim() : null;
 
         String timeStr = null;

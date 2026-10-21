@@ -40,7 +40,6 @@ public class SensorDataService {
 
     private static double toStoredValue(SensorType type, double value) {
         if (type == SensorType.LIGHT) {
-            // Convert raw ADC (0–1280) to brightness percentage (0–100).
             return Math.max(0, 100 - Math.min(100, (int) Math.round((value / 1280.0) * 100)));
         }
         return Math.round(value * 100.0) / 100.0;
@@ -60,8 +59,10 @@ public class SensorDataService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<SensorReadingResponse> search(String timeSearch, String valueSearch, List<SensorType> types,
+    public PageResponse<SensorReadingResponse> search(String timeSearch, String valueSearch, List<Integer> typeIds,
                                                       boolean newestFirst, int page, int size) {
+        List<SensorType> types = typeIds == null ? null
+                : typeIds.stream().map(SensorType::fromId).toList();
         String timeStr = StringUtils.hasText(timeSearch) ? timeSearch.trim() + "%" : null;
         Double valueNum = null;
         if (StringUtils.hasText(valueSearch)) {

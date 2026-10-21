@@ -1470,7 +1470,7 @@
     },
     {
       "name": "Sensor Data",
-      "description": "Lịch sử mọi lần đo của tất cả cảm biến (trang *Sensors* trên frontend, tự làm mới mỗi 2s).",
+      "description": "Lịch sử mọi lần đo của tất cả cảm biến (trang *Sensors* trên frontend, tự làm mới mỗi 2s).\n\nBộ lọc loại cảm biến truyền theo ID số nguyên (`typeIds`): 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT.",
       "item": [
         {
           "name": "Search sensor data",
@@ -1493,9 +1493,9 @@
                   "disabled": false
                 },
                 {
-                  "key": "types",
-                  "value": "TEMPERATURE,HUMIDITY",
-                  "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
+                  "key": "typeIds",
+                  "value": "1,2",
+                  "description": "integer — ID loại cảm biến, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Bỏ trống = không lọc.",
                   "disabled": true
                 },
                 {
@@ -1605,7 +1605,7 @@
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 974,\n        \"sensorCode\": \"humi\",\n        \"sensorName\": \"Humidity\",\n        \"sensorType\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"value\": 59.0,\n        \"measuredAt\": \"2026-09-27T09:15:58.412Z\"\n      },\n      {\n        \"id\": 973,\n        \"sensorCode\": \"temp\",\n        \"sensorName\": \"Temperature\",\n        \"sensorType\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"value\": 34.4,\n        \"measuredAt\": \"2026-09-27T09:15:58.412Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 10,\n    \"totalItems\": 90,\n    \"totalPages\": 9\n  }\n}"
             },
             {
-              "name": "400 Type sai",
+              "name": "400 typeIds không hợp lệ",
               "originalRequest": {
                 "method": "GET",
                 "header": [],
@@ -1673,7 +1673,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid value 'BAD' for parameter 'types'\"\n}"
+              "body": "{\n  \"success\": false,\n  \"message\": \"Unknown SensorType id: 99\"\n}"
             }
           ]
         }
@@ -1681,7 +1681,7 @@
     },
     {
       "name": "Action Histories",
-      "description": "Lịch sử điều khiển thiết bị. Enum: `status` = `PENDING` | `SUCCESS` | `FAILED`.",
+      "description": "Lịch sử điều khiển thiết bị.\n\nBộ lọc truyền theo ID số nguyên:\n- `statusIds`: 1=PENDING, 2=SUCCESS, 3=FAILED\n- `actionIds`: 1=TURN_ON, 2=TURN_OFF\n- `deviceTypeIds`: 1=SMART_LED",
       "item": [
         {
           "name": "Search action histories",
@@ -1704,21 +1704,21 @@
                   "disabled": true
                 },
                 {
-                  "key": "status",
-                  "value": "SUCCESS,FAILED",
-                  "description": "PENDING | SUCCESS | FAILED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "key": "statusIds",
+                  "value": "2,3",
+                  "description": "integer — ID trạng thái lệnh, nhiều giá trị ngăn cách bằng dấu phẩy. 1=PENDING, 2=SUCCESS, 3=FAILED. Bỏ trống = không lọc.",
                   "disabled": true
                 },
                 {
-                  "key": "action",
-                  "value": "TURN_ON",
-                  "description": "TURN_ON | TURN_OFF; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "key": "actionIds",
+                  "value": "1",
+                  "description": "integer — ID loại hành động, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TURN_ON, 2=TURN_OFF. Bỏ trống = không lọc.",
                   "disabled": true
                 },
                 {
-                  "key": "deviceType",
-                  "value": "SMART_LED",
-                  "description": "SMART_LED; nhiều giá trị ngăn cách bằng dấu phẩy",
+                  "key": "deviceTypeIds",
+                  "value": "1",
+                  "description": "integer — ID loại thiết bị, nhiều giá trị ngăn cách bằng dấu phẩy. 1=SMART_LED. Bỏ trống = không lọc.",
                   "disabled": true
                 },
                 {
