@@ -1,0 +1,42 @@
+.threshold-config__table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--color-outline);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+  max-width: 640px;
+}
+
+.threshold-config__header,
+.threshold-config__row {
+  display: grid;
+  grid-template-columns: 1fr 10rem 5rem 6rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+}
+
+.threshold-config__header {
+  background: var(--color-canvas);
+  border-bottom: 1px solid var(--color-outline);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.threshold-config__row {
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.threshold-config__row:last-child {
+  border-bottom: none;
+}
+
+.threshold-config__label {
+  font-weight: 500;
+  color: var(--color-text);
+}
