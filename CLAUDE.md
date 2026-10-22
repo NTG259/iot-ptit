@@ -75,3 +75,18 @@ ESP8266 ──MQTT──► Mosquitto :1888 ──► Spring Boot :8081 ──RE
 
 ### OpenAPI / Postman
 The spec lives at `docs/openapi.yaml`. A Postman collection and local environment are in `backend/src/docs/postman/`.
+
+---
+
+## ⚠️ Mandatory: Read Before Adding Any New Feature
+
+**`docs/checklist/new-feature-checklist.md` must be read in full before implementing or reviewing any backend feature.**
+
+This checklist is non-negotiable. It documents real bugs that caused data loss and production deadlocks in this codebase (session `2eefe7d`). The four critical rules:
+
+1. **No network I/O inside `@Transactional`** — MQTT publish, HTTP calls inside a transaction cause MySQL lock contention (`Lock wait timeout exceeded`).
+2. **Always set `client.setTimeToWait(30_000)`** on any `MqttClient` bean — default `-1` blocks the thread forever.
+3. **Never call `client.publish()` from inside `messageArrived()`** — Paho v3 deadlock. Use `CompletableFuture.runAsync()`.
+4. **Track `subscribed` state with a separate `volatile boolean`** — `isConnected()` alone is not enough; Paho connects asynchronously after `waitForCompletion()` times out.
+
+Full analysis of why these bugs happened: `docs/intent/concurrency-root-cause.md`
