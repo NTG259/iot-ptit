@@ -2,7 +2,7 @@ import useNow from '@/hooks/useNow'
 import { formatDateTime } from '@/utils/format'
 import './GreetingHeader.css'
 
-/** GreetingHeader: lời chào kèm tên người dùng ở bên trái, ngày giờ hiện tại (giờ Việt Nam, chạy từng giây) ở bên phải. */
+/** GreetingHeader: lời chào kèm tên người dùng ở bên trái, ngày giờ hiện tại ở bên phải. */
 export default function GreetingHeader({ name }) {
   const now = useNow()
 

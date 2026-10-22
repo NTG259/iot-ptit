@@ -1,4 +1,5 @@
 import Sidebar from './Sidebar'
+import { useStompStatus } from '@/contexts/StompContext'
 import './AppShell.css'
 
 /**
@@ -7,6 +8,9 @@ import './AppShell.css'
  * (bảng, biểu đồ) mới giãn ra chiếm phần chiều cao còn lại.
  */
 export default function AppShell({ breadcrumb, title, subtitle, children }) {
+  const { stompConnected, windAlertActive } = useStompStatus()
+  const alertStatus = !stompConnected ? 'disconnected' : windAlertActive ? 'alert' : 'normal'
+
   return (
     <div className="app-shell">
       <Sidebar />
@@ -17,6 +21,14 @@ export default function AppShell({ breadcrumb, title, subtitle, children }) {
             <span className="app-shell__breadcrumb-root">SYSTEM</span>
             <span className="app-shell__breadcrumb-separator">/</span>
             <span className="app-shell__breadcrumb-page">{breadcrumb}</span>
+            <div className="app-shell__breadcrumb-right">
+              <div className={`app-shell__status app-shell__status--${alertStatus}`}>
+                <span className="app-shell__status-dot" />
+                <span className="app-shell__status-label">
+                  {alertStatus === 'alert' ? 'DANGER' : alertStatus === 'disconnected' ? 'OFFLINE' : 'NORMAL'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 

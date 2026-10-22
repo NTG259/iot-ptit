@@ -44,6 +44,43 @@
   text-transform: uppercase;
 }
 
+.app-shell__breadcrumb-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* Status indicator — dot + label. Used by pages that pass statusDot to AppShell. */
+.app-shell__status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.app-shell__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.app-shell__status--normal .app-shell__status-dot       { background: #22c55e; }
+.app-shell__status--normal .app-shell__status-label     { color: #16a34a; }
+
+.app-shell__status--disconnected .app-shell__status-dot { background: #94a3b8; }
+.app-shell__status--disconnected .app-shell__status-label { color: #64748b; }
+
+.app-shell__status--alert .app-shell__status-dot  { background: #ef4444; animation: status-dot-blink 1s ease-in-out infinite; }
+.app-shell__status--alert .app-shell__status-label { color: #dc2626; }
+
+@keyframes status-dot-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+
 /* Vùng nội dung chính, cuộn dọc khi dài. */
 .app-shell__main {
   flex: 1 1 0%;

@@ -5,6 +5,7 @@ import AppShell from '@/components/layout/AppShell'
 import CheckboxFilter from '@/components/common/CheckboxFilter'
 import Badge from '@/components/common/Badge'
 import DataTable from '@/components/common/DataTable'
+import CopyableTimestamp from '@/components/common/CopyableTimestamp'
 
 import { actionHistoryService } from '@/services'
 import useApi from '@/hooks/useApi'
@@ -63,7 +64,7 @@ const COLUMNS = [
   {
     title: 'Timestamp',
     dataIndex: 'createdAt',
-    render: (createdAt) => <span className="data-table__timestamp">{createdAt}</span>,
+    render: (createdAt) => <CopyableTimestamp value={createdAt} />,
   },
 ]
 

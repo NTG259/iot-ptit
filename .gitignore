@@ -5,3 +5,7 @@ mosquitto/log/
 
 # Local environment overrides
 backend/.env
+
+# Run logs (written by dev scripts, not committed)
+*.log
+*.err

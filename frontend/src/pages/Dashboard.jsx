@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Alert, Button, Tabs, notification } from 'antd'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Client as StompClient } from '@stomp/stompjs'
 import AppShell from '@/components/layout/AppShell'
 import MetricCard from '@/components/common/MetricCard'
 import TelemetryChart from '@/components/common/TelemetryChart'
@@ -9,6 +8,7 @@ import LedDeviceCard from '@/components/common/LedDeviceCard'
 import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
+import { useStompStatus } from '@/contexts/StompContext'
 import { TEMPERATURE, HUMIDITY, LIGHT, WIND_SPEED, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
 import './Dashboard.css'
 
@@ -50,9 +50,7 @@ export default function Dashboard() {
   notifierRef.current = notifier
 
   const [selectedChartId, setSelectedChartId] = useState(MIX_ID)
-  const [windAlertActive, setWindAlertActive] = useState(false)
-  const [windAlertValue, setWindAlertValue] = useState(null)
-  const [alertHistory, setAlertHistory] = useState([])
+  const { stompConnected, windAlertActive, windAlertValue, alertHistory, dismissWindAlert } = useStompStatus()
 
   const sensorOptions = { intervalMs: 2000, initialData: EMPTY_SENSOR }
   const temperatureRequest = useApi(() => sensorService.getTemperature(), [], sensorOptions)
@@ -72,8 +70,7 @@ export default function Dashboard() {
     { intervalMs: 60000, initialData: [] },
   )
 
-  const ledRequest        = useApi(() => deviceService.getLeds(),       [], { intervalMs: 1000, initialData: [] })
-  const warningLedRequest = useApi(() => deviceService.getWarningLed(), [], { intervalMs: 2000, initialData: null })
+  const ledRequest = useApi(() => deviceService.getLeds(), [], { intervalMs: 1000, initialData: [] })
 
   const temperature = temperatureRequest.data
   const humidity    = humidityRequest.data
@@ -87,39 +84,6 @@ export default function Dashboard() {
   const led0 = ledRequest.data[0] ?? null
   const led1 = ledRequest.data[1] ?? null
   const led2 = ledRequest.data[2] ?? null
-
-  // ── WebSocket wind-alert subscription ─────────────────────────────────────
-  useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-    const wsUrl = `${protocol}://${window.location.host}/api/ws`
-
-    const client = new StompClient({
-      brokerURL: wsUrl,
-      reconnectDelay: 5000,
-      onStompError: (frame) => console.error('[STOMP] error', frame),
-      onWebSocketError: (event) => console.error('[STOMP] ws error', event),
-      onConnect: () => {
-        console.log('[STOMP] connected to', wsUrl)
-        client.subscribe('/topic/alerts', (msg) => {
-          const alert = JSON.parse(msg.body)
-          if (alert.sensorCode === 'wind') {
-            setWindAlertActive(true)
-            setWindAlertValue(alert.value)
-            setAlertHistory(prev => [{ value: alert.value, threshold: alert.threshold, time: alert.time }, ...prev].slice(0, 20))
-            notifierRef.current.warning({
-              message: 'Wind Speed Alert',
-              description: `Wind speed ${alert.value.toFixed(1)} m/s exceeds threshold (${alert.threshold} m/s)`,
-              placement: 'topRight',
-              duration: 5,
-            })
-          }
-        })
-      },
-    })
-    client.activate()
-    return () => { client.deactivate() }
-  }, [])
-  // ──────────────────────────────────────────────────────────────────────────
 
   const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
   const humidityChart    = { sensorConfig: HUMIDITY,    sensor: humidity,    chartRequest: humidityChartRequest    }
@@ -199,7 +163,7 @@ export default function Dashboard() {
   }
 
   return (
-    <AppShell>
+    <AppShell breadcrumb="Dashboard">
       {notificationHolder}
 
       <GreetingHeader name={session.getUser()?.fullName} />
@@ -213,7 +177,7 @@ export default function Dashboard() {
             <strong>{windAlertValue.toFixed(1)} m/s</strong> exceeds the 300 m/s threshold.
             Warning LED is active.
           </span>
-          <button className="dashboard__wind-alert-close" onClick={() => setWindAlertActive(false)}>✕</button>
+          <button className="dashboard__wind-alert-close" onClick={dismissWindAlert}>✕</button>
         </div>
       )}
 
@@ -350,11 +314,6 @@ export default function Dashboard() {
             <LedDeviceCard key={led0.code} name={led0.name} on={led0.on} status={ledStatus(led0.code)} onToggle={(turnOn) => toggleLed(led0.code, turnOn)} />
             <LedDeviceCard key={led1.code} name={led1.name} on={led1.on} status={ledStatus(led1.code)} onToggle={(turnOn) => toggleLed(led1.code, turnOn)} />
             <LedDeviceCard key={led2.code} name={led2.name} on={led2.on} status={ledStatus(led2.code)} onToggle={(turnOn) => toggleLed(led2.code, turnOn)} />
-            <LedDeviceCard
-              name={warningLedRequest.data?.name ?? 'Warning LED'}
-              on={wind?.lastValue > 300 || windAlertActive || warningLedRequest.data?.on === true}
-              readOnly
-            />
           </div>
         )}
       </section>
