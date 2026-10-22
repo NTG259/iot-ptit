@@ -40,6 +40,8 @@ public class MqttMessageHandler implements IMqttMessageListener {
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+        // Strip UTF-8 BOM (﻿) that some clients (e.g. PowerShell pipe) prepend.
+        if (!payload.isEmpty() && payload.charAt(0) == '﻿') payload = payload.substring(1);
         // Paho drops the connection if this method throws, so every error is caught here.
         try {
             if (topic.equals(properties.topics().sensor())) {

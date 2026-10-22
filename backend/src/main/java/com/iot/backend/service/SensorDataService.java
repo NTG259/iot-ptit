@@ -10,7 +10,6 @@ import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
-import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.entity.enums.SensorType;
 import com.iot.backend.mqtt.MqttPublisher;
 import com.iot.backend.repository.ActionHistoryRepository;
@@ -29,6 +28,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -45,7 +45,8 @@ public class SensorDataService {
     private final MqttPublisher mqttPublisher;
     private final AlertPublisher alertPublisher;
 
-    @Transactional
+    // No @Transactional here: each repository call runs in its own short transaction,
+    // so sensor row locks are never held during MQTT publish (which can block).
     public void saveReadings(Map<String, Double> readings) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         readings.forEach((code, value) -> sensorRepository.findByCode(code).ifPresentOrElse(
@@ -69,27 +70,34 @@ public class SensorDataService {
         DeviceAction action = shouldBeOn ? DeviceAction.TURN_ON : DeviceAction.TURN_OFF;
         String nowStr = now.format(VN_FMT);
 
-        ActionHistory history = new ActionHistory();
-        history.setDevice(warningLed);
-        history.setAction(action);
-        history.setCreatedAtStr(nowStr);
-
-        try {
-            mqttPublisher.publishCommand("WARNING_LED_" + (shouldBeOn ? "ON" : "OFF"));
-            history.setStatus(ActionStatus.SUCCESS);
-            warningLed.setState(shouldBeOn ? DeviceState.ON : DeviceState.OFF);
-            deviceRepository.save(warningLed);
-            log.info("WARNING_LED {} — wind={} m/s", shouldBeOn ? "ON" : "OFF", windValue);
-        } catch (MqttException e) {
-            log.warn("Failed to control WARNING_LED: {}", e.getMessage());
-            history.setStatus(ActionStatus.FAILED);
-        }
-        actionHistoryRepository.save(history);
-
+        // Publish the WebSocket alert synchronously (fast, no I/O blocking).
         if (shouldBeOn) {
             log.info("Publishing wind alert: {} m/s", windValue);
             alertPublisher.publishAlert(new AlertMessage("wind", windValue, WIND_ALERT_THRESHOLD, nowStr));
         }
+
+        // Run MQTT publish and DB update off the MQTT callback thread.
+        // Calling client.publish() from within messageArrived() deadlocks Paho v3 because
+        // the CommsSender thread waits for the CommsCallback thread to finish.
+        final String command = "WARNING_LED_" + (shouldBeOn ? "ON" : "OFF");
+        final DeviceState newState = shouldBeOn ? DeviceState.ON : DeviceState.OFF;
+        CompletableFuture.runAsync(() -> {
+            ActionHistory history = new ActionHistory();
+            history.setDevice(warningLed);
+            history.setAction(action);
+            history.setCreatedAtStr(nowStr);
+            try {
+                mqttPublisher.publishCommand(command);
+                warningLed.setState(newState);
+                deviceRepository.save(warningLed);
+                history.setStatus(ActionStatus.SUCCESS);
+                log.info("WARNING_LED {} — wind={} m/s", shouldBeOn ? "ON" : "OFF", windValue);
+            } catch (MqttException e) {
+                log.warn("Failed to control WARNING_LED: {}", e.getMessage());
+                history.setStatus(ActionStatus.FAILED);
+            }
+            actionHistoryRepository.save(history);
+        });
     }
 
     private static double toStoredValue(SensorType type, double value) {
@@ -107,9 +115,9 @@ public class SensorDataService {
         data.setMeasuredAt(measuredAt);
         data.setMeasuredAtStr(measuredAt.format(VN_FMT));
         sensorDataRepository.save(data);
-        sensor.setLastValue(rounded);
-        sensor.setLastReadingAt(measuredAt);
-        sensor.setStatus(SensorStatus.ACTIVE);
+        // Use native UPDATE instead of JPA dirty tracking: releases row lock immediately
+        // after this call (no outer transaction holds it open).
+        sensorRepository.updateReadingMeta(sensor.getId(), rounded, measuredAt);
     }
 
     @Transactional(readOnly = true)

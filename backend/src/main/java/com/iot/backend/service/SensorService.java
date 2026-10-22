@@ -4,7 +4,6 @@ import com.iot.backend.dto.SensorChartResponse;
 import com.iot.backend.dto.SensorResponse;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
-import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
@@ -53,12 +52,9 @@ public class SensorService {
     @Transactional
     public void refreshStatuses() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
-        sensorRepository.findAll().forEach(sensor -> sensor.setStatus(statusAt(sensor.getLastReadingAt(), now)));
-    }
-
-    static SensorStatus statusAt(LocalDateTime lastReadingAt, LocalDateTime now) {
-        if (lastReadingAt == null || lastReadingAt.isBefore(now.minus(STANDBY_WINDOW))) return SensorStatus.OFFLINE;
-        return lastReadingAt.isBefore(now.minus(ACTIVE_WINDOW)) ? SensorStatus.STANDBY : SensorStatus.ACTIVE;
+        sensorRepository.bulkRefreshStatuses(
+                now.minus(STANDBY_WINDOW),
+                now.minus(ACTIVE_WINDOW));
     }
 
     private Sensor findSensor(String code) {

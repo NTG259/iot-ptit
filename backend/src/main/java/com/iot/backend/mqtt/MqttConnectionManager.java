@@ -4,9 +4,12 @@ import com.iot.backend.config.MqttProperties;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -19,28 +22,55 @@ import org.springframework.util.StringUtils;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class MqttConnectionManager {
+public class MqttConnectionManager implements MqttCallback {
 
     private final MqttClient client;
     private final MqttProperties properties;
     private final MqttMessageHandler messageHandler;
     private final MqttPublisher mqttPublisher;
 
+    // Tracks whether topic subscriptions are active on the current connection.
+    // Paho's connect() may succeed asynchronously (background ConnectBG thread) even after
+    // waitForCompletion() times out; on the next tick isConnected() returns true but subscriptions
+    // were never registered. Checking this flag ensures we always subscribe after any connect.
+    private volatile boolean subscribed = false;
+    private volatile boolean callbackRegistered = false;
+
     @Scheduled(fixedDelay = 5000)
     public void ensureConnected() {
-        if (client.isConnected()) {
+        if (!callbackRegistered) {
+            client.setCallback(this);
+            callbackRegistered = true;
+        }
+        if (client.isConnected() && subscribed) {
             return;
         }
-        // Paho v3 MqttClient can get stuck in REASON_CODE_CONNECTION_LOST state after a
-        // keepAlive timeout; forcibly clearing that state is required before connect() works.
-        try { client.disconnectForcibly(0, 0); } catch (MqttException ignored) {}
+        if (!client.isConnected()) {
+            // Paho v3 can get stuck in REASON_CODE_CONNECTION_LOST after a keepAlive timeout;
+            // forcibly clearing that state is required before connect() works.
+            // disconnectForcibly(quiesceTimeout=0, disconnectTimeout=1000): 0ms quiesce, 1s to finish.
+            subscribed = false;
+            try { client.disconnectForcibly(0, 1000); } catch (MqttException ignored) {}
+            try {
+                client.connect(connectOptions());
+            } catch (MqttException e) {
+                // REASON_CODE_CONNECT_IN_PROGRESS: a previous connect() timed out from our side but
+                // ConnectBG is still running; next tick will see isConnected()=true and subscribe.
+                if (e.getReasonCode() != MqttException.REASON_CODE_CONNECT_IN_PROGRESS) {
+                    log.warn("Cannot connect to MQTT broker {}, retrying in 5s: {}", properties.brokerUrl(), e.getMessage());
+                }
+                return;
+            }
+        }
+        // Connected (just now or asynchronously on a prior tick) — install subscriptions.
         try {
-            client.connect(connectOptions());
             client.subscribe(properties.topics().sensor(), 0, messageHandler);
             client.subscribe(properties.topics().ledStatus(), 0, messageHandler);
+            subscribed = true;
             log.info("Connected to MQTT broker {}", properties.brokerUrl());
         } catch (MqttException e) {
-            log.warn("Cannot connect to MQTT broker {}, retrying in 5s: {}", properties.brokerUrl(), e.getMessage());
+            log.warn("Failed to subscribe to MQTT topics, retrying in 5s: {}", e.getMessage());
+            subscribed = false;
             return;
         }
         requestLedStatus();
@@ -66,6 +96,16 @@ public class MqttConnectionManager {
         }
         return options;
     }
+
+    /** Resets subscribed flag so the next tick of ensureConnected() re-subscribes. */
+    @Override
+    public void connectionLost(Throwable cause) {
+        subscribed = false;
+        log.warn("MQTT connection lost: {}", cause.getMessage());
+    }
+
+    @Override public void messageArrived(String topic, MqttMessage message) {}
+    @Override public void deliveryComplete(IMqttDeliveryToken token) {}
 
     @PreDestroy
     public void shutdown() throws MqttException {

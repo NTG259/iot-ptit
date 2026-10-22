@@ -12,6 +12,10 @@ public class MqttConfig {
     // Connecting and closing are handled by MqttConnectionManager.
     @Bean
     public MqttClient mqttClient(MqttProperties properties) throws MqttException {
-        return new MqttClient(properties.brokerUrl(), properties.clientId(), new MemoryPersistence());
+        MqttClient client = new MqttClient(properties.brokerUrl(), properties.clientId(), new MemoryPersistence());
+        // Default timeToWait=-1 means connect() and publish() block forever.
+        // 30 seconds: long enough for the broker to finish closing a previous session before accepting a new CONNECT.
+        client.setTimeToWait(30_000);
+        return client;
     }
 }
