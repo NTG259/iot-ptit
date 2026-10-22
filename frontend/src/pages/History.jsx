@@ -17,25 +17,24 @@ const STATUS_DISPLAY = {
   FAILED: { label: 'Failed', tone: 'red' },
 }
 const ACTION_LABELS = { TURN_ON: 'Turn ON', TURN_OFF: 'Turn OFF' }
-const DEVICE_TYPE_LABELS = { SMART_LED: 'Smart LED' }
+const DEVICE_TYPE_LABELS = { SMART_LED: 'Smart LED', WARNING_LED: 'Warning LED' }
 
 // Các ô tick của ba bộ lọc.
 const STATUS_OPTIONS = [
-  { value: 'SUCCESS', id: 2, label: 'Success' },
-  { value: 'PENDING', id: 1, label: 'Pending' },
-  { value: 'FAILED',  id: 3, label: 'Failed' },
+  { value: 'SUCCESS', label: 'Success' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'FAILED',  label: 'Failed' },
 ]
 const ACTION_OPTIONS = [
-  { value: 'TURN_ON',  id: 1, label: 'Turn ON' },
-  { value: 'TURN_OFF', id: 2, label: 'Turn OFF' },
+  { value: 'TURN_ON',  label: 'Turn ON' },
+  { value: 'TURN_OFF', label: 'Turn OFF' },
 ]
-const DEVICE_TYPE_OPTIONS = [{ value: 'SMART_LED', id: 1, label: 'Smart LED' }]
-
-function toIds(selected, options) {
-  return selected.map(v => options.find(o => o.value === v).id)
-}
-
-// Các trường mà ô tìm kiếm có thể so khớp.
+const DEVICE_OPTIONS = [
+  { value: 'LED1',        label: 'LED 1'       },
+  { value: 'LED2',        label: 'LED 2'       },
+  { value: 'LED3',        label: 'LED 3'       },
+  { value: 'WARNING_LED', label: 'Warning LED' },
+]
 
 // Trang kết quả rỗng, dùng khi chưa tải xong hoặc khi bỏ tick hết một bộ lọc.
 const EMPTY_PAGE = { items: [], totalItems: 0 }
@@ -95,7 +94,7 @@ export default function History() {
   const [selectedActions, setSelectedActions] = useState(['TURN_ON', 'TURN_OFF'])
   // selectedDeviceTypes: loại thiết bị đang được tick — ['SMART_LED'].
   //   Bỏ tick hết → không gọi API. Tick đủ → gửi deviceType: null (không lọc).
-  const [selectedDeviceTypes, setSelectedDeviceTypes] = useState(['SMART_LED'])
+  const [selectedDevices, setSelectedDevices] = useState(['LED1', 'LED2', 'LED3', 'WARNING_LED'])
   // selectedDate: ngày đang chọn (đối tượng dayjs), null = mọi ngày.
   // newestFirst: true = mới nhất trước (mặc định), false = cũ nhất trước.
   const [newestFirst, setNewestFirst] = useState(true)
@@ -132,27 +131,24 @@ export default function History() {
   const historyRequest = useApi(
     () => {
       // Bỏ tick hết bất kỳ bộ lọc nào → không gọi API, không hiện gì
-      const anyFilterEmpty = selectedStatuses.length === 0 || selectedActions.length === 0 || selectedDeviceTypes.length === 0
+      const anyFilterEmpty = selectedStatuses.length === 0 || selectedActions.length === 0 || selectedDevices.length === 0
       if (anyFilterEmpty) {
         return Promise.resolve(EMPTY_PAGE)
       }
-      // Tick đủ tất cả → gửi null, backend không lọc theo bộ lọc đó
       const allStatusesSelected = selectedStatuses.length === STATUS_OPTIONS.length
-      const allActionsSelected = selectedActions.length === ACTION_OPTIONS.length
-      const allDeviceTypesSelected = selectedDeviceTypes.length === DEVICE_TYPE_OPTIONS.length
-      // Đổi ngày đã chọn thành khoảng [00:00:00 → 23:59:59.999] giờ Việt Nam
+      const allActionsSelected  = selectedActions.length  === ACTION_OPTIONS.length
+      const allDevicesSelected  = selectedDevices.length  === DEVICE_OPTIONS.length
       return actionHistoryService.getActionHistory({
         search: searchText.trim(),
-        searchBy: 'TIME',
-        statusIds:     allStatusesSelected    ? null : toIds(selectedStatuses,    STATUS_OPTIONS),
-        actionIds:     allActionsSelected     ? null : toIds(selectedActions,     ACTION_OPTIONS),
-        deviceTypeIds: allDeviceTypesSelected ? null : toIds(selectedDeviceTypes, DEVICE_TYPE_OPTIONS),
+        statuses:    allStatusesSelected ? null : selectedStatuses,
+        actions:     allActionsSelected  ? null : selectedActions,
+        deviceCodes: allDevicesSelected  ? null : selectedDevices,
         newestFirst,
         page,
         size: rowsPerPage,
       })
     },
-    [searchText, selectedStatuses, selectedActions, selectedDeviceTypes, newestFirst, page, rowsPerPage],
+    [searchText, selectedStatuses, selectedActions, selectedDevices, newestFirst, page, rowsPerPage],
     { intervalMs: 3000, initialData: EMPTY_PAGE },
   )
   // Destructure để DataTable dùng thẳng
@@ -178,9 +174,8 @@ export default function History() {
     setSelectedActions(newActions)
     setPage(1)
   }
-  // Bật/tắt tick loại thiết bị.
-  function handleDeviceTypesChange(newDeviceTypes) {
-    setSelectedDeviceTypes(newDeviceTypes)
+  function handleDevicesChange(newDevices) {
+    setSelectedDevices(newDevices)
     setPage(1)
   }
   // Chọn ngày trên DatePicker — newDate là đối tượng dayjs hoặc null khi xoá.
@@ -234,14 +229,14 @@ export default function History() {
 
         {/* Bộ lọc loại thiết bị: SMART_LED (hiện tại chỉ có một loại).
             Bỏ tick hết → không gọi API. Tick đủ → không gửi bộ lọc deviceType. */}
-        <CheckboxFilter label="Device Type" options={DEVICE_TYPE_OPTIONS} value={selectedDeviceTypes} onChange={handleDeviceTypesChange} />
+        <CheckboxFilter label="Device" options={DEVICE_OPTIONS} value={selectedDevices} onChange={handleDevicesChange} />
 
         <Button onClick={() => {
           setInputText('')
           setSearchText('')
           setSelectedStatuses(['SUCCESS', 'PENDING', 'FAILED'])
           setSelectedActions(['TURN_ON', 'TURN_OFF'])
-          setSelectedDeviceTypes(['SMART_LED'])
+          setSelectedDevices(['LED1', 'LED2', 'LED3', 'WARNING_LED'])
           setNewestFirst(true)
           setPage(1)
           setRowsPerPage(10)

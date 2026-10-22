@@ -8,12 +8,12 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum SensorType {
-    TEMPERATURE(1, "°C"),
-    HUMIDITY(2, "%"),
-    LIGHT(3, "%");
+    TEMPERATURE(1),
+    HUMIDITY(2),
+    LIGHT(3),
+    WIND_SPEED(4);
 
     private final int id;
-    private final String unit;
 
     public static SensorType fromId(int id) {
         return Arrays.stream(values())

@@ -15,6 +15,6 @@ public record SensorResponse(
 ) {
     public static SensorResponse from(Sensor sensor) {
         return new SensorResponse(sensor.getId(), sensor.getCode(), sensor.getName(), sensor.getType(),
-                sensor.getType().getUnit(), sensor.getStatus(), sensor.getLastValue());
+                sensor.getUnit(), sensor.getStatus(), sensor.getLastValue());
     }
 }

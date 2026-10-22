@@ -31,6 +31,15 @@ export const LIGHT = {
   color: '#d97706',
   yTicks: [0, 20, 40, 60, 80, 100],
 }
+export const WIND_SPEED = {
+  id: 'wind',
+  label: 'Wind Speed',
+  short: 'Wind',
+  unit: 'm/s',
+  decimals: 1,
+  color: '#7c3aed',
+  yTicks: [0, 10, 20, 30, 40, 50],
+}
 
 /** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */
 export function lightToPercent(rawValue) {

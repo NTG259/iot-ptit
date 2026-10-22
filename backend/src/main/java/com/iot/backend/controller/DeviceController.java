@@ -38,6 +38,12 @@ public class DeviceController {
      * Answers 503 at once, without logging an action, when the board is not connected, and 503 as well
      * (the action logged as FAILED) when the MQTT broker rejects the command.
      */
+    @GetMapping("/warning-led")
+    public ApiResponse<DeviceResponse> warningLed() {
+        var device = deviceService.findWarningLed();
+        return ApiResponse.ok(DeviceResponse.from(device, null));
+    }
+
     @PostMapping("/{code}/control")
     public ApiResponse<ActionHistoryResponse> control(@PathVariable String code,
                                                       @Valid @RequestBody DeviceControlRequest request) {

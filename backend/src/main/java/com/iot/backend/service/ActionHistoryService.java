@@ -21,31 +21,27 @@ public class ActionHistoryService {
 
     @Transactional(readOnly = true)
     public PageResponse<ActionHistoryResponse> search(String search,
-                                                      List<Integer> statusIds, List<Integer> actionIds,
-                                                      List<Integer> deviceTypeIds,
+                                                      List<String> statuses, List<String> actions,
+                                                      List<String> deviceCodes,
                                                       boolean newestFirst, int page, int size) {
-        List<ActionStatus> status     = statusIds     == null ? null : statusIds.stream().map(ActionStatus::fromId).toList();
-        List<DeviceAction> action     = actionIds     == null ? null : actionIds.stream().map(DeviceAction::fromId).toList();
-        List<DeviceType>   deviceType = deviceTypeIds == null ? null : deviceTypeIds.stream().map(DeviceType::fromId).toList();
+        List<ActionStatus> status = statuses == null ? null : statuses.stream().map(ActionStatus::valueOf).toList();
+        List<DeviceAction> action = actions == null ? null : actions.stream().map(DeviceAction::valueOf).toList();
         String s = StringUtils.hasText(search) ? search.trim() : null;
 
-        String timeStr = null;
+        String timeStr = s != null ? s + "%" : null;
 
-        if (s != null) {
-            timeStr = s + "%";
-        }
-
-        String statusCsv     = SensorService.csvOrNull(status,     ActionStatus::name);
-        String actionCsv     = SensorService.csvOrNull(action,     DeviceAction::name);
-        String deviceTypeCsv = SensorService.csvOrNull(deviceType, DeviceType::name);
+        String statusCsv     = SensorService.csvOrNull(status, ActionStatus::name);
+        String actionCsv     = SensorService.csvOrNull(action, DeviceAction::name);
+        String deviceCodeCsv = (deviceCodes == null || deviceCodes.isEmpty()) ? null
+                : String.join(",", deviceCodes.stream().map(String::toUpperCase).toList());
         long offset = (long) (page - 1) * size;
 
-        long total = actionHistoryRepository.countRows(statusCsv, actionCsv, deviceTypeCsv, timeStr);
+        long total = actionHistoryRepository.countRows(statusCsv, actionCsv, deviceCodeCsv, timeStr);
         if (total == 0) return PageResponse.of(List.of(), 0L, page, size);
 
         List<ActionHistoryRepository.ActionHistoryProjection> rows = newestFirst
-                ? actionHistoryRepository.searchRowsDesc(statusCsv, actionCsv, deviceTypeCsv, timeStr, size, offset)
-                : actionHistoryRepository.searchRowsAsc(statusCsv, actionCsv, deviceTypeCsv, timeStr, size, offset);
+                ? actionHistoryRepository.searchRowsDesc(statusCsv, actionCsv, deviceCodeCsv, timeStr, size, offset)
+                : actionHistoryRepository.searchRowsAsc(statusCsv, actionCsv, deviceCodeCsv, timeStr, size, offset);
 
         List<ActionHistoryResponse> items = rows.stream().map(r ->
                 new ActionHistoryResponse(r.getId(), r.getDeviceCode(), r.getDeviceName(),

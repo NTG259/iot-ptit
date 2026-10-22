@@ -26,9 +26,10 @@ public class Device extends BaseEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "device_type")
+    @Column(name = "device_type", columnDefinition = "VARCHAR(255)")
     private DeviceType type;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(255)")
     private DeviceState state = DeviceState.OFF;
 }

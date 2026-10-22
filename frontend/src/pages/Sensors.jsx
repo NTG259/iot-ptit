@@ -10,22 +10,25 @@ import useApi from '@/hooks/useApi'
 import './Sensors.css'
 
 const SENSOR_TYPES = {
-  TEMPERATURE: { id: 1, label: 'Temperature', tone: 'green', unitClass: 'sensors__value-unit--temperature', decimals: 2 },
-  HUMIDITY: { id: 2, label: 'Humidity', tone: 'cyan', unitClass: 'sensors__value-unit--humidity', decimals: 2 },
-  LIGHT: { id: 3, label: 'Light', tone: 'orange', unitClass: 'sensors__value-unit--light', decimals: 0 },
+  TEMPERATURE: { id: 1, label: 'Temperature', tone: 'green',  unitClass: 'sensors__value-unit--temperature', decimals: 2 },
+  HUMIDITY:    { id: 2, label: 'Humidity',    tone: 'cyan',   unitClass: 'sensors__value-unit--humidity',    decimals: 2 },
+  LIGHT:       { id: 3, label: 'Light',       tone: 'orange', unitClass: 'sensors__value-unit--light',       decimals: 0 },
+  WIND_SPEED:  { id: 4, label: 'Wind Speed',  tone: 'purple', unitClass: 'sensors__value-unit--wind',        decimals: 1 },
 }
 
 const SEARCH_FIELDS = [
-  { value: 'TIME', label: 'Date time' },
+  { value: 'TIME',        label: 'Date time'   },
   { value: 'TEMPERATURE', label: 'Temperature' },
-  { value: 'HUMIDITY', label: 'Humidity' },
-  { value: 'LIGHT', label: 'Light' },
+  { value: 'HUMIDITY',    label: 'Humidity'    },
+  { value: 'LIGHT',       label: 'Light'       },
+  { value: 'WIND_SPEED',  label: 'Wind Speed'  },
 ]
 
 function getSearchPlaceholder(searchField) {
   if (searchField === 'TEMPERATURE') return 'e.g. 28.5'
-  if (searchField === 'HUMIDITY') return 'e.g. 65.0'
-  if (searchField === 'LIGHT') return 'e.g. 75'
+  if (searchField === 'HUMIDITY')    return 'e.g. 65.0'
+  if (searchField === 'LIGHT')       return 'e.g. 75'
+  if (searchField === 'WIND_SPEED')  return 'e.g. 320.0'
   return '2026-10-20, 2026-10, 17:30'
 }
 

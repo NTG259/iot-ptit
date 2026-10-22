@@ -8,7 +8,8 @@ import java.util.Arrays;
 @Getter
 @RequiredArgsConstructor
 public enum DeviceType {
-    SMART_LED(1);
+    SMART_LED(1),
+    WARNING_LED(2);
 
     private final int id;
 

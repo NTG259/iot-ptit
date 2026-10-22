@@ -51,3 +51,12 @@
 .led-card__switch {
   margin-left: auto;
 }
+
+/* Warning LED: nhấp nháy viền đỏ khi đang bật */
+@keyframes warning-blink {
+  0%, 100% { border-color: #f5222d; box-shadow: 0 0 6px #f5222d88; }
+  50%       { border-color: var(--color-outline); box-shadow: none; }
+}
+.led-card--warning-on {
+  animation: warning-blink 0.8s ease-in-out infinite;
+}

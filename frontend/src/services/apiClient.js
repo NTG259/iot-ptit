@@ -70,6 +70,7 @@ async function callApi(path, { params, headers, ...fetchOptions } = {}) {
 
   const response = await fetch(`${config.apiBaseUrl}${path}${buildQueryString(params)}`, {
     ...fetchOptions,
+    cache: 'no-store',
     headers: { ...requestHeaders, ...headers },
   })
   const body = await readBody(response)

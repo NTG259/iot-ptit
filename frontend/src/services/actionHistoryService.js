@@ -8,9 +8,9 @@ import { apiClient } from './apiClient'
  * Tham số:
  *   - search: từ khoá tìm kiếm (string). Kết hợp với searchBy để xác định tìm theo trường nào.
  *   - searchBy: trường so khớp — 'NAME' | 'TYPE' | 'TIME'. Bỏ trống thì backend tự đoán dựa trên nội dung search.
- *   - statusIds: lọc theo ID trạng thái lệnh (1=PENDING, 2=SUCCESS, 3=FAILED), mảng. null = không lọc.
- *   - actionIds: lọc theo ID loại lệnh (1=TURN_ON, 2=TURN_OFF), mảng. null = không lọc.
- *   - deviceTypeIds: lọc theo ID loại thiết bị (1=SMART_LED), mảng. null = không lọc.
+ *   - statuses: lọc theo tên trạng thái lệnh ('PENDING', 'SUCCESS', 'FAILED'), mảng. null = không lọc.
+ *   - actions: lọc theo tên loại lệnh ('TURN_ON', 'TURN_OFF'), mảng. null = không lọc.
+ *   - deviceCodes: lọc theo mã thiết bị ('LED1', 'LED2', 'LED3', 'WARNING_LED'), mảng. null = không lọc.
  *   - newestFirst: true = mới nhất trước, false = cũ nhất trước.
  *   - page: trang hiện tại (bắt đầu từ 1).
  *   - size: số hàng mỗi trang.
@@ -25,6 +25,6 @@ import { apiClient } from './apiClient'
  *       · createdAt: thời điểm tạo lệnh (ISO 8601) — render thành "YYYY-MM-DD HH:mm:ss" giờ Việt Nam.
  *   - totalItems: tổng số bản ghi khớp bộ lọc (dùng tính số trang trên DataTable).
  */
-export function getActionHistory({ search, searchBy, statusIds, actionIds, deviceTypeIds, newestFirst, page, size } = {}) {
-  return apiClient.get('/action-histories', { search, searchBy, statusIds, actionIds, deviceTypeIds, newestFirst, page, size })
+export function getActionHistory({ search, statuses, actions, deviceCodes, newestFirst, page, size } = {}) {
+  return apiClient.get('/action-histories', { search, statuses, actions, deviceCodes, newestFirst, page, size })
 }

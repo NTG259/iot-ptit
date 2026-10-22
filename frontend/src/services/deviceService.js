@@ -18,6 +18,10 @@ export function getLeds() {
   return apiClient.get('/devices')
 }
 
+export function getWarningLed() {
+  return apiClient.get('/devices/warning-led')
+}
+
 /**
  * Gửi lệnh bật/tắt một LED cụ thể.
  * POST /devices/{code}/control  →  body: { action }

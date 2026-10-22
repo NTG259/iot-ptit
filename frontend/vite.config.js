@@ -13,7 +13,10 @@ export default defineConfig({
   server: {
     // Dev only: forward /api to the Spring Boot backend so the browser sees a single origin.
     proxy: {
-      '/api': process.env.VITE_BACKEND_URL ?? 'http://localhost:8081',
+      '/api': {
+        target: process.env.VITE_BACKEND_URL ?? 'http://localhost:8081',
+        ws: true,
+      },
     },
   },
   resolve: {

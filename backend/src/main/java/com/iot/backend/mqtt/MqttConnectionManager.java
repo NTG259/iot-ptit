@@ -31,6 +31,9 @@ public class MqttConnectionManager {
         if (client.isConnected()) {
             return;
         }
+        // Paho v3 MqttClient can get stuck in REASON_CODE_CONNECTION_LOST state after a
+        // keepAlive timeout; forcibly clearing that state is required before connect() works.
+        try { client.disconnectForcibly(0, 0); } catch (MqttException ignored) {}
         try {
             client.connect(connectOptions());
             client.subscribe(properties.topics().sensor(), 0, messageHandler);
@@ -56,6 +59,7 @@ public class MqttConnectionManager {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
         options.setConnectionTimeout(5);
+        options.setKeepAliveInterval(20);
         if (StringUtils.hasText(properties.username())) {
             options.setUserName(properties.username());
             options.setPassword(properties.password().toCharArray());

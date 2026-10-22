@@ -1,0 +1,792 @@
+openapi: 3.0.3
+info:
+  title: VietFarm IoT API
+  description: |
+    REST API cho hệ thống IoT VietFarm — quản lý cảm biến (nhiệt độ, độ ẩm, ánh sáng)
+    và điều khiển đèn LED qua ESP8266/MQTT.
+
+    **Xác thực:** Đăng nhập qua `POST /auth/login` để lấy `accessToken`, sau đó gửi kèm
+    header `Authorization: Bearer <token>` cho mọi request còn lại.
+
+    **Pending khi điều khiển đèn:** `POST /devices/{code}/control` và `POST /devices/control-all`
+    block khoảng 1 giây để chờ ESP8266 xác nhận qua MQTT trước khi trả về.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081/api
+    description: Local development
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Auth
+    description: Đăng nhập, lấy JWT token
+  - name: Users
+    description: Thông tin và cập nhật hồ sơ người dùng
+  - name: Devices
+    description: Danh sách và điều khiển đèn LED
+  - name: Sensors
+    description: Trạng thái hiện tại và lịch sử biểu đồ của cảm biến
+  - name: Sensor Data
+    description: Lịch sử từng lần đọc cảm biến (trang Sensors)
+  - name: Action History
+    description: Lịch sử lệnh bật/tắt đèn (trang History)
+
+paths:
+
+  # ─── AUTH ─────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập
+      description: Trả về JWT access token và thông tin người dùng.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: admin
+              password: "123456"
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseLoginResponse'
+              example:
+                success: true
+                data:
+                  accessToken: eyJhbGciOiJIUzI1NiJ9...
+                  tokenType: Bearer
+                  expiresIn: 86400
+                  user:
+                    id: 1
+                    username: admin
+                    fullName: Admin
+                    email: admin@example.com
+                    studentId: null
+                    role: ADMIN
+                    school: null
+                    githubUrl: null
+                    figmaUrl: null
+                    postmanUrl: null
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── USERS ────────────────────────────────────────────────────────────────────
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Lấy hồ sơ hiện tại
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Users]
+      summary: Cập nhật hồ sơ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              fullName: Nguyễn Trường Giang
+              email: mambong2407@gmail.com
+              studentId: B23DCCN259
+              role: Developer
+              school: PTIT
+              githubUrl: https://github.com/NTG259
+              figmaUrl: null
+              postmanUrl: null
+      responses:
+        "200":
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── DEVICES ──────────────────────────────────────────────────────────────────
+
+  /devices:
+    get:
+      tags: [Devices]
+      summary: Danh sách tất cả thiết bị LED
+      description: Trả về 3 đèn LED. `online` phản ánh trạng thái kết nối của ESP8266.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDeviceList'
+              example:
+                success: true
+                data:
+                  - code: LED1
+                    name: LED 1
+                    pendingAction: null
+                    on: true
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /devices/{code}/control:
+    post:
+      tags: [Devices]
+      summary: Điều khiển một đèn LED
+      description: |
+        Gửi lệnh bật/tắt và block ~1 giây chờ ESP8266 xác nhận qua MQTT.
+        Trả về lệnh với `status: PENDING` (sẽ chuyển sang `SUCCESS`/`FAILED` sau khi ESP phản hồi).
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Mã thiết bị, ví dụ `led1`, `led2`, `led3`
+          schema:
+            type: string
+          example: led1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControlRequest'
+            example:
+              action: TURN_ON
+      responses:
+        "200":
+          description: Lệnh đã ghi và ESP đã xác nhận (hoặc timeout 1 s)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActionHistoryResponse'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "503":
+          description: ESP8266 không kết nối hoặc MQTT broker từ chối lệnh
+
+  /devices/control-all:
+    post:
+      tags: [Devices]
+      summary: Bật hoặc tắt tất cả đèn LED cùng lúc
+      description: Giống `/devices/{code}/control` nhưng áp dụng cho cả 3 đèn.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceControlRequest'
+            example:
+              action: TURN_OFF
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActionHistoryList'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── SENSORS ──────────────────────────────────────────────────────────────────
+
+  /sensors/temp:
+    get:
+      tags: [Sensors]
+      summary: Trạng thái cảm biến nhiệt độ
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorResponse'
+              example:
+                success: true
+                data:
+                  id: 1
+                  code: temp
+                  name: Temperature
+                  type: TEMPERATURE
+                  unit: "°C"
+                  status: ACTIVE
+                  lastValue: 28.5
+                  lastReadingAt: "2026-10-20T10:30:00Z"
+
+  /sensors/humi:
+    get:
+      tags: [Sensors]
+      summary: Trạng thái cảm biến độ ẩm
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorResponse'
+
+  /sensors/light:
+    get:
+      tags: [Sensors]
+      summary: Trạng thái cảm biến ánh sáng
+      description: "`lastValue` là độ sáng tính theo phần trăm (0–100), đã được lưu trực tiếp từ ESP."
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorResponse'
+
+  /sensors/temp/latest:
+    get:
+      tags: [Sensors]
+      summary: N lần đọc nhiệt độ gần nhất (cho biểu đồ)
+      parameters:
+        - $ref: '#/components/parameters/limit'
+      responses:
+        "200":
+          description: OK — `values[i]` đo tại `times[i]` (HH:mm:ss, giờ Việt Nam)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorChart'
+
+  /sensors/humi/latest:
+    get:
+      tags: [Sensors]
+      summary: N lần đọc độ ẩm gần nhất (cho biểu đồ)
+      parameters:
+        - $ref: '#/components/parameters/limit'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorChart'
+
+  /sensors/light/latest:
+    get:
+      tags: [Sensors]
+      summary: N lần đọc ánh sáng gần nhất (cho biểu đồ)
+      parameters:
+        - $ref: '#/components/parameters/limit'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorChart'
+
+  # ─── SENSOR DATA ──────────────────────────────────────────────────────────────
+
+  /sensor-data:
+    get:
+      tags: [Sensor Data]
+      summary: Lịch sử từng lần đọc cảm biến
+      parameters:
+        - name: timeSearch
+          in: query
+          description: Lọc theo thời gian đo (LIKE prefix trên chuỗi "yyyy-MM-dd HH:mm:ss"), ví dụ "2026-10-20" hoặc "17:30"
+          schema:
+            type: string
+          example: "2026-10-20"
+        - name: valueSearch
+          in: query
+          description: Lọc theo giá trị đo khớp chính xác, ví dụ "65.0". Kết hợp AND với timeSearch nếu cả hai có.
+          schema:
+            type: string
+          example: "65.0"
+        - name: typeIds
+          in: query
+          description: "Lọc theo loại cảm biến: 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Lặp param để truyền nhiều giá trị."
+          schema:
+            type: array
+            items:
+              type: integer
+          example: [1, 2]
+        - $ref: '#/components/parameters/newestFirst'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorReadingPage'
+
+  # ─── ACTION HISTORY ───────────────────────────────────────────────────────────
+
+  /action-histories:
+    get:
+      tags: [Action History]
+      summary: Lịch sử lệnh bật/tắt đèn
+      parameters:
+        - name: search
+          in: query
+          description: |
+            Từ khoá tìm kiếm. Tự động nhận dạng: chuỗi thời gian ("2026-10-03 17:20") → tìm theo TIME, còn lại → tìm theo NAME (code hoặc tên thiết bị).
+          schema:
+            type: string
+        - name: statusIds
+          in: query
+          description: "Lọc theo trạng thái lệnh: 1=PENDING, 2=SUCCESS, 3=FAILED. Lặp param để truyền nhiều giá trị."
+          schema:
+            type: array
+            items:
+              type: integer
+          example: [2, 3]
+        - name: actionIds
+          in: query
+          description: "Lọc theo loại hành động: 1=TURN_ON, 2=TURN_OFF. Lặp param để truyền nhiều giá trị."
+          schema:
+            type: array
+            items:
+              type: integer
+          example: [1]
+        - name: deviceCodes
+          in: query
+          description: "Lọc theo thiết bị cụ thể: LED1, LED2, LED3. Lặp param để truyền nhiều giá trị."
+          schema:
+            type: array
+            items:
+              type: string
+          example: [LED1, LED2]
+        - $ref: '#/components/parameters/newestFirst'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseActionHistoryPage'
+              example:
+                success: true
+                data:
+                  items:
+                    - id: 42
+                      deviceCode: led1
+                      deviceName: LED 1
+                      deviceType: SMART_LED
+                      action: TURN_ON
+                      status: SUCCESS
+                      createdAt: "2026-10-20 17:30:00"
+                  page: 1
+                  size: 10
+                  totalItems: 87
+                  totalPages: 9
+
+# ─── COMPONENTS ───────────────────────────────────────────────────────────────
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    newestFirst:
+      name: newestFirst
+      in: query
+      schema:
+        type: boolean
+        default: true
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        default: 10
+    limit:
+      name: limit
+      in: query
+      description: Số lần đọc trả về
+      schema:
+        type: integer
+        default: 25
+
+  schemas:
+
+    # ── Enums ──────────────────────────────────────────────────────────────────
+
+    DeviceAction:
+      type: string
+      enum: [TURN_ON, TURN_OFF]
+
+    DeviceState:
+      type: string
+      enum: [ON, OFF]
+
+    DeviceType:
+      type: string
+      enum: [SMART_LED]
+
+    ActionStatus:
+      type: string
+      enum: [PENDING, SUCCESS, FAILED]
+
+    SensorType:
+      type: string
+      enum: [TEMPERATURE, HUMIDITY, LIGHT]
+
+    SensorStatus:
+      type: string
+      enum: [ACTIVE, STANDBY, OFFLINE]
+
+    # ── DTOs ───────────────────────────────────────────────────────────────────
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          example: admin
+        password:
+          type: string
+          example: "123456"
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Thời gian hết hạn (giây)
+          example: 86400
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        studentId:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        school:
+          type: string
+          nullable: true
+        githubUrl:
+          type: string
+          nullable: true
+        figmaUrl:
+          type: string
+          nullable: true
+        postmanUrl:
+          type: string
+          nullable: true
+
+    UpdateProfileRequest:
+      type: object
+      required: [fullName]
+      properties:
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        studentId:
+          type: string
+          nullable: true
+        role:
+          type: string
+          nullable: true
+        school:
+          type: string
+          nullable: true
+        githubUrl:
+          type: string
+          nullable: true
+        figmaUrl:
+          type: string
+          nullable: true
+        postmanUrl:
+          type: string
+          nullable: true
+
+    DeviceResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          example: LED1
+        name:
+          type: string
+          example: LED 1
+        pendingAction:
+          $ref: '#/components/schemas/DeviceAction'
+          nullable: true
+          description: Lệnh đã gửi nhưng chưa được ESP xác nhận
+        on:
+          type: boolean
+          description: "`pendingAction` nếu có, ngược lại dùng `state`"
+
+    DeviceControlRequest:
+      type: object
+      required: [action]
+      properties:
+        action:
+          $ref: '#/components/schemas/DeviceAction'
+
+    ActionHistoryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        deviceCode:
+          type: string
+          example: led1
+        deviceName:
+          type: string
+          example: LED 1
+        deviceType:
+          $ref: '#/components/schemas/DeviceType'
+        action:
+          $ref: '#/components/schemas/DeviceAction'
+        status:
+          $ref: '#/components/schemas/ActionStatus'
+        createdAt:
+          type: string
+          description: Thời điểm ghi lệnh theo giờ Việt Nam, định dạng "yyyy-MM-dd HH:mm:ss"
+          example: "2026-10-20 17:30:00"
+
+    SensorResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+          example: temp
+        name:
+          type: string
+          example: Temperature
+        type:
+          $ref: '#/components/schemas/SensorType'
+        unit:
+          type: string
+          example: "°C"
+        status:
+          $ref: '#/components/schemas/SensorStatus'
+        lastValue:
+          type: number
+          nullable: true
+
+    SensorChartResponse:
+      type: object
+      description: Dữ liệu cho biểu đồ — `values[i]` đo tại `times[i]` (HH:mm:ss, giờ Việt Nam), từ cũ đến mới
+      properties:
+        values:
+          type: array
+          items:
+            type: number
+        times:
+          type: array
+          items:
+            type: string
+            example: "10:30:00"
+
+    SensorReadingResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        sensorCode:
+          type: string
+        sensorName:
+          type: string
+        sensorType:
+          $ref: '#/components/schemas/SensorType'
+        unit:
+          type: string
+          example: "°C"
+        value:
+          type: number
+        measuredAt:
+          type: string
+          description: Thời điểm đo theo giờ Việt Nam, định dạng "yyyy-MM-dd HH:mm:ss"
+          example: "2026-10-20 17:30:00"
+
+    PageResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ── Wrapped responses ──────────────────────────────────────────────────────
+
+    ApiResponseLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        data:
+          $ref: '#/components/schemas/LoginResponse'
+
+    ApiResponseUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/UserResponse'
+
+    ApiResponseDeviceList:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceResponse'
+
+    ApiResponseActionHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ActionHistoryResponse'
+
+    ApiResponseActionHistoryList:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionHistoryResponse'
+
+    ApiResponseSensorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/SensorResponse'
+
+    ApiResponseSensorChart:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/SensorChartResponse'
+
+    ApiResponseSensorReadingPage:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageResponse'
+            - properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SensorReadingResponse'
+
+    ApiResponseActionHistoryPage:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          allOf:
+            - $ref: '#/components/schemas/PageResponse'
+            - properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ActionHistoryResponse'
+
+  responses:
+    Unauthorized:
+      description: Token thiếu hoặc không hợp lệ
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string
+                example: Unauthorized
+    BadRequest:
+      description: Dữ liệu đầu vào không hợp lệ
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              message:
+                type: string

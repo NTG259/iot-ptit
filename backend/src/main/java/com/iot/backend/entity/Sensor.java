@@ -25,13 +25,14 @@ public class Sensor extends BaseEntity {
 
     private String code;
     private String name;
+    private String unit;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "sensor_type")
+    @Column(name = "sensor_type", columnDefinition = "VARCHAR(255)")
     private SensorType type;
 
     @Enumerated(EnumType.STRING)
-    // No readings yet; SensorService#refreshStatuses keeps this in line with lastReadingAt.
+    @Column(columnDefinition = "VARCHAR(255)")
     private SensorStatus status = SensorStatus.OFFLINE;
 
     @Column(name = "last_reading_value")

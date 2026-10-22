@@ -40,12 +40,12 @@ public class ActionHistoryController {
     @GetMapping
     public ApiResponse<PageResponse<ActionHistoryResponse>> search(
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) List<Integer> statusIds,
-            @RequestParam(required = false) List<Integer> actionIds,
-            @RequestParam(required = false) List<Integer> deviceTypeIds,
+            @RequestParam(required = false) List<String> statuses,
+            @RequestParam(required = false) List<String> actions,
+            @RequestParam(required = false) List<String> deviceCodes,
             @RequestParam(defaultValue = "true") boolean newestFirst,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ApiResponse.ok(actionHistoryService.search(search, statusIds, actionIds, deviceTypeIds, newestFirst, page, size));
+        return ApiResponse.ok(actionHistoryService.search(search, statuses, actions, deviceCodes, newestFirst, page, size));
     }
 }

@@ -5,6 +5,7 @@ import com.iot.backend.entity.Device;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
+import com.iot.backend.entity.enums.DeviceType;
 import com.iot.backend.exception.DeviceOfflineException;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.mqtt.EspPresence;
@@ -41,7 +42,14 @@ public class DeviceService {
     private final EspPresence espPresence;
 
     public List<Device> findAll() {
-        return deviceRepository.findAll(Sort.by("code"));
+        return deviceRepository.findAll(Sort.by("code")).stream()
+                .filter(d -> d.getType() == DeviceType.SMART_LED)
+                .toList();
+    }
+
+    public Device findWarningLed() {
+        return deviceRepository.findByCode("WARNING_LED")
+                .orElseThrow(() -> new ResourceNotFoundException("Device", "WARNING_LED"));
     }
 
     /**
@@ -56,38 +64,37 @@ public class DeviceService {
                 .orElse(null);
     }
 
-    /** Sends the action to every device (the dashboard's "All On" / "All Off"); one history row per device. */
+    /**
+     * Checks online once, then sends to every device. If the board is offline all three rows are saved as
+     * FAILED in one pass (no redundant probes) before the exception propagates.
+     */
     public List<ActionHistory> controlAll(DeviceAction action) {
-        espPresence.ensureOnline();
-        return findAll().stream().map(device -> send(device.getCode(), action)).toList();
+        List<Device> devices = findAll();
+        try {
+            espPresence.ensureOnline();
+        } catch (DeviceOfflineException e) {
+            devices.forEach(d -> saveHistory(d, action, ActionStatus.FAILED));
+            throw e;
+        }
+        return devices.stream().map(d -> publish(d, action)).toList();
     }
 
-    /**
-     * Checks the ESP8266 is reachable first, so an offline board is reported at once (DeviceOfflineException,
-     * nothing logged) rather than as a PENDING action that only fails after the timeout.
-     */
     public ActionHistory control(String deviceCode, DeviceAction action) {
-        espPresence.ensureOnline();
         return send(deviceCode, action);
     }
 
-    /**
-     * Logs the action as PENDING, then publishes the command. Intentionally not
-     * transactional: the PENDING row must be committed before the ESP8266 replies.
-     * If the broker rejects it, the action is logged as FAILED and DeviceOfflineException is thrown (503).
-     */
+    /** Saves PENDING row, checks online, then publishes. Marks FAILED and throws on any error. */
     private ActionHistory send(String deviceCode, DeviceAction action) {
         Device device = deviceRepository.findByCode(deviceCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Device", deviceCode));
-
-        ActionHistory history = new ActionHistory();
-        history.setDevice(device);
-        history.setAction(action);
-        history.setCreatedAtStr(LocalDateTime.now(ZoneOffset.ofHours(7)).format(VN_FMT));
-        history = actionHistoryRepository.save(history);
-
+        ActionHistory history = saveHistory(device, action, ActionStatus.PENDING);
         try {
-            mqttPublisher.publishCommand(device.getCode() + (action == DeviceAction.TURN_ON ? "_ON" : "_OFF"));
+            espPresence.ensureOnline();
+            mqttPublisher.publishCommand(command(device.getCode(), action));
+        } catch (DeviceOfflineException e) {
+            history.setStatus(ActionStatus.FAILED);
+            actionHistoryRepository.save(history);
+            throw e;
         } catch (MqttException e) {
             log.warn("Failed to send {} to {}: {}", action, device.getCode(), e.getMessage());
             history.setStatus(ActionStatus.FAILED);
@@ -95,6 +102,33 @@ public class DeviceService {
             throw new DeviceOfflineException("Could not send the command to " + device.getCode() + " — is the MQTT broker running?");
         }
         return history;
+    }
+
+    /** Publishes to a device that is already known to be online (used by controlAll). */
+    private ActionHistory publish(Device device, DeviceAction action) {
+        ActionHistory history = saveHistory(device, action, ActionStatus.PENDING);
+        try {
+            mqttPublisher.publishCommand(command(device.getCode(), action));
+        } catch (MqttException e) {
+            log.warn("Failed to send {} to {}: {}", action, device.getCode(), e.getMessage());
+            history.setStatus(ActionStatus.FAILED);
+            actionHistoryRepository.save(history);
+            throw new DeviceOfflineException("Could not send the command to " + device.getCode() + " — is the MQTT broker running?");
+        }
+        return history;
+    }
+
+    private ActionHistory saveHistory(Device device, DeviceAction action, ActionStatus status) {
+        ActionHistory h = new ActionHistory();
+        h.setDevice(device);
+        h.setAction(action);
+        h.setStatus(status);
+        h.setCreatedAtStr(LocalDateTime.now(ZoneOffset.ofHours(7)).format(VN_FMT));
+        return actionHistoryRepository.save(h);
+    }
+
+    private static String command(String deviceCode, DeviceAction action) {
+        return deviceCode + action.getMqttSuffix();
     }
 
     /** Applies an LED status message; keys are "led1".."led3", values "ON"/"OFF". */

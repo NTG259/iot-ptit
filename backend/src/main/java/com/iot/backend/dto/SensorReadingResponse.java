@@ -15,6 +15,6 @@ public record SensorReadingResponse(
 ) {
     public static SensorReadingResponse from(SensorData data) {
         return new SensorReadingResponse(data.getId(), data.getSensor().getCode(), data.getSensor().getName(),
-                data.getSensor().getType(), data.getSensor().getType().getUnit(), data.getValue(), data.getMeasuredAtStr());
+                data.getSensor().getType(), data.getSensor().getUnit(), data.getValue(), data.getMeasuredAtStr());
     }
 }

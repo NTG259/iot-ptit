@@ -40,3 +40,6 @@
 .sensors__value-unit--light {
   color: var(--color-muted);
 }
+.sensors__value-unit--wind {
+  color: #7c3aed;
+}

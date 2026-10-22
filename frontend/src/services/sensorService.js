@@ -52,6 +52,21 @@ export function getLatestLight({ limit } = {}) {
   return apiClient.get('/sensors/light/latest', { limit })
 }
 
+// GET /sensors/wind
+export function getWind() {
+  return apiClient.get('/sensors/wind')
+}
+
+// GET /sensors/wind/latest?limit={limit}
+export function getLatestWind({ limit } = {}) {
+  return apiClient.get('/sensors/wind/latest', { limit })
+}
+
+// GET /sensors/wind/monthly-alerts
+export function getWindMonthlyAlerts() {
+  return apiClient.get('/sensors/wind/monthly-alerts')
+}
+
 /**
  * Lịch sử số đo của mọi cảm biến (trang Sensors), có phân trang. Mọi tham số đều tuỳ chọn.
  * - timeSearch: chuỗi lọc ngày giờ (LIKE prefix trên measured_at_str), vd "2026-10-20" hay "17:30".

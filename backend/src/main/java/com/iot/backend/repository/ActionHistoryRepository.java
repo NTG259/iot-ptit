@@ -13,15 +13,24 @@ import java.util.Optional;
 
 public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Long> {
 
+    // --- Used by DeviceService for PENDING-management ---
+
     List<ActionHistory> findByDeviceAndStatus(Device device, ActionStatus status);
 
     List<ActionHistory> findByStatusAndCreatedAtBefore(ActionStatus status, LocalDateTime cutoff);
 
     Optional<ActionHistory> findFirstByDeviceOrderByIdDesc(Device device);
 
+    // --- Used by ActionHistoryService for the history search page ---
+
     interface ActionHistoryProjection {
-        Long getId(); String getAction(); String getStatus(); String getCreatedAtStr();
-        String getDeviceCode(); String getDeviceName(); String getDeviceType();
+        Long getId();
+        String getAction();
+        String getStatus();
+        String getCreatedAtStr();
+        String getDeviceCode();
+        String getDeviceName();
+        String getDeviceType();
     }
 
     @Query(nativeQuery = true, value = """
@@ -34,9 +43,9 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
                    d.device_type     AS deviceType
             FROM action_histories ah
             JOIN devices d ON ah.device_id = d.id
-            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
-              AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
-              AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
+            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status, :status)     > 0)
+              AND (:action     IS NULL OR FIND_IN_SET(ah.action, :action)     > 0)
+              AND (:deviceCode IS NULL OR FIND_IN_SET(d.code,    :deviceCode) > 0)
               AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             ORDER BY ah.created_at DESC, ah.id DESC
             LIMIT :size OFFSET :offset
@@ -44,7 +53,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
     List<ActionHistoryProjection> searchRowsDesc(
             @Param("status")     String status,
             @Param("action")     String action,
-            @Param("deviceType") String deviceType,
+            @Param("deviceCode") String deviceCode,
             @Param("timeStr")    String timeStr,
             @Param("size")       int size,
             @Param("offset")     long offset);
@@ -59,9 +68,9 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
                    d.device_type     AS deviceType
             FROM action_histories ah
             JOIN devices d ON ah.device_id = d.id
-            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
-              AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
-              AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
+            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status, :status)     > 0)
+              AND (:action     IS NULL OR FIND_IN_SET(ah.action, :action)     > 0)
+              AND (:deviceCode IS NULL OR FIND_IN_SET(d.code,    :deviceCode) > 0)
               AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             ORDER BY ah.created_at ASC, ah.id ASC
             LIMIT :size OFFSET :offset
@@ -69,7 +78,7 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
     List<ActionHistoryProjection> searchRowsAsc(
             @Param("status")     String status,
             @Param("action")     String action,
-            @Param("deviceType") String deviceType,
+            @Param("deviceCode") String deviceCode,
             @Param("timeStr")    String timeStr,
             @Param("size")       int size,
             @Param("offset")     long offset);
@@ -78,14 +87,14 @@ public interface ActionHistoryRepository extends JpaRepository<ActionHistory, Lo
             SELECT COUNT(*)
             FROM action_histories ah
             JOIN devices d ON ah.device_id = d.id
-            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status,     :status)     > 0)
-              AND (:action     IS NULL OR FIND_IN_SET(ah.action,     :action)     > 0)
-              AND (:deviceType IS NULL OR FIND_IN_SET(d.device_type, :deviceType) > 0)
+            WHERE (:status     IS NULL OR FIND_IN_SET(ah.status, :status)     > 0)
+              AND (:action     IS NULL OR FIND_IN_SET(ah.action, :action)     > 0)
+              AND (:deviceCode IS NULL OR FIND_IN_SET(d.code,    :deviceCode) > 0)
               AND (:timeStr    IS NULL OR ah.created_at_str LIKE :timeStr)
             """)
     long countRows(
             @Param("status")     String status,
             @Param("action")     String action,
-            @Param("deviceType") String deviceType,
+            @Param("deviceCode") String deviceCode,
             @Param("timeStr")    String timeStr);
 }

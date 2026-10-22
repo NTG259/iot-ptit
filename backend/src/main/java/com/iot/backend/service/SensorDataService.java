@@ -1,15 +1,25 @@
 package com.iot.backend.service;
 
+import com.iot.backend.dto.AlertMessage;
 import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorReadingResponse;
+import com.iot.backend.entity.ActionHistory;
+import com.iot.backend.entity.Device;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
+import com.iot.backend.entity.enums.ActionStatus;
+import com.iot.backend.entity.enums.DeviceAction;
+import com.iot.backend.entity.enums.DeviceState;
 import com.iot.backend.entity.enums.SensorStatus;
 import com.iot.backend.entity.enums.SensorType;
+import com.iot.backend.mqtt.MqttPublisher;
+import com.iot.backend.repository.ActionHistoryRepository;
+import com.iot.backend.repository.DeviceRepository;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -26,16 +36,60 @@ import java.util.Map;
 public class SensorDataService {
 
     private static final DateTimeFormatter VN_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final double WIND_ALERT_THRESHOLD = 300.0;
 
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
+    private final DeviceRepository deviceRepository;
+    private final ActionHistoryRepository actionHistoryRepository;
+    private final MqttPublisher mqttPublisher;
+    private final AlertPublisher alertPublisher;
 
     @Transactional
     public void saveReadings(Map<String, Double> readings) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         readings.forEach((code, value) -> sensorRepository.findByCode(code).ifPresentOrElse(
-                sensor -> saveReading(sensor, value, now),
+                sensor -> {
+                    saveReading(sensor, value, now);
+                    if (sensor.getType() == SensorType.WIND_SPEED) {
+                        checkWindThreshold(value, now);
+                    }
+                },
                 () -> log.warn("Ignoring reading for unknown sensor code '{}'", code)));
+    }
+
+    private void checkWindThreshold(double windValue, LocalDateTime now) {
+        Device warningLed = deviceRepository.findByCode("WARNING_LED").orElse(null);
+        if (warningLed == null) return;
+
+        boolean shouldBeOn = windValue > WIND_ALERT_THRESHOLD;
+        boolean isOn = warningLed.getState() == DeviceState.ON;
+        if (shouldBeOn == isOn) return; // no state change needed
+
+        DeviceAction action = shouldBeOn ? DeviceAction.TURN_ON : DeviceAction.TURN_OFF;
+        String nowStr = now.format(VN_FMT);
+
+        ActionHistory history = new ActionHistory();
+        history.setDevice(warningLed);
+        history.setAction(action);
+        history.setCreatedAtStr(nowStr);
+
+        try {
+            mqttPublisher.publishCommand("WARNING_LED_" + (shouldBeOn ? "ON" : "OFF"));
+            history.setStatus(ActionStatus.SUCCESS);
+            warningLed.setState(shouldBeOn ? DeviceState.ON : DeviceState.OFF);
+            deviceRepository.save(warningLed);
+            log.info("WARNING_LED {} — wind={} m/s", shouldBeOn ? "ON" : "OFF", windValue);
+        } catch (MqttException e) {
+            log.warn("Failed to control WARNING_LED: {}", e.getMessage());
+            history.setStatus(ActionStatus.FAILED);
+        }
+        actionHistoryRepository.save(history);
+
+        if (shouldBeOn) {
+            log.info("Publishing wind alert: {} m/s", windValue);
+            alertPublisher.publishAlert(new AlertMessage("wind", windValue, WIND_ALERT_THRESHOLD, nowStr));
+        }
     }
 
     private static double toStoredValue(SensorType type, double value) {
@@ -80,13 +134,31 @@ public class SensorDataService {
                 ? sensorDataRepository.searchRowsDesc(typesCsv, timeStr, valueNum, size, offset)
                 : sensorDataRepository.searchRowsAsc(typesCsv, timeStr, valueNum, size, offset);
 
-        List<SensorReadingResponse> items = rows.stream().map(r -> {
-            SensorType type = SensorType.valueOf(r.getSensorType());
-            return new SensorReadingResponse(r.getId(), r.getSensorCode(), r.getSensorName(),
-                    type, type.getUnit(), r.getReadingValue(), r.getMeasuredAtStr());
-        }).toList();
+        List<SensorReadingResponse> items = rows.stream().map(r ->
+                new SensorReadingResponse(r.getId(), r.getSensorCode(), r.getSensorName(),
+                        SensorType.valueOf(r.getSensorType()), r.getSensorUnit(),
+                        r.getReadingValue(), r.getMeasuredAtStr())
+        ).toList();
 
         return PageResponse.of(items, total, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getWindMonthlyAlerts() {
+        LocalDateTime startDate = LocalDateTime.now(ZoneOffset.ofHours(7)).minusDays(29).toLocalDate().atStartOfDay();
+        var rows = sensorDataRepository.findWindAlertsByDay(WIND_ALERT_THRESHOLD, startDate);
+
+        // Build a complete 30-day map (zero-filled), then overlay actual counts
+        java.time.LocalDate today = LocalDateTime.now(ZoneOffset.ofHours(7)).toLocalDate();
+        java.util.LinkedHashMap<String, Long> dayMap = new java.util.LinkedHashMap<>();
+        for (int i = 29; i >= 0; i--) {
+            dayMap.put(today.minusDays(i).toString(), 0L);
+        }
+        rows.forEach(r -> dayMap.put(r.getAlertDate(), r.getAlertCount()));
+
+        return dayMap.entrySet().stream()
+                .map(e -> Map.<String, Object>of("date", e.getKey(), "count", e.getValue()))
+                .toList();
     }
 
     private static Double parseDouble(String text) {

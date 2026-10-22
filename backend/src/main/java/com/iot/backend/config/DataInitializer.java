@@ -47,6 +47,14 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Ensure all enum columns are VARCHAR(255) so adding new enum values never needs a schema change.
+        jdbcTemplate.execute("ALTER TABLE devices MODIFY COLUMN device_type VARCHAR(255)");
+        jdbcTemplate.execute("ALTER TABLE devices MODIFY COLUMN state VARCHAR(255)");
+        jdbcTemplate.execute("ALTER TABLE sensors MODIFY COLUMN sensor_type VARCHAR(255)");
+        jdbcTemplate.execute("ALTER TABLE sensors MODIFY COLUMN status VARCHAR(255)");
+        jdbcTemplate.execute("ALTER TABLE action_histories MODIFY COLUMN action VARCHAR(255)");
+        jdbcTemplate.execute("ALTER TABLE action_histories MODIFY COLUMN status VARCHAR(255)");
+
         if (userRepository.count() == 0) {
             User admin = new User();
             admin.setUsername(adminProperties.username());
@@ -70,21 +78,54 @@ public class DataInitializer implements CommandLineRunner {
                 devices.add(deviceRepository.save(device));
             }
         } else {
-            devices = deviceRepository.findAll();
+            devices = deviceRepository.findAll().stream()
+                    .filter(d -> d.getType() == DeviceType.SMART_LED)
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        if (deviceRepository.findByCode("WARNING_LED").isEmpty()) {
+            Device warningLed = new Device();
+            warningLed.setCode("WARNING_LED");
+            warningLed.setName("Warning LED");
+            warningLed.setType(DeviceType.WARNING_LED);
+            deviceRepository.save(warningLed);
         }
 
         List<Sensor> sensors;
         if (sensorRepository.count() == 0) {
-            Sensor temp  = sensorRepository.save(sensor("temp",  "Temperature", SensorType.TEMPERATURE));
-            Sensor humi  = sensorRepository.save(sensor("humi",  "Humidity",    SensorType.HUMIDITY));
-            Sensor light = sensorRepository.save(sensor("light", "Light",       SensorType.LIGHT));
-            sensors = List.of(temp, humi, light);
+            Sensor temp  = sensorRepository.save(sensor("temp",  "Temperature", SensorType.TEMPERATURE, "°C"));
+            Sensor humi  = sensorRepository.save(sensor("humi",  "Humidity",    SensorType.HUMIDITY,    "%"));
+            Sensor light = sensorRepository.save(sensor("light", "Light",       SensorType.LIGHT,       "%"));
+            Sensor wind  = sensorRepository.save(sensor("wind",  "Wind Speed",  SensorType.WIND_SPEED,  "m/s"));
+            sensors = List.of(temp, humi, light, wind);
         } else {
-            sensors = sensorRepository.findAll();
+            sensors = new java.util.ArrayList<>(sensorRepository.findAll());
+            if (sensorRepository.findByCode("wind").isEmpty()) {
+                sensors.add(sensorRepository.save(sensor("wind", "Wind Speed", SensorType.WIND_SPEED, "m/s")));
+            }
+            // Backfill unit column for sensors created before this column was added.
+            java.util.Map<SensorType, String> defaultUnits = java.util.Map.of(
+                SensorType.TEMPERATURE, "°C",
+                SensorType.HUMIDITY,    "%",
+                SensorType.LIGHT,       "%",
+                SensorType.WIND_SPEED,  "m/s"
+            );
+            sensors.forEach(s -> {
+                if (s.getUnit() == null && s.getType() != null) {
+                    s.setUnit(defaultUnits.get(s.getType()));
+                    sensorRepository.save(s);
+                }
+            });
         }
 
         if (sensorDataRepository.count() == 0) {
             seedSensorData(sensors);
+        } else {
+            Sensor windSensor = sensors.stream()
+                    .filter(s -> s.getType() == SensorType.WIND_SPEED).findFirst().orElse(null);
+            if (windSensor != null && sensorDataRepository.findLatestBySensorId(windSensor.getId(), 1).isEmpty()) {
+                seedWindData(windSensor);
+            }
         }
 
         if (actionHistoryRepository.count() == 0) {
@@ -119,6 +160,31 @@ public class DataInitializer implements CommandLineRunner {
         updateSensorCache(temp,  lastT, 27.0 + 3.0 * Math.sin(lastPhase));
         updateSensorCache(humi,  lastT, 65.0 + 8.0 * Math.sin(lastPhase + 1.0));
         updateSensorCache(light, lastT, 60.0 + 25.0 * Math.sin(lastPhase + 2.0));
+
+        sensors.stream().filter(s -> s.getType() == SensorType.WIND_SPEED).findFirst()
+                .ifPresent(this::seedWindData);
+    }
+
+    // 30 days × 8 readings per day. A few per day exceed 300 to populate the monthly alert chart.
+    private void seedWindData(Sensor windSensor) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
+        int days = 30;
+        int perDay = 8;
+        // Base wind values cycling through: some below and some above 300
+        double[] dailyValues = { 120, 180, 350, 90, 420, 210, 310, 50 };
+
+        for (int d = days - 1; d >= 0; d--) {
+            for (int h = 0; h < perDay; h++) {
+                LocalDateTime t = now.minusDays(d).withHour(h * 3).withMinute(0).withSecond(0);
+                double base = dailyValues[h];
+                double value = round(base + (Math.random() * 40 - 20), 1);
+                value = Math.max(0, Math.min(500, value));
+                sensorDataRepository.save(reading(windSensor, t, value));
+            }
+        }
+        // Cache last value
+        LocalDateTime lastT = now.withHour(21).withMinute(0).withSecond(0);
+        updateSensorCache(windSensor, lastT, dailyValues[7]);
     }
 
     private void updateSensorCache(Sensor sensor, LocalDateTime at, double value) {
@@ -172,11 +238,12 @@ public class DataInitializer implements CommandLineRunner {
         return sensors.stream().filter(s -> s.getType() == type).findFirst().orElseThrow();
     }
 
-    private static Sensor sensor(String code, String name, SensorType type) {
+    private static Sensor sensor(String code, String name, SensorType type, String unit) {
         Sensor sensor = new Sensor();
         sensor.setCode(code);
         sensor.setName(name);
         sensor.setType(type);
+        sensor.setUnit(unit);
         return sensor;
     }
 }

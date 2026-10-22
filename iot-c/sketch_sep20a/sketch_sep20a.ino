@@ -18,18 +18,21 @@ const char* topic_sub_cmd    = "esp8266/command";
 #define LED1_PIN D5
 #define LED2_PIN D6
 #define LED3_PIN D4
+#define WARNING_LED_PIN D3
 
-#define DHTPIN D2      
-#define DHTTYPE DHT11  
-#define LDR_PIN A0     
+#define DHTPIN D2
+#define DHTTYPE DHT11
+#define LDR_PIN A0
 
 DHT dht(DHTPIN, DHTTYPE);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long lastPubTime = 0;
-const unsigned long pubInterval = 2000; 
-bool isReadingSensor = true; 
+const unsigned long pubInterval = 2000;
+bool isReadingSensor = true;
+
+float mockWindSpeed = 0.0;
 
 void setupWiFi() {
   delay(10);
@@ -63,16 +66,16 @@ void publishSensorData() {
   float t = dht.readTemperature();
   int lightVal = analogRead(LDR_PIN);
 
-  if (isnan(h) || isnan(t)) {
-    Serial.println("Loi: Khong doc duoc DHT11!");
-    return; 
-  }
+  if (isnan(h)) h = 0.0;
+  if (isnan(t)) t = 0.0;
 
-  char sensorPayload[128];
-  snprintf(sensorPayload, sizeof(sensorPayload), 
-           "{\"temp\":%.1f, \"humi\":%.1f, \"light\":%d}", 
-           t, h, lightVal);
-  
+  mockWindSpeed = (float)random(0, 501) / 10.0;
+
+  char sensorPayload[160];
+  snprintf(sensorPayload, sizeof(sensorPayload),
+           "{\"temp\":%.1f, \"humi\":%.1f, \"light\":%d, \"wind\":%.1f}",
+           t, h, lightVal, mockWindSpeed);
+
   client.publish(topic_pub_sensor, sensorPayload);
   Serial.println("-> Da gui ban tin Cam bien.");
 }
@@ -112,6 +115,9 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     else if (message == "SENSOR_OFF") isReadingSensor = false;
 
     // Backend hoi trang thai LED (khi no khoi dong / ket noi lai broker)
+    else if (message == "WARNING_LED_ON")  { digitalWrite(WARNING_LED_PIN, LOW);  }
+    else if (message == "WARNING_LED_OFF") { digitalWrite(WARNING_LED_PIN, HIGH); }
+
     else if (message == "GET_STATUS") ledStateChanged = true;
 
     if (ledStateChanged) {
@@ -146,9 +152,11 @@ void setup() {
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
   pinMode(LED3_PIN, OUTPUT);
+  pinMode(WARNING_LED_PIN, OUTPUT);
   digitalWrite(LED1_PIN, HIGH);
   digitalWrite(LED2_PIN, HIGH);
   digitalWrite(LED3_PIN, HIGH);
+  digitalWrite(WARNING_LED_PIN, HIGH);
   
   dht.begin();
   setupWiFi();

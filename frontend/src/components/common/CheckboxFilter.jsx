@@ -12,8 +12,10 @@ const CHECKBOX_THEME = { token: { controlInteractiveSize: 20 } }
  * - Ô tick được phóng to lên 20px (CHECKBOX_THEME) cho giống thiết kế.
  */
 export default function CheckboxFilter({ label, options, value, onChange }) {
-  function selectAll() {
-    onChange(options.map((option) => option.value))
+  const allSelected = value.length === options.length
+
+  function toggleAll() {
+    onChange(allSelected ? [] : options.map((option) => option.value))
   }
 
   function toggleOption(optionValue, checked) {
@@ -34,8 +36,8 @@ export default function CheckboxFilter({ label, options, value, onChange }) {
       popupRender={() => (
         <div className="checkbox-filter__popup">
           <div className="checkbox-filter__header">
-            <Button type="link" size="small" onClick={selectAll} className="checkbox-filter__select-all">
-              Select All
+            <Button type="link" size="small" onClick={toggleAll} className="checkbox-filter__select-all">
+              {allSelected ? 'Clear All' : 'Select All'}
             </Button>
           </div>
           <ConfigProvider theme={CHECKBOX_THEME}>

@@ -27,9 +27,11 @@ public class ActionHistory extends BaseEntity {
     private Device device;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(255)")
     private DeviceAction action;
 
     @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(255)")
     private ActionStatus status = ActionStatus.PENDING;
 
     /** Vietnam-time string "yyyy-MM-dd HH:mm:ss"; used for LIKE prefix search. */

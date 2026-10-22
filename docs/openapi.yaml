@@ -142,12 +142,8 @@ paths:
               example:
                 success: true
                 data:
-                  - id: 1
-                    code: led1
+                  - code: LED1
                     name: LED 1
-                    type: SMART_LED
-                    state: ON
-                    online: true
                     pendingAction: null
                     on: true
         "401":
@@ -213,40 +209,6 @@ paths:
 
   # ─── SENSORS ──────────────────────────────────────────────────────────────────
 
-  /sensors:
-    get:
-      tags: [Sensors]
-      summary: Tìm kiếm / lọc cảm biến
-      parameters:
-        - $ref: '#/components/parameters/search'
-        - name: types
-          in: query
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/SensorType'
-          example: [TEMPERATURE, HUMIDITY]
-        - name: status
-          in: query
-          schema:
-            $ref: '#/components/schemas/SensorStatus'
-        - name: updatedSince
-          in: query
-          description: Chỉ lấy cảm biến có lần đọc mới hơn thời điểm này (ISO 8601)
-          schema:
-            type: string
-            format: date-time
-        - $ref: '#/components/parameters/newestFirst'
-        - $ref: '#/components/parameters/page'
-        - $ref: '#/components/parameters/size'
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponseSensorPage'
-
   /sensors/temp:
     get:
       tags: [Sensors]
@@ -286,9 +248,7 @@ paths:
     get:
       tags: [Sensors]
       summary: Trạng thái cảm biến ánh sáng
-      description: |
-        `lastValue` là giá trị ADC thô (0–1023). Frontend chuyển sang phần trăm bằng
-        `100 - round(value / 1280 * 100)` (LDR đọc cao khi tối).
+      description: "`lastValue` là độ sáng tính theo phần trăm (0–100), đã được lưu trực tiếp từ ESP."
       responses:
         "200":
           description: OK
@@ -346,16 +306,26 @@ paths:
       tags: [Sensor Data]
       summary: Lịch sử từng lần đọc cảm biến
       parameters:
-        - $ref: '#/components/parameters/search'
-        - $ref: '#/components/parameters/searchBy'
-        - name: types
+        - name: timeSearch
           in: query
+          description: Lọc theo thời gian đo (LIKE prefix trên chuỗi "yyyy-MM-dd HH:mm:ss"), ví dụ "2026-10-20" hoặc "17:30"
+          schema:
+            type: string
+          example: "2026-10-20"
+        - name: valueSearch
+          in: query
+          description: Lọc theo giá trị đo khớp chính xác, ví dụ "65.0". Kết hợp AND với timeSearch nếu cả hai có.
+          schema:
+            type: string
+          example: "65.0"
+        - name: typeIds
+          in: query
+          description: "Lọc theo loại cảm biến: 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Lặp param để truyền nhiều giá trị."
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/SensorType'
-        - $ref: '#/components/parameters/from'
-        - $ref: '#/components/parameters/to'
+              type: integer
+          example: [1, 2]
         - $ref: '#/components/parameters/newestFirst'
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/size'
@@ -374,29 +344,36 @@ paths:
       tags: [Action History]
       summary: Lịch sử lệnh bật/tắt đèn
       parameters:
-        - $ref: '#/components/parameters/search'
-        - $ref: '#/components/parameters/searchBy'
-        - name: status
+        - name: search
           in: query
+          description: |
+            Từ khoá tìm kiếm. Tự động nhận dạng: chuỗi thời gian ("2026-10-03 17:20") → tìm theo TIME, còn lại → tìm theo NAME (code hoặc tên thiết bị).
+          schema:
+            type: string
+        - name: statusIds
+          in: query
+          description: "Lọc theo trạng thái lệnh: 1=PENDING, 2=SUCCESS, 3=FAILED. Lặp param để truyền nhiều giá trị."
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/ActionStatus'
-          example: [SUCCESS, PENDING]
-        - name: action
+              type: integer
+          example: [2, 3]
+        - name: actionIds
           in: query
+          description: "Lọc theo loại hành động: 1=TURN_ON, 2=TURN_OFF. Lặp param để truyền nhiều giá trị."
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/DeviceAction'
-        - name: deviceType
+              type: integer
+          example: [1]
+        - name: deviceCodes
           in: query
+          description: "Lọc theo thiết bị cụ thể: LED1, LED2, LED3. Lặp param để truyền nhiều giá trị."
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/DeviceType'
-        - $ref: '#/components/parameters/from'
-        - $ref: '#/components/parameters/to'
+              type: string
+          example: [LED1, LED2]
         - $ref: '#/components/parameters/newestFirst'
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/size'
@@ -417,7 +394,7 @@ paths:
                       deviceType: SMART_LED
                       action: TURN_ON
                       status: SUCCESS
-                      createdAt: "2026-10-20T10:30:00Z"
+                      createdAt: "2026-10-20 17:30:00"
                   page: 1
                   size: 10
                   totalItems: 87
@@ -434,34 +411,6 @@ components:
       bearerFormat: JWT
 
   parameters:
-    search:
-      name: search
-      in: query
-      description: Từ khoá tìm kiếm (không phân biệt hoa thường)
-      schema:
-        type: string
-    searchBy:
-      name: searchBy
-      in: query
-      description: Trường so khớp — `TIME`, `TYPE`, `NAME`, `VALUE`
-      schema:
-        $ref: '#/components/schemas/SearchBy'
-    from:
-      name: from
-      in: query
-      description: Từ thời điểm này (ISO 8601 UTC)
-      schema:
-        type: string
-        format: date-time
-      example: "2026-10-20T00:00:00Z"
-    to:
-      name: to
-      in: query
-      description: Đến thời điểm này (ISO 8601 UTC)
-      schema:
-        type: string
-        format: date-time
-      example: "2026-10-20T23:59:59Z"
     newestFirst:
       name: newestFirst
       in: query
@@ -516,10 +465,6 @@ components:
     SensorStatus:
       type: string
       enum: [ACTIVE, STANDBY, OFFLINE]
-
-    SearchBy:
-      type: string
-      enum: [TIME, TYPE, NAME, VALUE]
 
     # ── DTOs ───────────────────────────────────────────────────────────────────
 
@@ -611,22 +556,12 @@ components:
     DeviceResponse:
       type: object
       properties:
-        id:
-          type: integer
         code:
           type: string
-          example: led1
+          example: LED1
         name:
           type: string
           example: LED 1
-        type:
-          $ref: '#/components/schemas/DeviceType'
-        state:
-          $ref: '#/components/schemas/DeviceState'
-          description: Trạng thái cuối cùng ESP xác nhận
-        online:
-          type: boolean
-          description: ESP8266 có đang kết nối không
         pendingAction:
           $ref: '#/components/schemas/DeviceAction'
           nullable: true
@@ -661,7 +596,8 @@ components:
           $ref: '#/components/schemas/ActionStatus'
         createdAt:
           type: string
-          format: date-time
+          description: Thời điểm ghi lệnh theo giờ Việt Nam, định dạng "yyyy-MM-dd HH:mm:ss"
+          example: "2026-10-20 17:30:00"
 
     SensorResponse:
       type: object
@@ -683,10 +619,6 @@ components:
           $ref: '#/components/schemas/SensorStatus'
         lastValue:
           type: number
-          nullable: true
-        lastReadingAt:
-          type: string
-          format: date-time
           nullable: true
 
     SensorChartResponse:
@@ -712,13 +644,17 @@ components:
           type: string
         sensorName:
           type: string
-        type:
+        sensorType:
           $ref: '#/components/schemas/SensorType'
+        unit:
+          type: string
+          example: "°C"
         value:
           type: number
-        recordedAt:
+        measuredAt:
           type: string
-          format: date-time
+          description: Thời điểm đo theo giờ Việt Nam, định dạng "yyyy-MM-dd HH:mm:ss"
+          example: "2026-10-20 17:30:00"
 
     PageResponse:
       type: object
@@ -799,20 +735,6 @@ components:
           type: boolean
         data:
           $ref: '#/components/schemas/SensorChartResponse'
-
-    ApiResponseSensorPage:
-      type: object
-      properties:
-        success:
-          type: boolean
-        data:
-          allOf:
-            - $ref: '#/components/schemas/PageResponse'
-            - properties:
-                items:
-                  type: array
-                  items:
-                    $ref: '#/components/schemas/SensorResponse'
 
     ApiResponseSensorReadingPage:
       type: object
