@@ -108,7 +108,14 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
                    COUNT(*)                              AS alertCount
             FROM sensor_data sd
             JOIN sensors s ON sd.sensor_id = s.id
-            JOIN sensor_thresholds st ON st.sensor_code = s.code
+            JOIN sensor_thresholds st
+              ON st.sensor_code = s.code
+             AND st.created_at  = (
+                    SELECT MAX(st2.created_at)
+                    FROM sensor_thresholds st2
+                    WHERE st2.sensor_code = s.code
+                      AND st2.created_at <= sd.measured_at
+                 )
             WHERE sd.reading_value > st.max_value
               AND st.enabled = 1
               AND sd.measured_at >= :startDate

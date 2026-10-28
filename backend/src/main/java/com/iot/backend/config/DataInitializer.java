@@ -194,7 +194,7 @@ public class DataInitializer implements CommandLineRunner {
             "co2",   1000.0
         );
         defaults.forEach((code, max) -> {
-            if (thresholdRepository.findBySensorCode(code).isEmpty()) {
+            if (thresholdRepository.findTopBySensorCodeOrderByCreatedAtDesc(code).isEmpty()) {
                 SensorThreshold t = new SensorThreshold();
                 t.setSensorCode(code);
                 t.setMaxValue(max);

@@ -15,7 +15,7 @@ import lombok.Setter;
 @Table(name = "sensor_thresholds")
 public class SensorThreshold extends BaseEntity {
 
-    @Column(name = "sensor_code", unique = true, nullable = false, length = 20)
+    @Column(name = "sensor_code", nullable = false, length = 20)
     private String sensorCode;
 
     @Column(name = "max_value", nullable = false)
