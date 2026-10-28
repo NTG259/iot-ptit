@@ -51,11 +51,12 @@ void publishLedStatus() {
   String state1 = (digitalRead(LED1_PIN) == LOW) ? "ON" : "OFF";
   String state2 = (digitalRead(LED2_PIN) == LOW) ? "ON" : "OFF";
   String state3 = (digitalRead(LED3_PIN) == LOW) ? "ON" : "OFF";
-  
+  String stateW = (digitalRead(WARNING_LED_PIN) == LOW) ? "ON" : "OFF";
+
   char statusPayload[128];
-  snprintf(statusPayload, sizeof(statusPayload), 
-           "{\"led1\":\"%s\", \"led2\":\"%s\", \"led3\":\"%s\"}", 
-           state1.c_str(), state2.c_str(), state3.c_str());
+  snprintf(statusPayload, sizeof(statusPayload),
+           "{\"led1\":\"%s\",\"led2\":\"%s\",\"led3\":\"%s\",\"warning_led\":\"%s\"}",
+           state1.c_str(), state2.c_str(), state3.c_str(), stateW.c_str());
 
   client.publish(topic_pub_status, statusPayload);
   Serial.println("-> Da gui ban tin Status LED.");
@@ -115,8 +116,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     else if (message == "SENSOR_OFF") isReadingSensor = false;
 
     // Backend hoi trang thai LED (khi no khoi dong / ket noi lai broker)
-    else if (message == "WARNING_LED_ON")  { digitalWrite(WARNING_LED_PIN, LOW);  }
-    else if (message == "WARNING_LED_OFF") { digitalWrite(WARNING_LED_PIN, HIGH); }
+    else if (message == "WARNING_LED_ON")  { digitalWrite(WARNING_LED_PIN, LOW);  ledStateChanged = true; }
+    else if (message == "WARNING_LED_OFF") { digitalWrite(WARNING_LED_PIN, HIGH); ledStateChanged = true; }
 
     else if (message == "GET_STATUS") ledStateChanged = true;
 
