@@ -26,6 +26,12 @@ server:
   servlet:
     context-path: /api
 
+springdoc:
+  api-docs:
+    enabled: false        # Our SwaggerController serves the spec; disable springdoc's auto-gen
+  swagger-ui:
+    url: /v3/api-docs     # Point Swagger UI at our custom YAML endpoint
+
 app:
   jwt:
     # HS256 needs at least 32 bytes. The default is for local dev only; set JWT_SECRET elsewhere.

@@ -17,9 +17,9 @@
     },
     {
       "key": "deviceCode",
-      "value": "led1",
+      "value": "LED1",
       "type": "string",
-      "description": "Mã thiết bị: led1 | led2 | led3"
+      "description": "Mã thiết bị: LED1 | LED2 | LED3 | WARNING_LED"
     },
     {
       "key": "action",
@@ -121,7 +121,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["devices"]
             },
-            "description": "Trả về 3 đèn LED. `online` phản ánh trạng thái kết nối ESP8266."
+            "description": "Trả về 3 đèn LED (LED1/LED2/LED3). `online` phản ánh trạng thái kết nối ESP8266."
+          }
+        },
+        {
+          "name": "Get Warning LED",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/devices/warning-led",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "warning-led"]
+            },
+            "description": "Trả về trạng thái đèn cảnh báo gió. Đèn này tự động bật/tắt khi tốc độ gió vượt ngưỡng 300 m/s."
           }
         },
         {
@@ -138,11 +150,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["devices", "{{deviceCode}}", "control"]
             },
-            "description": "Điều khiển một đèn. Đổi biến `deviceCode` (led1/led2/led3) và `action` (TURN_ON/TURN_OFF). Block ~1 giây chờ ESP8266 xác nhận qua MQTT."
+            "description": "Điều khiển một thiết bị. `deviceCode`: LED1/LED2/LED3/WARNING_LED. `action`: TURN_ON/TURN_OFF. Block ~1 giây chờ ESP8266 xác nhận qua MQTT."
           }
         },
         {
-          "name": "Control All",
+          "name": "Control All LEDs",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -155,7 +167,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["devices", "control-all"]
             },
-            "description": "Bật/tắt cả 3 đèn cùng lúc. Đổi biến `action` (TURN_ON/TURN_OFF)."
+            "description": "Bật/tắt cả 3 đèn LED cùng lúc (không bao gồm Warning LED). `action`: TURN_ON/TURN_OFF."
           }
         }
       ]
@@ -194,7 +206,19 @@
               "host": ["{{baseUrl}}"],
               "path": ["sensors", "light"]
             },
-            "description": "`lastValue` là ADC thô (0–1023). Frontend dùng `100 - round(v/1280*100)` để ra %."
+            "description": "`lastValue` là % ánh sáng đã quy đổi (100 - round(adc/1280*100))."
+          }
+        },
+        {
+          "name": "Get Wind Speed",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/wind",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "wind"]
+            },
+            "description": "Tốc độ gió hiện tại (m/s). Ngưỡng cảnh báo: 300 m/s."
           }
         },
         {
@@ -234,6 +258,30 @@
           }
         },
         {
+          "name": "Latest Wind Speed (chart)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/wind/latest?limit=25",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "wind", "latest"],
+              "query": [{ "key": "limit", "value": "25" }]
+            }
+          }
+        },
+        {
+          "name": "Wind Monthly Alerts (chart)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/sensors/wind/monthly-alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["sensors", "wind", "monthly-alerts"]
+            },
+            "description": "Số lần tốc độ gió vượt 300 m/s theo ngày, 30 ngày gần nhất. Trả về [{date, count}] đầy đủ 30 phần tử (ngày không có cảnh báo trả về count=0)."
+          }
+        },
+        {
           "name": "Search Sensors",
           "request": {
             "method": "GET",
@@ -269,7 +317,7 @@
               "query": [
                 { "key": "timeSearch", "value": "2026-10-20", "disabled": true, "description": "string — lọc theo ngày/giờ (LIKE prefix trên measured_at_str). Ví dụ: \"2026-10-20\", \"17:30\", \"2026-10-20 17\"." },
                 { "key": "valueSearch", "value": "28.5", "disabled": true, "description": "number (string) — khớp đúng giá trị đo. Ví dụ: \"28.5\", \"65\"." },
-                { "key": "typeIds", "value": "1", "disabled": true, "description": "integer — ID loại cảm biến, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Bỏ trống = không lọc." },
+                { "key": "typeIds", "value": "1", "disabled": true, "description": "integer — ID loại cảm biến, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT, 4=WIND_SPEED. Bỏ trống = không lọc." },
                 { "key": "newestFirst", "value": "true", "description": "boolean — true: mới nhất trước (mặc định); false: cũ nhất trước." },
                 { "key": "page", "value": "1", "description": "integer — trang hiện tại, bắt đầu từ 1." },
                 { "key": "size", "value": "10", "description": "integer — số hàng mỗi trang." }
@@ -295,13 +343,47 @@
                 { "key": "search", "value": "2026-10-20", "disabled": true, "description": "string — lọc theo ngày/giờ (LIKE prefix trên created_at_str). Ví dụ: \"2026-10-20\", \"17:30\", \"2026-10-20 17\"." },
                 { "key": "statusIds", "value": "2,3", "disabled": true, "description": "integer — ID trạng thái lệnh, nhiều giá trị ngăn cách bằng dấu phẩy. 1=PENDING, 2=SUCCESS, 3=FAILED. Bỏ trống = không lọc." },
                 { "key": "actionIds", "value": "1", "disabled": true, "description": "integer — ID loại hành động, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TURN_ON, 2=TURN_OFF. Bỏ trống = không lọc." },
-                { "key": "deviceTypeIds", "value": "1", "disabled": true, "description": "integer — ID loại thiết bị, nhiều giá trị ngăn cách bằng dấu phẩy. 1=SMART_LED. Bỏ trống = không lọc." },
+                { "key": "deviceTypeIds", "value": "1", "disabled": true, "description": "integer — ID loại thiết bị, nhiều giá trị ngăn cách bằng dấu phẩy. 1=SMART_LED, 2=WARNING_LED. Bỏ trống = không lọc." },
                 { "key": "newestFirst", "value": "true", "description": "boolean — true: mới nhất trước (mặc định); false: cũ nhất trước." },
                 { "key": "page", "value": "1", "description": "integer — trang hiện tại, bắt đầu từ 1." },
                 { "key": "size", "value": "10", "description": "integer — số hàng mỗi trang." }
               ]
             },
             "description": "Lịch sử lệnh điều khiển thiết bị, có lọc và phân trang. Kết hợp search + statusIds + actionIds để lọc đồng thời ngày giờ và trạng thái."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Thresholds",
+      "item": [
+        {
+          "name": "Get All Thresholds",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/thresholds",
+              "host": ["{{baseUrl}}"],
+              "path": ["thresholds"]
+            },
+            "description": "Trả về ngưỡng cảnh báo của tất cả cảm biến."
+          }
+        },
+        {
+          "name": "Update Threshold",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxValue\": 300\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/thresholds/wind",
+              "host": ["{{baseUrl}}"],
+              "path": ["thresholds", "wind"]
+            },
+            "description": "Cập nhật ngưỡng cảnh báo cho một cảm biến. `sensorCode`: temp | humi | light | wind."
           }
         }
       ]
