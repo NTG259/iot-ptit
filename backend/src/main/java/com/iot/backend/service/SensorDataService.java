@@ -1,4 +1,4 @@
-package com.iot.backend.service;
+﻿package com.iot.backend.service;
 
 import com.iot.backend.dto.PageResponse;
 import com.iot.backend.dto.SensorReadingResponse;
@@ -52,8 +52,7 @@ public class SensorDataService {
         data.setMeasuredAt(measuredAt);
         data.setMeasuredAtStr(measuredAt.format(VN_FMT));
         sensorDataRepository.save(data);
-        // Use native UPDATE instead of JPA dirty tracking: releases row lock immediately
-        // after this call (no outer transaction holds it open).
+        // Use native UPDATE instead of JPA dirty tracking: releases row lock immediately.
         sensorRepository.updateReadingMeta(sensor.getId(), rounded, measuredAt);
     }
 
@@ -86,6 +85,35 @@ public class SensorDataService {
         ).toList();
 
         return PageResponse.of(items, total, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getMonthlyAlerts() {
+        LocalDateTime startDate = LocalDateTime.now(ZoneOffset.ofHours(7)).minusDays(29).toLocalDate().atStartOfDay();
+        var rows = sensorDataRepository.findAlertsByDayAndSensor(startDate);
+
+        java.time.LocalDate today = LocalDateTime.now(ZoneOffset.ofHours(7)).toLocalDate();
+        java.util.LinkedHashMap<String, java.util.Map<String, Object>> dayMap = new java.util.LinkedHashMap<>();
+        for (int i = 29; i >= 0; i--) {
+            String d = today.minusDays(i).toString();
+            java.util.Map<String, Object> entry = new java.util.HashMap<>();
+            entry.put("date", d);
+            entry.put("total", 0L);
+            entry.put("temp",  0L);
+            entry.put("humi",  0L);
+            entry.put("light", 0L);
+            entry.put("co2",   0L);
+            dayMap.put(d, entry);
+        }
+        rows.forEach(r -> {
+            var entry = dayMap.get(r.getAlertDate());
+            if (entry == null) return;
+            long count = r.getAlertCount();
+            entry.put(r.getSensorCode(), count);
+            entry.put("total", (long) entry.get("total") + count);
+        });
+
+        return new java.util.ArrayList<>(dayMap.values());
     }
 
     private static Double parseDouble(String text) {

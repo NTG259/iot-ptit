@@ -1,9 +1,10 @@
-package com.iot.backend.config;
+﻿package com.iot.backend.config;
 
 import com.iot.backend.entity.Device;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.User;
+import com.iot.backend.entity.SensorThreshold;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
@@ -14,6 +15,7 @@ import com.iot.backend.repository.ActionHistoryRepository;
 import com.iot.backend.repository.DeviceRepository;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
+import com.iot.backend.repository.SensorThresholdRepository;
 import com.iot.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -40,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
     private final ActionHistoryRepository actionHistoryRepository;
+    private final SensorThresholdRepository thresholdRepository;
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -123,6 +126,8 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
+        seedThresholds();
+
         if (actionHistoryRepository.count() == 0) {
             seedActionHistory(devices);
         }
@@ -179,6 +184,24 @@ public class DataInitializer implements CommandLineRunner {
         }
         LocalDateTime lastT = now.withHour(21).withMinute(0).withSecond(0);
         updateSensorCache(co2Sensor, lastT, dailyValues[7]);
+    }
+
+    private void seedThresholds() {
+        java.util.Map<String, Double> defaults = java.util.Map.of(
+            "temp",  40.0,
+            "humi",  90.0,
+            "light", 90.0,
+            "co2",   1000.0
+        );
+        defaults.forEach((code, max) -> {
+            if (thresholdRepository.findBySensorCode(code).isEmpty()) {
+                SensorThreshold t = new SensorThreshold();
+                t.setSensorCode(code);
+                t.setMaxValue(max);
+                t.setEnabled(true);
+                thresholdRepository.save(t);
+            }
+        });
     }
 
     private void updateSensorCache(Sensor sensor, LocalDateTime at, double value) {

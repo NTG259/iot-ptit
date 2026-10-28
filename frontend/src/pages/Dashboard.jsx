@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Alert, Button, Tabs, notification } from 'antd'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import AppShell from '@/components/layout/AppShell'
 import MetricCard from '@/components/common/MetricCard'
 import TelemetryChart from '@/components/common/TelemetryChart'
@@ -40,6 +41,7 @@ function TabLabel({ sensorConfig }) {
 }
 
 const EMPTY_CHART = { values: [], times: [] }
+const ALERT_ID = 'alert'
 
 export default function Dashboard() {
   const [notifier, notificationHolder] = notification.useNotification()
@@ -47,7 +49,7 @@ export default function Dashboard() {
   notifierRef.current = notifier
 
   const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
-  useStompStatus()
+  const { stompConnected: _ } = useStompStatus()
 
   const sensorOptions = { intervalMs: 2000, initialData: EMPTY_SENSOR }
   const temperatureRequest = useApi(() => sensorService.getTemperature(), [], sensorOptions)
@@ -60,6 +62,12 @@ export default function Dashboard() {
   const humidityChartRequest    = useApi(() => sensorService.getLatestHumidity({ limit: 25 }),    [], chartOptions)
   const lightChartRequest       = useApi(() => sensorService.getLatestLight({ limit: 25 }),       [], chartOptions)
   const co2ChartRequest         = useApi(() => sensorService.getLatestCO2({ limit: 25 }),          [], chartOptions)
+
+  const monthlyAlertsRequest = useApi(
+    () => sensorService.getMonthlyAlerts(),
+    [],
+    { intervalMs: 60000, initialData: [] },
+  )
 
   const ledRequest = useApi(() => deviceService.getLeds(), [], { intervalMs: 1000, initialData: [] })
 
@@ -81,14 +89,15 @@ export default function Dashboard() {
   const lightChart       = { sensorConfig: LIGHT,       sensor: light,       chartRequest: lightChartRequest       }
   const co2Chart         = { sensorConfig: CO2,         sensor: co2,         chartRequest: co2ChartRequest         }
 
-  const isCO2Tab = selectedChartId === CO2.id
+  const isCO2Tab   = selectedChartId === CO2.id
+  const isAlertTab = selectedChartId === ALERT_ID
 
   let selectedChart = temperatureChart
   if (selectedChartId === HUMIDITY.id) selectedChart = humidityChart
   else if (selectedChartId === LIGHT.id) selectedChart = lightChart
   else if (isCO2Tab) selectedChart = co2Chart
 
-  const { values, times } = isCO2Tab ? EMPTY_CHART : selectedChart.chartRequest.data
+  const { values, times } = (isCO2Tab || isAlertTab) ? EMPTY_CHART : selectedChart.chartRequest.data
   const xAxisLabels = [times[0], times[4], times[8], times[12], times[16], times[20], times[24]]
 
   const co2ChartData   = co2ChartRequest.data
@@ -99,12 +108,12 @@ export default function Dashboard() {
   ]
 
   const notEnoughReadings =
-    (!isCO2Tab && !selectedChart.chartRequest.loading && values.length < 2) ||
+    (!isCO2Tab && !isAlertTab && !selectedChart.chartRequest.loading && values.length < 2) ||
     (isCO2Tab && co2ChartData.values.length < 2 && !co2ChartRequest.loading)
   const statusText = notEnoughReadings ? 'Not enough readings yet.' : ''
 
   let chartSeries = []
-  if (!isCO2Tab && values.length > 1) {
+  if (!isCO2Tab && !isAlertTab && values.length > 1) {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
@@ -163,12 +172,64 @@ export default function Dashboard() {
               { key: HUMIDITY.id,    label: <TabLabel sensorConfig={HUMIDITY} /> },
               { key: LIGHT.id,       label: <TabLabel sensorConfig={LIGHT} /> },
               { key: CO2.id,         label: <TabLabel sensorConfig={CO2} /> },
+              {
+                key: ALERT_ID,
+                label: (
+                  <span className="dashboard__tab-label">
+                    <span className="dashboard__tab-dot" style={{ backgroundColor: '#ef4444' }} />
+                    Alert
+                  </span>
+                ),
+              },
             ]}
           />
           <span className="dashboard__chart-status">{statusText}</span>
         </div>
 
-        {isCO2Tab ? (
+        {isAlertTab ? (
+          <div className="dashboard__monthly-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={monthlyAlertsRequest.data}
+                margin={{ top: 12, right: 16, bottom: 4, left: 0 }}
+              >
+                <CartesianGrid strokeDasharray="4 4" stroke="var(--color-border, #e2e8f0)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(d, i) => (i % 5 === 0 ? d.slice(5).replace('-', '/') : '')}
+                  tick={{ fontSize: 11, fill: 'var(--color-muted, #94a3b8)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: 'var(--color-muted, #94a3b8)' }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0]?.payload ?? {}
+                    return (
+                      <div style={{ background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+                        <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
+                        <p>Total: <strong>{d.total}</strong></p>
+                        {d.temp  > 0 && <p style={{ color: '#10b981' }}>Temperature: {d.temp}</p>}
+                        {d.humi  > 0 && <p style={{ color: '#0891b2' }}>Humidity: {d.humi}</p>}
+                        {d.light > 0 && <p style={{ color: '#d97706' }}>Light: {d.light}</p>}
+                        {d.co2   > 0 && <p style={{ color: '#7c3aed' }}>CO2: {d.co2}</p>}
+                      </div>
+                    )
+                  }}
+                />
+                <Bar dataKey="total" fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : isCO2Tab ? (
           <TelemetryChart
             key={CO2.id}
             series={co2ChartSeries}
