@@ -6,13 +6,13 @@
   border-radius: 0.5rem;
   overflow: hidden;
   background: #fff;
-  max-width: 640px;
+  max-width: 520px;
 }
 
 .threshold-config__header,
 .threshold-config__row {
   display: grid;
-  grid-template-columns: 1fr 10rem 5rem 6rem;
+  grid-template-columns: 1fr 10rem 6rem;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.25rem;
@@ -39,4 +39,12 @@
 .threshold-config__label {
   font-weight: 500;
   color: var(--color-text);
+}
+
+.threshold-config__btn--saved,
+.threshold-config__btn--saved:hover,
+.threshold-config__btn--saved:focus {
+  background-color: #16a34a !important;
+  border-color: #16a34a !important;
+  transition: background-color 0.2s, border-color 0.2s;
 }
