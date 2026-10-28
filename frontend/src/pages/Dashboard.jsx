@@ -9,7 +9,7 @@ import GreetingHeader from '@/components/common/GreetingHeader'
 import { deviceService, sensorService, session } from '@/services'
 import useApi from '@/hooks/useApi'
 import { useStompStatus } from '@/contexts/StompContext'
-import { TEMPERATURE, HUMIDITY, LIGHT, WIND_SPEED, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
+import { TEMPERATURE, HUMIDITY, LIGHT, CO2, EMPTY_SENSOR, formatReading } from '@/constants/sensors'
 import './Dashboard.css'
 
 function PanelTitle({ children }) {
@@ -41,7 +41,6 @@ function TabLabel({ sensorConfig }) {
 }
 
 const EMPTY_CHART = { values: [], times: [] }
-const MIX_ID = 'mix'
 const ALERT_ID = 'alert'
 
 export default function Dashboard() {
@@ -49,23 +48,23 @@ export default function Dashboard() {
   const notifierRef = useRef(notifier)
   notifierRef.current = notifier
 
-  const [selectedChartId, setSelectedChartId] = useState(MIX_ID)
-  const { stompConnected, windAlertActive, windAlertValue, alertHistory, dismissWindAlert } = useStompStatus()
+  const [selectedChartId, setSelectedChartId] = useState(TEMPERATURE.id)
+  const { alertActive, alertCode, alertValue, dismissAlert } = useStompStatus()
 
   const sensorOptions = { intervalMs: 2000, initialData: EMPTY_SENSOR }
   const temperatureRequest = useApi(() => sensorService.getTemperature(), [], sensorOptions)
   const humidityRequest    = useApi(() => sensorService.getHumidity(),    [], sensorOptions)
   const lightRequest       = useApi(() => sensorService.getLight(),       [], sensorOptions)
-  const windRequest        = useApi(() => sensorService.getWind(),        [], sensorOptions)
+  const co2Request         = useApi(() => sensorService.getCO2(),          [], sensorOptions)
 
   const chartOptions = { intervalMs: 2000, initialData: EMPTY_CHART }
   const temperatureChartRequest = useApi(() => sensorService.getLatestTemperature({ limit: 25 }), [], chartOptions)
   const humidityChartRequest    = useApi(() => sensorService.getLatestHumidity({ limit: 25 }),    [], chartOptions)
   const lightChartRequest       = useApi(() => sensorService.getLatestLight({ limit: 25 }),       [], chartOptions)
-  const windChartRequest        = useApi(() => sensorService.getLatestWind({ limit: 25 }),        [], chartOptions)
+  const co2ChartRequest         = useApi(() => sensorService.getLatestCO2({ limit: 25 }),          [], chartOptions)
 
   const monthlyAlertsRequest = useApi(
-    () => sensorService.getWindMonthlyAlerts(),
+    () => sensorService.getMonthlyAlerts(),
     [],
     { intervalMs: 60000, initialData: [] },
   )
@@ -75,7 +74,7 @@ export default function Dashboard() {
   const temperature = temperatureRequest.data
   const humidity    = humidityRequest.data
   const light       = lightRequest.data
-  const wind        = windRequest.data
+  const co2         = co2Request.data
 
   const [pending, setPending] = useState(new Set())
   const setPendingCode   = (code) => setPending(s => new Set(s).add(code))
@@ -88,54 +87,33 @@ export default function Dashboard() {
   const temperatureChart = { sensorConfig: TEMPERATURE, sensor: temperature, chartRequest: temperatureChartRequest }
   const humidityChart    = { sensorConfig: HUMIDITY,    sensor: humidity,    chartRequest: humidityChartRequest    }
   const lightChart       = { sensorConfig: LIGHT,       sensor: light,       chartRequest: lightChartRequest       }
-  const windChart        = { sensorConfig: WIND_SPEED,  sensor: wind,        chartRequest: windChartRequest        }
+  const co2Chart         = { sensorConfig: CO2,         sensor: co2,         chartRequest: co2ChartRequest         }
 
-  const isMixTab   = selectedChartId === MIX_ID
-  const isWindTab  = selectedChartId === WIND_SPEED.id
+  const isCO2Tab   = selectedChartId === CO2.id
   const isAlertTab = selectedChartId === ALERT_ID
 
   let selectedChart = temperatureChart
-  if (selectedChartId === HUMIDITY.id)   selectedChart = humidityChart
+  if (selectedChartId === HUMIDITY.id) selectedChart = humidityChart
   else if (selectedChartId === LIGHT.id) selectedChart = lightChart
-  else if (isWindTab)                    selectedChart = windChart
+  else if (isCO2Tab) selectedChart = co2Chart
 
-  const { values, times } = (isMixTab || isWindTab || isAlertTab) ? EMPTY_CHART : selectedChart.chartRequest.data
+  const { values, times } = (isCO2Tab || isAlertTab) ? EMPTY_CHART : selectedChart.chartRequest.data
   const xAxisLabels = [times[0], times[4], times[8], times[12], times[16], times[20], times[24]]
 
-  const mixReady =
-    isMixTab &&
-    temperatureChartRequest.data.values.length > 1 &&
-    humidityChartRequest.data.values.length > 1 &&
-    lightChartRequest.data.values.length > 1
-
-  let mixSeries = []
-  let mixTimes  = []
-  let mixLabels = []
-  if (mixReady) {
-    mixTimes  = temperatureChartRequest.data.times
-    mixLabels = [mixTimes[0], mixTimes[4], mixTimes[8], mixTimes[12], mixTimes[16], mixTimes[20], mixTimes[24]]
-    mixSeries = [
-      { ...buildChartLine(TEMPERATURE, temperatureChartRequest.data), yAxisId: 'left'  },
-      { ...buildChartLine(HUMIDITY,    humidityChartRequest.data),    yAxisId: 'right' },
-      { ...buildChartLine(LIGHT,       lightChartRequest.data),       yAxisId: 'right' },
-    ]
-  }
-
-  const windChartData   = windChartRequest.data
-  const windChartSeries = windChartData.values.length > 1 ? [buildChartLine(WIND_SPEED, windChartData)] : []
-  const windChartLabels = [
-    windChartData.times[0], windChartData.times[4], windChartData.times[8],
-    windChartData.times[12], windChartData.times[16], windChartData.times[20], windChartData.times[24],
+  const co2ChartData   = co2ChartRequest.data
+  const co2ChartSeries = co2ChartData.values.length > 1 ? [buildChartLine(CO2, co2ChartData)] : []
+  const co2ChartLabels = [
+    co2ChartData.times[0], co2ChartData.times[4], co2ChartData.times[8],
+    co2ChartData.times[12], co2ChartData.times[16], co2ChartData.times[20], co2ChartData.times[24],
   ]
 
   const notEnoughReadings =
-    (!isMixTab && !isWindTab && !isAlertTab && !selectedChart.chartRequest.loading && values.length < 2) ||
-    (isMixTab  && !mixReady  && !temperatureChartRequest.loading) ||
-    (isWindTab && windChartData.values.length < 2 && !windChartRequest.loading)
+    (!isCO2Tab && !isAlertTab && !selectedChart.chartRequest.loading && values.length < 2) ||
+    (isCO2Tab && co2ChartData.values.length < 2 && !co2ChartRequest.loading)
   const statusText = notEnoughReadings ? 'Not enough readings yet.' : ''
 
   let chartSeries = []
-  if (!isMixTab && !isWindTab && !isAlertTab && values.length > 1) {
+  if (!isCO2Tab && !isAlertTab && values.length > 1) {
     chartSeries = [buildChartLine(selectedChart.sensorConfig, selectedChart.chartRequest.data)]
   }
 
@@ -168,16 +146,16 @@ export default function Dashboard() {
 
       <GreetingHeader name={session.getUser()?.fullName} />
 
-      {/* ── Fixed wind alert banner ─────────────────────────────────────────── */}
-      {windAlertActive && windAlertValue !== null && (
-        <div className="dashboard__wind-alert">
-          <span className="dashboard__wind-alert-icon">⚠</span>
+      {/* ── Sensor alert banner ─────────────────────────────────────────────── */}
+      {alertActive && alertValue !== null && (
+        <div className="dashboard__sensor-alert">
+          <span className="dashboard__sensor-alert-icon">⚠</span>
           <span>
-            <strong>Wind Speed Alert</strong> — current reading{' '}
-            <strong>{windAlertValue.toFixed(1)} m/s</strong> exceeds the 300 m/s threshold.
+            <strong>Sensor Alert</strong> — {alertCode?.toUpperCase()} reading{' '}
+            <strong>{typeof alertValue === 'number' ? alertValue.toFixed(1) : alertValue}</strong> exceeds threshold.
             Warning LED is active.
           </span>
-          <button className="dashboard__wind-alert-close" onClick={dismissWindAlert}>✕</button>
+          <button className="dashboard__sensor-alert-close" onClick={dismissAlert}>✕</button>
         </div>
       )}
 
@@ -190,7 +168,7 @@ export default function Dashboard() {
         <MetricCard config={TEMPERATURE} sensor={temperature} />
         <MetricCard config={HUMIDITY}    sensor={humidity} />
         <MetricCard config={LIGHT}       sensor={light} />
-        <MetricCard config={WIND_SPEED}  sensor={wind} />
+        <MetricCard config={CO2}         sensor={co2} />
       </div>
 
 {/* ── Telemetry chart ─────────────────────────────────────────────────── */}
@@ -203,24 +181,15 @@ export default function Dashboard() {
             onChange={setSelectedChartId}
             tabBarStyle={{ margin: 0 }}
             items={[
-              {
-                key: MIX_ID,
-                label: (
-                  <span className="dashboard__tab-label">
-                    <span className="dashboard__tab-dot dashboard__tab-dot--mix" />
-                    Mix
-                  </span>
-                ),
-              },
               { key: TEMPERATURE.id, label: <TabLabel sensorConfig={TEMPERATURE} /> },
               { key: HUMIDITY.id,    label: <TabLabel sensorConfig={HUMIDITY} /> },
               { key: LIGHT.id,       label: <TabLabel sensorConfig={LIGHT} /> },
-              { key: WIND_SPEED.id,  label: <TabLabel sensorConfig={WIND_SPEED} /> },
+              { key: CO2.id,         label: <TabLabel sensorConfig={CO2} /> },
               {
                 key: ALERT_ID,
                 label: (
                   <span className="dashboard__tab-label">
-                    <span className="dashboard__tab-dot" style={{ backgroundColor: '#7c3aed' }} />
+                    <span className="dashboard__tab-dot" style={{ backgroundColor: '#ef4444' }} />
                     Alert
                   </span>
                 ),
@@ -254,33 +223,42 @@ export default function Dashboard() {
                   width={28}
                 />
                 <Tooltip
-                  formatter={(value) => [value, 'Alerts']}
-                  labelFormatter={(date) => date}
-                  contentStyle={{ fontSize: 12 }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0]?.payload ?? {}
+                    return (
+                      <div style={{ background: 'var(--color-surface, #fff)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: 6, padding: '8px 12px', fontSize: 12 }}>
+                        <p style={{ fontWeight: 600, marginBottom: 4 }}>{label}</p>
+                        <p>Total: <strong>{d.total}</strong></p>
+                        {d.temp  > 0 && <p style={{ color: '#10b981' }}>Temperature: {d.temp}</p>}
+                        {d.humi  > 0 && <p style={{ color: '#0891b2' }}>Humidity: {d.humi}</p>}
+                        {d.light > 0 && <p style={{ color: '#d97706' }}>Light: {d.light}</p>}
+                        {d.co2   > 0 && <p style={{ color: '#7c3aed' }}>CO2: {d.co2}</p>}
+                      </div>
+                    )
+                  }}
                 />
-                <Bar dataKey="count" fill="#7c3aed" radius={[3, 3, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="total" fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        ) : isWindTab ? (
+        ) : isCO2Tab ? (
           <TelemetryChart
-            key={WIND_SPEED.id}
-            series={windChartSeries}
-            labels={windChartLabels}
-            times={windChartData.times}
-            yTicks={WIND_SPEED.yTicks}
-            unit={WIND_SPEED.unit}
+            key={CO2.id}
+            series={co2ChartSeries}
+            labels={co2ChartLabels}
+            times={co2ChartData.times}
+            yTicks={CO2.yTicks}
+            unit={CO2.unit}
           />
         ) : (
           <TelemetryChart
-            key={isMixTab ? MIX_ID : selectedChart.sensorConfig.id}
-            series={isMixTab ? mixSeries : chartSeries}
-            labels={isMixTab ? mixLabels : xAxisLabels}
-            times={isMixTab ? mixTimes : times}
-            yTicks={isMixTab ? TEMPERATURE.yTicks : selectedChart.sensorConfig.yTicks}
-            unit={isMixTab ? TEMPERATURE.unit : selectedChart.sensorConfig.unit}
-            rightYTicks={isMixTab ? [0, 20, 40, 60, 80, 100] : undefined}
-            rightUnit={isMixTab ? '%' : ''}
+            key={selectedChart.sensorConfig.id}
+            series={chartSeries}
+            labels={xAxisLabels}
+            times={times}
+            yTicks={selectedChart.sensorConfig.yTicks}
+            unit={selectedChart.sensorConfig.unit}
           />
         )}
       </section>

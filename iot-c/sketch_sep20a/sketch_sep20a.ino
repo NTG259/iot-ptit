@@ -32,7 +32,7 @@ unsigned long lastPubTime = 0;
 const unsigned long pubInterval = 2000;
 bool isReadingSensor = true;
 
-float mockWindSpeed = 0.0;
+float mockCO2 = 0.0;
 
 void setupWiFi() {
   delay(10);
@@ -70,12 +70,12 @@ void publishSensorData() {
   if (isnan(h)) h = 0.0;
   if (isnan(t)) t = 0.0;
 
-  mockWindSpeed = (float)random(0, 501) / 10.0;
+  mockCO2 = (float)random(300, 2001);
 
   char sensorPayload[160];
   snprintf(sensorPayload, sizeof(sensorPayload),
-           "{\"temp\":%.1f, \"humi\":%.1f, \"light\":%d, \"wind\":%.1f}",
-           t, h, lightVal, mockWindSpeed);
+           "{\"temp\":%.1f, \"humi\":%.1f, \"light\":%d, \"co2\":%.0f}",
+           t, h, lightVal, mockCO2);
 
   client.publish(topic_pub_sensor, sensorPayload);
   Serial.println("-> Da gui ban tin Cam bien.");

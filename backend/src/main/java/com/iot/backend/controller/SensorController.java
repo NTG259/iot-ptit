@@ -37,9 +37,9 @@ public class SensorController {
         return ApiResponse.ok(sensorService.getSensor("light"));
     }
 
-    @GetMapping("/wind")
-    public ApiResponse<SensorResponse> wind() {
-        return ApiResponse.ok(sensorService.getSensor("wind"));
+    @GetMapping("/co2")
+    public ApiResponse<SensorResponse> co2() {
+        return ApiResponse.ok(sensorService.getSensor("co2"));
     }
 
     /** The {@code limit} newest temperature readings, oldest first. */
@@ -60,14 +60,14 @@ public class SensorController {
         return ApiResponse.ok(sensorService.getLatest("light", limit));
     }
 
-    @GetMapping("/wind/latest")
-    public ApiResponse<SensorChartResponse> latestWind(@RequestParam(defaultValue = "25") int limit) {
-        return ApiResponse.ok(sensorService.getLatest("wind", limit));
+    @GetMapping("/co2/latest")
+    public ApiResponse<SensorChartResponse> latestCO2(@RequestParam(defaultValue = "25") int limit) {
+        return ApiResponse.ok(sensorService.getLatest("co2", limit));
     }
 
-    /** Count of wind readings > 300 per day for the last 30 days. Returns [{date, count}]. */
-    @GetMapping("/wind/monthly-alerts")
-    public ApiResponse<List<Map<String, Object>>> windMonthlyAlerts() {
-        return ApiResponse.ok(sensorDataService.getWindMonthlyAlerts());
+    /** Per-sensor exceedance counts per day for the last 30 days. Returns [{date, total, temp, humi, light, co2}]. */
+    @GetMapping("/monthly-alerts")
+    public ApiResponse<List<Map<String, Object>>> monthlyAlerts() {
+        return ApiResponse.ok(sensorDataService.getMonthlyAlerts());
     }
 }

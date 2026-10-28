@@ -11,7 +11,7 @@ public enum SensorType {
     TEMPERATURE(1),
     HUMIDITY(2),
     LIGHT(3),
-    WIND_SPEED(4);
+    CO2(4);
 
     private final int id;
 

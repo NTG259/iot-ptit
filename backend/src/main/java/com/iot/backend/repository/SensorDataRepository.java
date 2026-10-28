@@ -94,25 +94,27 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("timeStr") String timeStr,
             @Param("value")   Double value);
 
-    // --- Used by SensorDataService for the wind-alert dashboard chart ---
+    // --- Used by SensorDataService for the alert dashboard chart (multi-sensor) ---
 
-    interface WindAlertDayProjection {
+    interface AlertBreakdownProjection {
         String getAlertDate();
+        String getSensorCode();
         long getAlertCount();
     }
 
     @Query(nativeQuery = true, value = """
             SELECT SUBSTRING(sd.measured_at_str, 1, 10) AS alertDate,
-                   COUNT(*)                             AS alertCount
+                   s.code                                AS sensorCode,
+                   COUNT(*)                              AS alertCount
             FROM sensor_data sd
             JOIN sensors s ON sd.sensor_id = s.id
-            WHERE s.code = 'wind'
-              AND sd.reading_value > :threshold
-              AND sd.measured_at  >= :startDate
-            GROUP BY SUBSTRING(sd.measured_at_str, 1, 10)
+            JOIN sensor_thresholds st ON st.sensor_code = s.code
+            WHERE sd.reading_value > st.max_value
+              AND st.enabled = 1
+              AND sd.measured_at >= :startDate
+            GROUP BY SUBSTRING(sd.measured_at_str, 1, 10), s.code
             ORDER BY alertDate ASC
             """)
-    List<WindAlertDayProjection> findWindAlertsByDay(
-            @Param("threshold") double threshold,
+    List<AlertBreakdownProjection> findAlertsByDayAndSensor(
             @Param("startDate") LocalDateTime startDate);
 }

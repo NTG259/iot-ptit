@@ -31,14 +31,14 @@ export const LIGHT = {
   color: '#d97706',
   yTicks: [0, 20, 40, 60, 80, 100],
 }
-export const WIND_SPEED = {
-  id: 'wind',
-  label: 'Wind Speed',
-  short: 'Wind',
-  unit: 'm/s',
-  decimals: 1,
+export const CO2 = {
+  id: 'co2',
+  label: 'CO2',
+  short: 'CO2',
+  unit: 'ppm',
+  decimals: 0,
   color: '#7c3aed',
-  yTicks: [0, 10, 20, 30, 40, 50],
+  yTicks: [0, 500, 1000, 1500, 2000],
 }
 
 /** Chuyển giá trị ADC ánh sáng thô (0–1280) sang phần trăm (0–100). */

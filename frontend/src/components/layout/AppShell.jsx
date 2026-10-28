@@ -8,8 +8,8 @@ import './AppShell.css'
  * (bảng, biểu đồ) mới giãn ra chiếm phần chiều cao còn lại.
  */
 export default function AppShell({ breadcrumb, title, subtitle, children }) {
-  const { stompConnected, windAlertActive } = useStompStatus()
-  const alertStatus = !stompConnected ? 'disconnected' : windAlertActive ? 'alert' : 'normal'
+  const { stompConnected, alertActive } = useStompStatus()
+  const alertStatus = !stompConnected ? 'disconnected' : alertActive ? 'alert' : 'normal'
 
   return (
     <div className="app-shell">

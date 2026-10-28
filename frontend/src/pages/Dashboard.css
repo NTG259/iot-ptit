@@ -81,8 +81,8 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
-/* Wind speed alert banner */
-.dashboard__wind-alert {
+/* Sensor alert banner */
+.dashboard__sensor-alert {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -95,19 +95,19 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .dashboard__wind-alert {
+  .dashboard__sensor-alert {
     background: #2d1a00;
     border-color: #b45309;
     color: #fcd34d;
   }
 }
 
-.dashboard__wind-alert-icon {
+.dashboard__sensor-alert-icon {
   font-size: 1.25rem;
   flex-shrink: 0;
 }
 
-.dashboard__wind-alert-close {
+.dashboard__sensor-alert-close {
   margin-left: auto;
   background: none;
   border: none;
@@ -118,7 +118,7 @@
   padding: 0.125rem 0.375rem;
 }
 
-.dashboard__wind-alert-close:hover {
+.dashboard__sensor-alert-close:hover {
   opacity: 1;
 }
 

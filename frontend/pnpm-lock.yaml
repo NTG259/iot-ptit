@@ -11,6 +11,9 @@ importers:
       '@ant-design/cssinjs':
         specifier: ^2.1.2
         version: 2.1.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@stomp/stompjs':
+        specifier: ^7.5.0
+        version: 7.5.0
       antd:
         specifier: ^6.6.5
         version: 6.6.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -692,6 +695,9 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@stomp/stompjs@7.5.0':
+    resolution: {integrity: sha512-xh3sdzEYH8M+krQGBOgj+U0BLBHd7ccTj8YM3mVxaULMTW/wx2QBWf448pilRiWZKjglhDmNILxM3W+j/Ch9uw==}
 
   '@types/d3-array@3.2.2':
     resolution: {integrity: sha512-hOLWVbm7uRza0BYXpIIW5pxfrKe0W+D5lrFiAEYR+pb6w3N2SwSMaJbXdUfSEv+dT4MfHBLtn5js0LAWaO6otw==}
@@ -2091,6 +2097,8 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@stomp/stompjs@7.5.0': {}
 
   '@types/d3-array@3.2.2': {}
 

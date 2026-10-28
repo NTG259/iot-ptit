@@ -36,7 +36,7 @@ export default function ThresholdConfig() {
   }
 
   return (
-    <AppShell breadcrumb="Thresholds" title="Threshold Config" subtitle="Set the upper limit for each sensor. Exceeding it triggers a BLINK command to the warning LED.">
+    <AppShell breadcrumb="Thresholds" title="Threshold Config" subtitle="Set the upper limit for each sensor. Exceeding it turns the warning LED on.">
       {error && <Alert type="error" showIcon message={error} closable onClose={() => setError(null)} />}
 
       {loading ? (

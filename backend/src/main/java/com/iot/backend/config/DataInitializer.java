@@ -4,6 +4,7 @@ import com.iot.backend.entity.Device;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.User;
+import com.iot.backend.entity.SensorThreshold;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
@@ -14,6 +15,7 @@ import com.iot.backend.repository.ActionHistoryRepository;
 import com.iot.backend.repository.DeviceRepository;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
+import com.iot.backend.repository.SensorThresholdRepository;
 import com.iot.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -40,6 +42,7 @@ public class DataInitializer implements CommandLineRunner {
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
     private final ActionHistoryRepository actionHistoryRepository;
+    private final SensorThresholdRepository thresholdRepository;
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -54,6 +57,9 @@ public class DataInitializer implements CommandLineRunner {
         jdbcTemplate.execute("ALTER TABLE sensors MODIFY COLUMN status VARCHAR(255)");
         jdbcTemplate.execute("ALTER TABLE action_histories MODIFY COLUMN action VARCHAR(255)");
         jdbcTemplate.execute("ALTER TABLE action_histories MODIFY COLUMN status VARCHAR(255)");
+
+        // Migrate wind sensor → CO2 sensor (idempotent: WHERE code='wind' matches nothing after first run).
+        jdbcTemplate.execute("UPDATE sensors SET code='co2', name='CO2', sensor_type='CO2', unit='ppm' WHERE code='wind'");
 
         if (userRepository.count() == 0) {
             User admin = new User();
@@ -96,19 +102,19 @@ public class DataInitializer implements CommandLineRunner {
             Sensor temp  = sensorRepository.save(sensor("temp",  "Temperature", SensorType.TEMPERATURE, "°C"));
             Sensor humi  = sensorRepository.save(sensor("humi",  "Humidity",    SensorType.HUMIDITY,    "%"));
             Sensor light = sensorRepository.save(sensor("light", "Light",       SensorType.LIGHT,       "%"));
-            Sensor wind  = sensorRepository.save(sensor("wind",  "Wind Speed",  SensorType.WIND_SPEED,  "m/s"));
-            sensors = List.of(temp, humi, light, wind);
+            Sensor co2   = sensorRepository.save(sensor("co2",   "CO2",         SensorType.CO2,         "ppm"));
+            sensors = List.of(temp, humi, light, co2);
         } else {
             sensors = new java.util.ArrayList<>(sensorRepository.findAll());
-            if (sensorRepository.findByCode("wind").isEmpty()) {
-                sensors.add(sensorRepository.save(sensor("wind", "Wind Speed", SensorType.WIND_SPEED, "m/s")));
+            if (sensorRepository.findByCode("co2").isEmpty()) {
+                sensors.add(sensorRepository.save(sensor("co2", "CO2", SensorType.CO2, "ppm")));
             }
             // Backfill unit column for sensors created before this column was added.
             java.util.Map<SensorType, String> defaultUnits = java.util.Map.of(
                 SensorType.TEMPERATURE, "°C",
                 SensorType.HUMIDITY,    "%",
                 SensorType.LIGHT,       "%",
-                SensorType.WIND_SPEED,  "m/s"
+                SensorType.CO2,         "ppm"
             );
             sensors.forEach(s -> {
                 if (s.getUnit() == null && s.getType() != null) {
@@ -121,12 +127,14 @@ public class DataInitializer implements CommandLineRunner {
         if (sensorDataRepository.count() == 0) {
             seedSensorData(sensors);
         } else {
-            Sensor windSensor = sensors.stream()
-                    .filter(s -> s.getType() == SensorType.WIND_SPEED).findFirst().orElse(null);
-            if (windSensor != null && sensorDataRepository.findLatestBySensorId(windSensor.getId(), 1).isEmpty()) {
-                seedWindData(windSensor);
+            Sensor co2Sensor = sensors.stream()
+                    .filter(s -> s.getType() == SensorType.CO2).findFirst().orElse(null);
+            if (co2Sensor != null && sensorDataRepository.findLatestBySensorId(co2Sensor.getId(), 1).isEmpty()) {
+                seedCO2Data(co2Sensor);
             }
         }
+
+        seedThresholds();
 
         if (actionHistoryRepository.count() == 0) {
             seedActionHistory(devices);
@@ -161,30 +169,47 @@ public class DataInitializer implements CommandLineRunner {
         updateSensorCache(humi,  lastT, 65.0 + 8.0 * Math.sin(lastPhase + 1.0));
         updateSensorCache(light, lastT, 60.0 + 25.0 * Math.sin(lastPhase + 2.0));
 
-        sensors.stream().filter(s -> s.getType() == SensorType.WIND_SPEED).findFirst()
-                .ifPresent(this::seedWindData);
+        sensors.stream().filter(s -> s.getType() == SensorType.CO2).findFirst()
+                .ifPresent(this::seedCO2Data);
     }
 
-    // 30 days × 8 readings per day. A few per day exceed 300 to populate the monthly alert chart.
-    private void seedWindData(Sensor windSensor) {
+    // 30 days × 8 readings per day. A few per day exceed 1000 ppm to populate the monthly alert chart.
+    private void seedCO2Data(Sensor co2Sensor) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         int days = 30;
         int perDay = 8;
-        // Base wind values cycling through: some below and some above 300
-        double[] dailyValues = { 120, 180, 350, 90, 420, 210, 310, 50 };
+        // CO2 values (ppm): some below and some above 1000 ppm threshold
+        double[] dailyValues = { 450, 620, 1200, 380, 1450, 780, 1050, 510 };
 
         for (int d = days - 1; d >= 0; d--) {
             for (int h = 0; h < perDay; h++) {
                 LocalDateTime t = now.minusDays(d).withHour(h * 3).withMinute(0).withSecond(0);
                 double base = dailyValues[h];
-                double value = round(base + (Math.random() * 40 - 20), 1);
-                value = Math.max(0, Math.min(500, value));
-                sensorDataRepository.save(reading(windSensor, t, value));
+                double value = round(base + (Math.random() * 80 - 40), 1);
+                value = Math.max(300, Math.min(2000, value));
+                sensorDataRepository.save(reading(co2Sensor, t, value));
             }
         }
-        // Cache last value
         LocalDateTime lastT = now.withHour(21).withMinute(0).withSecond(0);
-        updateSensorCache(windSensor, lastT, dailyValues[7]);
+        updateSensorCache(co2Sensor, lastT, dailyValues[7]);
+    }
+
+    private void seedThresholds() {
+        java.util.Map<String, Double> defaults = java.util.Map.of(
+            "temp",  40.0,
+            "humi",  90.0,
+            "light", 90.0,
+            "co2",   1000.0
+        );
+        defaults.forEach((code, max) -> {
+            if (thresholdRepository.findBySensorCode(code).isEmpty()) {
+                SensorThreshold t = new SensorThreshold();
+                t.setSensorCode(code);
+                t.setMaxValue(max);
+                t.setEnabled(true);
+                thresholdRepository.save(t);
+            }
+        });
     }
 
     private void updateSensorCache(Sensor sensor, LocalDateTime at, double value) {

@@ -5,6 +5,7 @@ import com.iot.backend.dto.ThresholdUpdateRequest;
 import com.iot.backend.entity.SensorThreshold;
 import com.iot.backend.exception.ResourceNotFoundException;
 import com.iot.backend.repository.SensorThresholdRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,26 +21,27 @@ public class ThresholdService {
             "temp",  "Temperature",
             "humi",  "Humidity",
             "light", "Light",
-            "wind",  "Wind Speed"
+            "co2",   "CO2"
     );
 
     private final SensorThresholdRepository thresholdRepository;
 
     public List<ThresholdDto> getAll() {
-        // TODO: return thresholdRepository.findAll() mapped to ThresholdDto via toDto()
-        throw new UnsupportedOperationException("implement me");
+        return thresholdRepository.findAll().stream().map(this::toDto).toList();
     }
 
     public ThresholdDto update(String sensorCode, ThresholdUpdateRequest request) {
-        // TODO: find by sensorCode (throw ResourceNotFoundException if absent),
-        //       apply request.maxValue() and request.enabled(), save, return toDto()
-        throw new UnsupportedOperationException("implement me");
+        SensorThreshold t = thresholdRepository.findBySensorCode(sensorCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Threshold", sensorCode));
+        t.setMaxValue(request.maxValue());
+        t.setEnabled(request.enabled());
+        return toDto(thresholdRepository.save(t));
     }
 
     /** Returns all thresholds keyed by sensorCode — used by SensorDataService for edge-trigger checks. */
     public Map<String, SensorThreshold> getThresholdMap() {
-        // TODO: return thresholdRepository.findAll() collected to Map<sensorCode, entity>
-        throw new UnsupportedOperationException("implement me");
+        return thresholdRepository.findAll().stream()
+                .collect(Collectors.toMap(SensorThreshold::getSensorCode, t -> t));
     }
 
     private ThresholdDto toDto(SensorThreshold t) {

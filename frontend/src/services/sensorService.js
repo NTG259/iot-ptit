@@ -52,19 +52,19 @@ export function getLatestLight({ limit } = {}) {
   return apiClient.get('/sensors/light/latest', { limit })
 }
 
-// GET /sensors/wind
-export function getWind() {
-  return apiClient.get('/sensors/wind')
+// GET /sensors/co2
+export function getCO2() {
+  return apiClient.get('/sensors/co2')
 }
 
-// GET /sensors/wind/latest?limit={limit}
-export function getLatestWind({ limit } = {}) {
-  return apiClient.get('/sensors/wind/latest', { limit })
+// GET /sensors/co2/latest?limit={limit}
+export function getLatestCO2({ limit } = {}) {
+  return apiClient.get('/sensors/co2/latest', { limit })
 }
 
-// GET /sensors/wind/monthly-alerts
-export function getWindMonthlyAlerts() {
-  return apiClient.get('/sensors/wind/monthly-alerts')
+// GET /sensors/monthly-alerts
+export function getMonthlyAlerts() {
+  return apiClient.get('/sensors/monthly-alerts')
 }
 
 /**

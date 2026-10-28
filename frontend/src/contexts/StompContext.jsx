@@ -4,10 +4,11 @@ import { Client as StompClient } from '@stomp/stompjs'
 
 const StompContext = createContext({
   stompConnected: false,
-  windAlertActive: false,
-  windAlertValue: null,
+  alertActive: false,
+  alertCode: null,
+  alertValue: null,
   alertHistory: [],
-  dismissWindAlert: () => {},
+  dismissAlert: () => {},
 })
 
 export function useStompStatus() {
@@ -20,8 +21,9 @@ export function StompProvider({ children }) {
   notifierRef.current = notifier
 
   const [stompConnected, setStompConnected] = useState(false)
-  const [windAlertActive, setWindAlertActive] = useState(false)
-  const [windAlertValue, setWindAlertValue] = useState(null)
+  const [alertActive, setAlertActive] = useState(false)
+  const [alertCode, setAlertCode] = useState(null)
+  const [alertValue, setAlertValue] = useState(null)
   const [alertHistory, setAlertHistory] = useState([])
 
   useEffect(() => {
@@ -39,19 +41,18 @@ export function StompProvider({ children }) {
         console.log('[STOMP] connected to', wsUrl)
         client.subscribe('/topic/alerts', (msg) => {
           const alert = JSON.parse(msg.body)
-          if (alert.sensorCode === 'wind') {
-            setWindAlertActive(true)
-            setWindAlertValue(alert.value)
-            setAlertHistory(prev =>
-              [{ value: alert.value, threshold: alert.threshold, time: alert.time }, ...prev].slice(0, 20)
-            )
-            notifierRef.current.warning({
-              message: 'Wind Speed Alert',
-              description: `Wind speed ${alert.value.toFixed(1)} m/s exceeds threshold (${alert.threshold} m/s)`,
-              placement: 'topRight',
-              duration: 5,
-            })
-          }
+          setAlertActive(true)
+          setAlertCode(alert.sensorCode)
+          setAlertValue(alert.value)
+          setAlertHistory(prev =>
+            [{ sensorCode: alert.sensorCode, value: alert.value, threshold: alert.threshold, time: alert.time }, ...prev].slice(0, 20)
+          )
+          notifierRef.current.warning({
+            message: 'Sensor Alert',
+            description: `${alert.sensorCode.toUpperCase()} value ${alert.value} exceeds threshold (${alert.threshold})`,
+            placement: 'topRight',
+            duration: 5,
+          })
         })
       },
     })
@@ -59,10 +60,10 @@ export function StompProvider({ children }) {
     return () => { client.deactivate() }
   }, [])
 
-  function dismissWindAlert() { setWindAlertActive(false) }
+  function dismissAlert() { setAlertActive(false) }
 
   return (
-    <StompContext.Provider value={{ stompConnected, windAlertActive, windAlertValue, alertHistory, dismissWindAlert }}>
+    <StompContext.Provider value={{ stompConnected, alertActive, alertCode, alertValue, alertHistory, dismissAlert }}>
       {notificationHolder}
       {children}
     </StompContext.Provider>
