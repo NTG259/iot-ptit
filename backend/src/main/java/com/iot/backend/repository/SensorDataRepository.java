@@ -1,4 +1,4 @@
-﻿package com.iot.backend.repository;
+package com.iot.backend.repository;
 
 import com.iot.backend.entity.SensorData;
 import org.springframework.data.jpa.repository.JpaRepository;

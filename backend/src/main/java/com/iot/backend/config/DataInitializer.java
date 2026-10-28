@@ -1,4 +1,4 @@
-﻿package com.iot.backend.config;
+package com.iot.backend.config;
 
 import com.iot.backend.entity.Device;
 import com.iot.backend.entity.Sensor;

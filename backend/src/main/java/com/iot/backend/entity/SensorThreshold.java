@@ -1,4 +1,4 @@
-﻿package com.iot.backend.entity;
+package com.iot.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

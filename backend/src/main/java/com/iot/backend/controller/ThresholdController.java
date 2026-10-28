@@ -1,4 +1,4 @@
-﻿package com.iot.backend.controller;
+package com.iot.backend.controller;
 
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.ThresholdDto;

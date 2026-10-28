@@ -1,4 +1,4 @@
-﻿package com.iot.backend.service;
+package com.iot.backend.service;
 
 import com.iot.backend.dto.ThresholdDto;
 import com.iot.backend.dto.ThresholdUpdateRequest;
