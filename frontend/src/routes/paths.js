@@ -5,5 +5,4 @@ export const ROUTES = {
   SENSORS: '/sensors',
   HISTORY: '/history',
   PROFILE: '/profile',
-  THRESHOLDS: '/thresholds',
 }

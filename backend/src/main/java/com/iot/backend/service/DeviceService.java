@@ -47,11 +47,6 @@ public class DeviceService {
                 .toList();
     }
 
-    public Device findWarningLed() {
-        return deviceRepository.findByCode("WARNING_LED")
-                .orElseThrow(() -> new ResourceNotFoundException("Device", "WARNING_LED"));
-    }
-
     /**
      * The action the device is still waiting on the ESP8266 to confirm, or null. Only its latest command counts
      * (an older one still PENDING was superseded by a newer click), and only if it would change the LED's state.

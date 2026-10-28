@@ -62,11 +62,6 @@ export function getLatestCO2({ limit } = {}) {
   return apiClient.get('/sensors/co2/latest', { limit })
 }
 
-// GET /sensors/monthly-alerts
-export function getMonthlyAlerts() {
-  return apiClient.get('/sensors/monthly-alerts')
-}
-
 /**
  * Lịch sử số đo của mọi cảm biến (trang Sensors), có phân trang. Mọi tham số đều tuỳ chọn.
  * - timeSearch: chuỗi lọc ngày giờ (LIKE prefix trên measured_at_str), vd "2026-10-20" hay "17:30".

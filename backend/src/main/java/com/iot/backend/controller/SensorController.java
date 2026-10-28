@@ -3,7 +3,6 @@ package com.iot.backend.controller;
 import com.iot.backend.dto.ApiResponse;
 import com.iot.backend.dto.SensorChartResponse;
 import com.iot.backend.dto.SensorResponse;
-import com.iot.backend.service.SensorDataService;
 import com.iot.backend.service.SensorService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,16 +10,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/sensors")
 @RequiredArgsConstructor
 public class SensorController {
 
     private final SensorService sensorService;
-    private final SensorDataService sensorDataService;
 
     @GetMapping("/temp")
     public ApiResponse<SensorResponse> temp() {
@@ -65,9 +60,4 @@ public class SensorController {
         return ApiResponse.ok(sensorService.getLatest("co2", limit));
     }
 
-    /** Per-sensor exceedance counts per day for the last 30 days. Returns [{date, total, temp, humi, light, co2}]. */
-    @GetMapping("/monthly-alerts")
-    public ApiResponse<List<Map<String, Object>>> monthlyAlerts() {
-        return ApiResponse.ok(sensorDataService.getMonthlyAlerts());
-    }
 }

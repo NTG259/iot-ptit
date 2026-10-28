@@ -8,8 +8,8 @@ import './AppShell.css'
  * (bảng, biểu đồ) mới giãn ra chiếm phần chiều cao còn lại.
  */
 export default function AppShell({ breadcrumb, title, subtitle, children }) {
-  const { stompConnected, alertActive } = useStompStatus()
-  const alertStatus = !stompConnected ? 'disconnected' : alertActive ? 'alert' : 'normal'
+  const { stompConnected } = useStompStatus()
+  const alertStatus = !stompConnected ? 'disconnected' : 'normal'
 
   return (
     <div className="app-shell">
@@ -25,7 +25,7 @@ export default function AppShell({ breadcrumb, title, subtitle, children }) {
               <div className={`app-shell__status app-shell__status--${alertStatus}`}>
                 <span className="app-shell__status-dot" />
                 <span className="app-shell__status-label">
-                  {alertStatus === 'alert' ? 'DANGER' : alertStatus === 'disconnected' ? 'OFFLINE' : 'NORMAL'}
+                  {alertStatus === 'disconnected' ? 'OFFLINE' : 'NORMAL'}
                 </span>
               </div>
             </div>

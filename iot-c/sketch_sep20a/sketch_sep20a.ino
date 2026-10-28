@@ -18,7 +18,6 @@ const char* topic_sub_cmd    = "esp8266/command";
 #define LED1_PIN D5
 #define LED2_PIN D6
 #define LED3_PIN D4
-#define WARNING_LED_PIN D3
 
 #define DHTPIN D2
 #define DHTTYPE DHT11
@@ -51,12 +50,11 @@ void publishLedStatus() {
   String state1 = (digitalRead(LED1_PIN) == LOW) ? "ON" : "OFF";
   String state2 = (digitalRead(LED2_PIN) == LOW) ? "ON" : "OFF";
   String state3 = (digitalRead(LED3_PIN) == LOW) ? "ON" : "OFF";
-  String stateW = (digitalRead(WARNING_LED_PIN) == LOW) ? "ON" : "OFF";
 
-  char statusPayload[128];
+  char statusPayload[96];
   snprintf(statusPayload, sizeof(statusPayload),
-           "{\"led1\":\"%s\",\"led2\":\"%s\",\"led3\":\"%s\",\"warning_led\":\"%s\"}",
-           state1.c_str(), state2.c_str(), state3.c_str(), stateW.c_str());
+           "{\"led1\":\"%s\",\"led2\":\"%s\",\"led3\":\"%s\"}",
+           state1.c_str(), state2.c_str(), state3.c_str());
 
   client.publish(topic_pub_status, statusPayload);
   Serial.println("-> Da gui ban tin Status LED.");
@@ -114,11 +112,6 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     
     else if (message == "SENSOR_ON")  isReadingSensor = true;
     else if (message == "SENSOR_OFF") isReadingSensor = false;
-
-    // Backend hoi trang thai LED (khi no khoi dong / ket noi lai broker)
-    else if (message == "WARNING_LED_ON")  { digitalWrite(WARNING_LED_PIN, LOW);  ledStateChanged = true; }
-    else if (message == "WARNING_LED_OFF") { digitalWrite(WARNING_LED_PIN, HIGH); ledStateChanged = true; }
-
     else if (message == "GET_STATUS") ledStateChanged = true;
 
     if (ledStateChanged) {
@@ -153,11 +146,9 @@ void setup() {
   pinMode(LED1_PIN, OUTPUT);
   pinMode(LED2_PIN, OUTPUT);
   pinMode(LED3_PIN, OUTPUT);
-  pinMode(WARNING_LED_PIN, OUTPUT);
   digitalWrite(LED1_PIN, HIGH);
   digitalWrite(LED2_PIN, HIGH);
   digitalWrite(LED3_PIN, HIGH);
-  digitalWrite(WARNING_LED_PIN, HIGH);
   
   dht.begin();
   setupWiFi();

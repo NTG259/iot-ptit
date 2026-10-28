@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
@@ -94,27 +93,4 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("timeStr") String timeStr,
             @Param("value")   Double value);
 
-    // --- Used by SensorDataService for the alert dashboard chart (multi-sensor) ---
-
-    interface AlertBreakdownProjection {
-        String getAlertDate();
-        String getSensorCode();
-        long getAlertCount();
-    }
-
-    @Query(nativeQuery = true, value = """
-            SELECT SUBSTRING(sd.measured_at_str, 1, 10) AS alertDate,
-                   s.code                                AS sensorCode,
-                   COUNT(*)                              AS alertCount
-            FROM sensor_data sd
-            JOIN sensors s ON sd.sensor_id = s.id
-            JOIN sensor_thresholds st ON st.sensor_code = s.code
-            WHERE sd.reading_value > st.max_value
-              AND st.enabled = 1
-              AND sd.measured_at >= :startDate
-            GROUP BY SUBSTRING(sd.measured_at_str, 1, 10), s.code
-            ORDER BY alertDate ASC
-            """)
-    List<AlertBreakdownProjection> findAlertsByDayAndSensor(
-            @Param("startDate") LocalDateTime startDate);
 }
