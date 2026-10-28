@@ -8,6 +8,8 @@ import com.iot.backend.repository.SensorThresholdRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -30,15 +32,21 @@ public class ThresholdService {
     }
 
     /**
-     * Inserts a new threshold row instead of overwriting the existing one.
-     * This preserves history so the alert chart can apply the correct threshold
-     * to each historical reading (the one that was in effect at the time).
+     * Same-day change → UPDATE the existing row (avoids cluttering history with intra-day edits).
+     * Different day → INSERT a new row so historical readings keep the threshold that was in effect
+     * on their day, and the alert chart stays accurate after threshold changes.
      */
     public ThresholdDto update(String sensorCode, ThresholdUpdateRequest request) {
         if (!LABELS.containsKey(sensorCode)) {
             throw new ResourceNotFoundException("Threshold", sensorCode);
         }
-        SensorThreshold t = new SensorThreshold();
+        LocalDate today = LocalDate.now(ZoneOffset.ofHours(7));
+        SensorThreshold t = thresholdRepository
+                .findTopBySensorCodeOrderByCreatedAtDesc(sensorCode)
+                .filter(existing -> existing.getCreatedAt() != null
+                        && existing.getCreatedAt().toLocalDate().equals(today))
+                .orElseGet(SensorThreshold::new);
+
         t.setSensorCode(sensorCode);
         t.setMaxValue(request.maxValue());
         t.setEnabled(request.enabled());
