@@ -61,6 +61,10 @@ public class DataInitializer implements CommandLineRunner {
         // Migrate wind sensor → CO2 sensor (idempotent: WHERE code='wind' matches nothing after first run).
         jdbcTemplate.execute("UPDATE sensors SET code='co2', name='CO2', sensor_type='CO2', unit='ppm' WHERE code='wind'");
 
+        // Remove WARNING_LED device row — enum value was dropped; must run before any JPA findAll() on devices.
+        jdbcTemplate.execute("DELETE FROM action_histories WHERE device_id IN (SELECT id FROM devices WHERE code = 'WARNING_LED')");
+        jdbcTemplate.execute("DELETE FROM devices WHERE code = 'WARNING_LED'");
+
         if (userRepository.count() == 0) {
             User admin = new User();
             admin.setUsername(adminProperties.username());
