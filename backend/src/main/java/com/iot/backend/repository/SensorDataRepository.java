@@ -10,10 +10,12 @@ import java.util.List;
 
 public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
 
-    // --- Used by SensorService for dashboard charts ---
+    // --- Dùng bởi SensorService cho biểu đồ realtime trên Dashboard ---
 
+    // Lấy :limit bản ghi mới nhất của một sensor, sắp xếp mới → cũ.
+    // Dùng để vẽ đường biểu đồ nhiệt độ/độ ẩm/ánh sáng trên Dashboard.
     @Query(nativeQuery = true, value = """
-            SELECT id, sensor_id, reading_value, measured_at, measured_at_str
+            SELECT id, sensor_id, reading_value, measured_at, measured_at_str, threshold
             FROM sensor_data
             WHERE sensor_id = :sensorId
             ORDER BY measured_at DESC
@@ -23,7 +25,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("sensorId") Long sensorId,
             @Param("limit")    int limit);
 
-    // --- Used by SensorDataService for the sensor-data search page ---
+    // --- Dùng bởi SensorDataService cho trang tìm kiếm lịch sử dữ liệu ---
 
     interface SensorReadingProjection {
         Long getId();
@@ -35,6 +37,8 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
         String getSensorUnit();
     }
 
+    // Tìm kiếm có phân trang, sắp xếp mới nhất trước. Ba điều kiện đều tùy chọn:
+    // types = CSV tên enum (vd "TEMPERATURE,HUMIDITY"), timeStr dùng LIKE prefix, value khớp chính xác.
     @Query(nativeQuery = true, value = """
             SELECT sd.id,
                    sd.reading_value   AS readingValue,
@@ -58,6 +62,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("size")    int size,
             @Param("offset")  long offset);
 
+    // Tương tự searchRowsDesc nhưng sắp xếp cũ nhất trước (dùng khi người dùng chọn tăng dần).
     @Query(nativeQuery = true, value = """
             SELECT sd.id,
                    sd.reading_value   AS readingValue,
@@ -81,6 +86,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("size")    int size,
             @Param("offset")  long offset);
 
+    // Đếm tổng số bản ghi khớp điều kiện (cùng bộ filter với search) để tính tổng trang phân trang.
     @Query(nativeQuery = true, value = """
             SELECT COUNT(*)
             FROM sensor_data sd
@@ -94,7 +100,7 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
             @Param("timeStr") String timeStr,
             @Param("value")   Double value);
 
-    // --- Used by SensorDataService for the alert dashboard chart (multi-sensor) ---
+    // --- Dùng bởi SensorDataService cho biểu đồ alert trên Dashboard (nhiều sensor) ---
 
     interface AlertBreakdownProjection {
         String getAlertDate();
@@ -102,22 +108,15 @@ public interface SensorDataRepository extends JpaRepository<SensorData, Long> {
         long getAlertCount();
     }
 
+    // Đếm số lần vượt ngưỡng (reading_value > threshold) theo từng ngày và từng sensor kể từ startDate.
+    // threshold được snapshot vào sensor_data lúc ghi, nên kết quả phản ánh đúng ngưỡng tại thời điểm xảy ra alert.
     @Query(nativeQuery = true, value = """
             SELECT SUBSTRING(sd.measured_at_str, 1, 10) AS alertDate,
                    s.code                                AS sensorCode,
                    COUNT(*)                              AS alertCount
             FROM sensor_data sd
             JOIN sensors s ON sd.sensor_id = s.id
-            JOIN sensor_thresholds st
-              ON st.sensor_code = s.code
-             AND st.created_at  = (
-                    SELECT MAX(st2.created_at)
-                    FROM sensor_thresholds st2
-                    WHERE st2.sensor_code = s.code
-                      AND st2.created_at <= sd.measured_at
-                 )
-            WHERE sd.reading_value > st.max_value
-              AND st.enabled = 1
+            WHERE sd.reading_value > sd.threshold
               AND sd.measured_at >= :startDate
             GROUP BY SUBSTRING(sd.measured_at_str, 1, 10), s.code
             ORDER BY alertDate ASC

@@ -37,6 +37,8 @@ public class MqttMessageHandler implements IMqttMessageListener {
     private final DeviceService deviceService;
     private final EspPresence espPresence;
 
+    // Điểm vào duy nhất nhận toàn bộ message từ ESP8266 qua MQTT broker.
+    // Paho gọi hàm này trên thread nội bộ — KHÔNG được publish MQTT ngược lại từ đây (deadlock Paho v3).
     @Override
     public void messageArrived(String topic, MqttMessage message) {
         String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
@@ -45,11 +47,15 @@ public class MqttMessageHandler implements IMqttMessageListener {
         // Paho drops the connection if this method throws, so every error is caught here.
         try {
             if (topic.equals(properties.topics().sensor())) {
+                // Payload mẫu: {"temp":27.5,"humi":60.0,"light":512,"co2":650}
+                // → parse thành Map rồi lưu từng bản ghi vào bảng sensor_data.
                 sensorDataService.saveReadings(jsonMapper.readValue(payload, SENSOR_PAYLOAD));
             } else if (topic.equals(properties.topics().ledStatus())) {
+                // Payload mẫu: {"led1":"ON","led2":"OFF","led3":"OFF"}
+                // → đồng bộ trạng thái bật/tắt vào bảng devices.
                 deviceService.syncStates(jsonMapper.readValue(payload, LED_STATUS_PAYLOAD));
             }
-            // After handling, so a command waiting on this reply sees the refreshed LED states.
+            // Gọi sau khi xử lý xong để lệnh đang chờ phản hồi thấy trạng thái LED đã được cập nhật.
             espPresence.seen();
         } catch (Exception e) {
             log.error("Failed to handle MQTT message on {}: {}", topic, payload, e);

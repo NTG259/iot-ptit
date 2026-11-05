@@ -6,4 +6,5 @@ export const ROUTES = {
   HISTORY: '/history',
   PROFILE: '/profile',
   THRESHOLDS: '/thresholds',
+  ALERTS: '/alerts',
 }

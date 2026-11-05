@@ -39,4 +39,6 @@ public class Sensor extends BaseEntity {
     @JdbcTypeCode(SqlTypes.DOUBLE)
     private Double lastValue;
     private LocalDateTime lastReadingAt;
+
+    private double threshold;
 }

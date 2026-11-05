@@ -28,7 +28,7 @@ export default function ThresholdConfig() {
   async function handleSave(t) {
     setSaving(t.sensorCode)
     try {
-      const updated = await updateThreshold(t.sensorCode, { maxValue: t.maxValue, enabled: true })
+      const updated = await updateThreshold(t.sensorCode, { maxValue: t.maxValue })
       setThresholds(prev => prev.map(x => x.sensorCode === updated.sensorCode ? updated : x))
       setSaved(prev => new Set(prev).add(t.sensorCode))
       setTimeout(() => setSaved(prev => { const n = new Set(prev); n.delete(t.sensorCode); return n }), 2000)

@@ -5,6 +5,7 @@ import Sensors from '@/pages/Sensors'
 import History from '@/pages/History'
 import Profile from '@/pages/Profile'
 import ThresholdConfig from '@/pages/ThresholdConfig'
+import AlertChart from '@/pages/AlertChart'
 import RequireAuth from './RequireAuth'
 import { ROUTES } from './paths'
 
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
       { path: ROUTES.HISTORY,     element: <History /> },
       { path: ROUTES.PROFILE,     element: <Profile /> },
       { path: ROUTES.THRESHOLDS,  element: <ThresholdConfig /> },
+      { path: ROUTES.ALERTS,      element: <AlertChart /> },
     ],
   },
 ])

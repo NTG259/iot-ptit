@@ -92,6 +92,10 @@
   gap: 1rem;
 }
 
+.app-shell__main--noscroll {
+  overflow: hidden;
+}
+
 .app-shell__title {
   font-size: 1.5rem;
   line-height: 1.3333;

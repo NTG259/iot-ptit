@@ -4,7 +4,6 @@ import com.iot.backend.entity.Device;
 import com.iot.backend.entity.Sensor;
 import com.iot.backend.entity.SensorData;
 import com.iot.backend.entity.User;
-import com.iot.backend.entity.SensorThreshold;
 import com.iot.backend.entity.enums.ActionStatus;
 import com.iot.backend.entity.enums.DeviceAction;
 import com.iot.backend.entity.enums.DeviceState;
@@ -15,7 +14,6 @@ import com.iot.backend.repository.ActionHistoryRepository;
 import com.iot.backend.repository.DeviceRepository;
 import com.iot.backend.repository.SensorDataRepository;
 import com.iot.backend.repository.SensorRepository;
-import com.iot.backend.repository.SensorThresholdRepository;
 import com.iot.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -28,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Seeds the devices and sensors the ESP8266 firmware reports on. Codes must match the
@@ -42,7 +41,6 @@ public class DataInitializer implements CommandLineRunner {
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
     private final ActionHistoryRepository actionHistoryRepository;
-    private final SensorThresholdRepository thresholdRepository;
     private final JdbcTemplate jdbcTemplate;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -106,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
                 sensors.add(sensorRepository.save(sensor("co2", "CO2", SensorType.CO2, "ppm")));
             }
             // Backfill unit column for sensors created before this column was added.
-            java.util.Map<SensorType, String> defaultUnits = java.util.Map.of(
+            Map<SensorType, String> defaultUnits = Map.of(
                 SensorType.TEMPERATURE, "°C",
                 SensorType.HUMIDITY,    "%",
                 SensorType.LIGHT,       "%",
@@ -120,6 +118,9 @@ public class DataInitializer implements CommandLineRunner {
             });
         }
 
+        // Must run before seedSensorData() so MQTT snapshots always see a non-zero threshold.
+        migrateOrSeedThresholds();
+
         if (sensorDataRepository.count() == 0) {
             seedSensorData(sensors);
         } else {
@@ -130,10 +131,63 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        seedThresholds();
-
         if (actionHistoryRepository.count() == 0) {
             seedActionHistory(devices);
+        }
+    }
+
+    /**
+     * One-time migration: if sensor_thresholds table exists, backfill sensors.threshold and
+     * sensor_data.threshold from historical data, then DROP the table.
+     * On subsequent boots (table already gone), ensure any sensor with threshold=0 gets a default.
+     */
+    private void migrateOrSeedThresholds() {
+        boolean tableExists = Boolean.TRUE.equals(jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) > 0 FROM information_schema.tables " +
+            "WHERE table_schema = DATABASE() AND table_name = 'sensor_thresholds'",
+            Boolean.class));
+
+        if (tableExists) {
+            // Backfill sensors.threshold from the latest row in sensor_thresholds per sensor_code.
+            jdbcTemplate.execute("""
+                UPDATE sensors s
+                JOIN (
+                    SELECT sensor_code, max_value
+                    FROM sensor_thresholds
+                    WHERE created_at = (
+                        SELECT MAX(st2.created_at) FROM sensor_thresholds st2
+                        WHERE st2.sensor_code = sensor_thresholds.sensor_code
+                    )
+                ) latest ON s.code = latest.sensor_code
+                SET s.threshold = latest.max_value
+                """);
+
+            // Backfill sensor_data.threshold using point-in-time lookup.
+            jdbcTemplate.execute("""
+                UPDATE sensor_data sd
+                JOIN sensors s ON sd.sensor_id = s.id
+                JOIN sensor_thresholds st
+                  ON st.sensor_code = s.code
+                 AND st.created_at = (
+                        SELECT MAX(st2.created_at) FROM sensor_thresholds st2
+                        WHERE st2.sensor_code = s.code AND st2.created_at <= sd.measured_at
+                     )
+                SET sd.threshold = st.max_value
+                """);
+
+            jdbcTemplate.execute("DROP TABLE sensor_thresholds");
+        } else {
+            // Seed default threshold for any sensor where threshold = 0.
+            Map<String, Double> defaults = Map.of(
+                "temp",  40.0,
+                "humi",  90.0,
+                "light", 90.0,
+                "co2",   1000.0
+            );
+            defaults.forEach((code, max) ->
+                jdbcTemplate.update(
+                    "UPDATE sensors SET threshold = ? WHERE code = ? AND threshold = 0",
+                    max, code));
         }
     }
 
@@ -148,6 +202,11 @@ public class DataInitializer implements CommandLineRunner {
         Sensor temp  = bySensorType(sensors, SensorType.TEMPERATURE);
         Sensor humi  = bySensorType(sensors, SensorType.HUMIDITY);
         Sensor light = bySensorType(sensors, SensorType.LIGHT);
+
+        // Re-read sensors so threshold field is up-to-date after migrateOrSeedThresholds().
+        temp  = sensorRepository.findByCode(temp.getCode()).orElse(temp);
+        humi  = sensorRepository.findByCode(humi.getCode()).orElse(humi);
+        light = sensorRepository.findByCode(light.getCode()).orElse(light);
 
         for (int i = 0; i < total; i++) {
             LocalDateTime t = now.minusSeconds((long) (total - i) * intervalSeconds);
@@ -166,7 +225,10 @@ public class DataInitializer implements CommandLineRunner {
         updateSensorCache(light, lastT, 60.0 + 25.0 * Math.sin(lastPhase + 2.0));
 
         sensors.stream().filter(s -> s.getType() == SensorType.CO2).findFirst()
-                .ifPresent(this::seedCO2Data);
+                .ifPresent(co2 -> {
+                    Sensor co2Fresh = sensorRepository.findByCode(co2.getCode()).orElse(co2);
+                    seedCO2Data(co2Fresh);
+                });
     }
 
     // 30 days × 8 readings per day. A few per day exceed 1000 ppm to populate the monthly alert chart.
@@ -188,24 +250,6 @@ public class DataInitializer implements CommandLineRunner {
         }
         LocalDateTime lastT = now.withHour(21).withMinute(0).withSecond(0);
         updateSensorCache(co2Sensor, lastT, dailyValues[7]);
-    }
-
-    private void seedThresholds() {
-        java.util.Map<String, Double> defaults = java.util.Map.of(
-            "temp",  40.0,
-            "humi",  90.0,
-            "light", 90.0,
-            "co2",   1000.0
-        );
-        defaults.forEach((code, max) -> {
-            if (thresholdRepository.findTopBySensorCodeOrderByCreatedAtDesc(code).isEmpty()) {
-                SensorThreshold t = new SensorThreshold();
-                t.setSensorCode(code);
-                t.setMaxValue(max);
-                t.setEnabled(true);
-                thresholdRepository.save(t);
-            }
-        });
     }
 
     private void updateSensorCache(Sensor sensor, LocalDateTime at, double value) {
@@ -247,6 +291,7 @@ public class DataInitializer implements CommandLineRunner {
         sd.setMeasuredAt(measuredAt);
         sd.setMeasuredAtStr(measuredAt.format(VN_FMT));
         sd.setValue(round(value, 2));
+        sd.setThreshold(sensor.getThreshold());
         return sd;
     }
 
@@ -260,11 +305,11 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private static Sensor sensor(String code, String name, SensorType type, String unit) {
-        Sensor sensor = new Sensor();
-        sensor.setCode(code);
-        sensor.setName(name);
-        sensor.setType(type);
-        sensor.setUnit(unit);
-        return sensor;
+        Sensor s = new Sensor();
+        s.setCode(code);
+        s.setName(name);
+        s.setType(type);
+        s.setUnit(unit);
+        return s;
     }
 }

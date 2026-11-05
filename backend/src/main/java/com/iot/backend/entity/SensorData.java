@@ -46,4 +46,6 @@ public class SensorData {
     /** Vietnam-time string "yyyy-MM-dd HH:mm:ss"; used for LIKE prefix search. */
     @Column(name = "measured_at_str", length = 19)
     private String measuredAtStr;
+
+    private double threshold;
 }

@@ -871,129 +871,28 @@
     },
     {
       "name": "Sensors",
-      "description": "Cảm biến DHT11 + quang trở trên ESP8266, gửi lên `esp8266/sensor` mỗi 2s.\n\nMã cảm biến: `temp` (°C), `humi` (%), `light` (giá trị ADC thô 0–1023 của quang trở, không có đơn vị: `unit` = ).\n\nEnum: `type` = `TEMPERATURE` | `HUMIDITY` | `LIGHT`; `status` = `ACTIVE` | `STANDBY` | `OFFLINE`.\nTham số thời gian là ISO-8601 có múi giờ, ví dụ `2026-10-03T00:00:00Z` hoặc `2026-10-03T07:00:00+07:00` (nhớ mã hoá `+` thành `%2B`). Response luôn trả thời gian UTC (đuôi `Z`).",
+      "description": "Trang thai hien tai va lich su bieu do cua cac cam bien (temp, humi, light, co2). `monthly-alerts` tra ve so lan vuot nguong theo ngay trong 30 ngay gan nhat.",
       "item": [
         {
-          "name": "Search sensors",
+          "name": "Get temp sensor",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/sensors?page=1&size=8",
+              "raw": "{{baseUrl}}/sensors/temp",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "sensors"
-              ],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "temp",
-                  "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
-                  "disabled": true
-                },
-                {
-                  "key": "types",
-                  "value": "TEMPERATURE,HUMIDITY",
-                  "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
-                  "disabled": true
-                },
-                {
-                  "key": "status",
-                  "value": "ACTIVE",
-                  "description": "ACTIVE | STANDBY | OFFLINE",
-                  "disabled": true
-                },
-                {
-                  "key": "updatedSince",
-                  "value": "2026-10-03T00:00:00Z",
-                  "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
-                  "disabled": true
-                },
-                {
-                  "key": "newestFirst",
-                  "value": "true",
-                  "description": "Mặc định true",
-                  "disabled": true
-                },
-                {
-                  "key": "page",
-                  "value": "1",
-                  "description": "Mặc định 1",
-                  "disabled": false
-                },
-                {
-                  "key": "size",
-                  "value": "8",
-                  "description": "Mặc định 8",
-                  "disabled": false
-                }
+                "sensors",
+                "temp"
               ]
             },
-            "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
+            "description": "Trang thai hien tai cam bien nhiet do."
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors?page=1&size=8",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "temp",
-                      "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
-                      "disabled": true
-                    },
-                    {
-                      "key": "types",
-                      "value": "TEMPERATURE,HUMIDITY",
-                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
-                      "disabled": true
-                    },
-                    {
-                      "key": "status",
-                      "value": "ACTIVE",
-                      "description": "ACTIVE | STANDBY | OFFLINE",
-                      "disabled": true
-                    },
-                    {
-                      "key": "updatedSince",
-                      "value": "2026-10-03T00:00:00Z",
-                      "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
-                      "disabled": true
-                    },
-                    {
-                      "key": "newestFirst",
-                      "value": "true",
-                      "description": "Mặc định true",
-                      "disabled": true
-                    },
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "description": "Mặc định 1",
-                      "disabled": false
-                    },
-                    {
-                      "key": "size",
-                      "value": "8",
-                      "description": "Mặc định 8",
-                      "disabled": false
-                    }
-                  ]
-                },
-                "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
-              },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
@@ -1003,70 +902,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": 1,\n        \"code\": \"temp\",\n        \"name\": \"Temperature\",\n        \"type\": \"TEMPERATURE\",\n        \"unit\": \"°C\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 34.5,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 2,\n        \"code\": \"humi\",\n        \"name\": \"Humidity\",\n        \"type\": \"HUMIDITY\",\n        \"unit\": \"%\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 59.2,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      },\n      {\n        \"id\": 3,\n        \"code\": \"light\",\n        \"name\": \"Light\",\n        \"type\": \"LIGHT\",\n        \"unit\": \"\",\n        \"status\": \"ACTIVE\",\n        \"lastValue\": 512.0,\n        \"lastReadingAt\": \"2026-09-27T09:27:48.979429Z\"\n      }\n    ],\n    \"page\": 1,\n    \"size\": 8,\n    \"totalItems\": 3,\n    \"totalPages\": 1\n  }\n}"
+              "body": "{\"success\":true,\"data\":{\"id\":1,\"code\":\"temp\",\"name\":\"Temperature\",\"type\":\"TEMPERATURE\",\"unit\":\"\\u00b0C\",\"status\":\"ACTIVE\",\"lastValue\":28.5}}"
             },
             {
-              "name": "400 Enum sai",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors?page=1&size=8",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "temp",
-                      "description": "Tìm theo `code` hoặc `name` (không phân biệt hoa thường)",
-                      "disabled": true
-                    },
-                    {
-                      "key": "types",
-                      "value": "TEMPERATURE,HUMIDITY",
-                      "description": "Lọc nhiều loại, ngăn cách bằng dấu phẩy",
-                      "disabled": true
-                    },
-                    {
-                      "key": "status",
-                      "value": "ACTIVE",
-                      "description": "ACTIVE | STANDBY | OFFLINE",
-                      "disabled": true
-                    },
-                    {
-                      "key": "updatedSince",
-                      "value": "2026-10-03T00:00:00Z",
-                      "description": "Chỉ lấy cảm biến có dữ liệu từ thời điểm này",
-                      "disabled": true
-                    },
-                    {
-                      "key": "newestFirst",
-                      "value": "true",
-                      "description": "Mặc định true",
-                      "disabled": true
-                    },
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "description": "Mặc định 1",
-                      "disabled": false
-                    },
-                    {
-                      "key": "size",
-                      "value": "8",
-                      "description": "Mặc định 8",
-                      "disabled": false
-                    }
-                  ]
-                },
-                "description": "Danh sách cảm biến có lọc và phân trang (`page` bắt đầu từ 1). Sắp theo `lastReadingAt`."
-              },
-              "status": "Bad Request",
-              "code": 400,
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1074,87 +915,177 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Invalid value 'BAD' for parameter 'status'\"\n}"
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
             }
           ]
         },
         {
-          "name": "Get sensor data",
+          "name": "Get humi sensor",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
+              "raw": "{{baseUrl}}/sensors/humi",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "sensors",
-                "{{sensorCode}}",
-                "data"
+                "humi"
+              ]
+            },
+            "description": "Trang thai hien tai cam bien do am."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":{\"id\":2,\"code\":\"humi\",\"name\":\"Humidity\",\"type\":\"HUMIDITY\",\"unit\":\"%\",\"status\":\"ACTIVE\",\"lastValue\":65.0}}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get light sensor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/light",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "light"
+              ]
+            },
+            "description": "Trang thai hien tai cam bien anh sang. `lastValue` la % do sang (0-100)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":{\"id\":3,\"code\":\"light\",\"name\":\"Light\",\"type\":\"LIGHT\",\"unit\":\"%\",\"status\":\"ACTIVE\",\"lastValue\":72.0}}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Get co2 sensor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/co2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "co2"
+              ]
+            },
+            "description": "Trang thai hien tai cam bien CO2."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":{\"id\":4,\"code\":\"co2\",\"name\":\"CO2\",\"type\":\"CO2\",\"unit\":\"ppm\",\"status\":\"ACTIVE\",\"lastValue\":650.0}}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Latest temp readings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/temp/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "temp",
+                "latest"
               ],
               "query": [
                 {
-                  "key": "from",
-                  "value": "2026-10-03T00:00:00Z",
-                  "description": "Mặc định: `to` − 24h",
-                  "disabled": true
-                },
-                {
-                  "key": "to",
-                  "value": "2026-10-03T12:00:00Z",
-                  "description": "Mặc định: hiện tại",
-                  "disabled": true
-                },
-                {
-                  "key": "buckets",
+                  "key": "limit",
                   "value": "25",
-                  "description": "Số khoảng để tính trung bình",
-                  "disabled": false
+                  "description": "So diem tra ve (mac dinh 25)",
+                  "disabled": true
                 }
               ]
             },
-            "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
+            "description": "25 lan doc nhiet do gan nhat, tu cu -> moi. Dung de ve bieu do dashboard."
           },
           "response": [
             {
-              "name": "200 OK (buckets)",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "data"
-                  ],
-                  "query": [
-                    {
-                      "key": "from",
-                      "value": "2026-10-03T00:00:00Z",
-                      "description": "Mặc định: `to` − 24h",
-                      "disabled": true
-                    },
-                    {
-                      "key": "to",
-                      "value": "2026-10-03T12:00:00Z",
-                      "description": "Mặc định: hiện tại",
-                      "disabled": true
-                    },
-                    {
-                      "key": "buckets",
-                      "value": "25",
-                      "description": "Số khoảng để tính trung bình",
-                      "disabled": false
-                    }
-                  ]
-                },
-                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
-              },
+              "name": "200 OK",
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
@@ -1164,48 +1095,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"value\": 30.8,\n      \"measuredAt\": \"2026-10-03T00:00:00Z\"\n    },\n    {\n      \"value\": 31.6,\n      \"measuredAt\": \"2026-10-03T00:28:48Z\"\n    },\n    {\n      \"value\": 32.1,\n      \"measuredAt\": \"2026-10-03T00:57:36Z\"\n    }\n  ]\n}"
+              "body": "{\"success\":true,\"data\":{\"values\":[27.5,28.0,28.5],\"times\":[\"10:00:00\",\"10:00:02\",\"10:00:04\"]}}"
             },
             {
-              "name": "400 buckets < 1",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "data"
-                  ],
-                  "query": [
-                    {
-                      "key": "from",
-                      "value": "2026-10-03T00:00:00Z",
-                      "description": "Mặc định: `to` − 24h",
-                      "disabled": true
-                    },
-                    {
-                      "key": "to",
-                      "value": "2026-10-03T12:00:00Z",
-                      "description": "Mặc định: hiện tại",
-                      "disabled": true
-                    },
-                    {
-                      "key": "buckets",
-                      "value": "25",
-                      "description": "Số khoảng để tính trung bình",
-                      "disabled": false
-                    }
-                  ]
-                },
-                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
-              },
-              "status": "Bad Request",
-              "code": 400,
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1213,96 +1108,39 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"buckets must be at least 1\"\n}"
-            },
-            {
-              "name": "404 Không có cảm biến",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/data?buckets=25",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "data"
-                  ],
-                  "query": [
-                    {
-                      "key": "from",
-                      "value": "2026-10-03T00:00:00Z",
-                      "description": "Mặc định: `to` − 24h",
-                      "disabled": true
-                    },
-                    {
-                      "key": "to",
-                      "value": "2026-10-03T12:00:00Z",
-                      "description": "Mặc định: hiện tại",
-                      "disabled": true
-                    },
-                    {
-                      "key": "buckets",
-                      "value": "25",
-                      "description": "Số khoảng để tính trung bình",
-                      "disabled": false
-                    }
-                  ]
-                },
-                "description": "Dữ liệu đo của một cảm biến trong khoảng `from`–`to` (mặc định 24h gần nhất), tăng dần theo thời gian.\n\nCó `buckets`: chia khoảng thời gian thành `buckets` khoảng và trả **trung bình** mỗi khoảng (khoảng không có dữ liệu thì bỏ qua), dùng cho biểu đồ. `buckets` phải ≥ 1."
-              },
-              "status": "Not Found",
-              "code": 404,
-              "_postman_previewlanguage": "json",
-              "header": [
-                {
-                  "key": "Content-Type",
-                  "value": "application/json"
-                }
-              ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Sensor not found: nope\"\n}"
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
             }
           ]
         },
         {
-          "name": "Get threshold",
+          "name": "Latest humi readings",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+              "raw": "{{baseUrl}}/sensors/humi/latest",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "sensors",
-                "{{sensorCode}}",
-                "threshold"
+                "humi",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "So diem tra ve (mac dinh 25)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
+            "description": "25 lan doc do am gan nhat."
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "threshold"
-                  ]
-                },
-                "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
-              },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
@@ -1312,28 +1150,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"sensorCode\": \"temp\",\n    \"minValue\": 20.0,\n    \"maxValue\": 40.0\n  }\n}"
+              "body": "{\"success\":true,\"data\":{\"values\":[64.0,65.0,65.5],\"times\":[\"10:00:00\",\"10:00:02\",\"10:00:04\"]}}"
             },
             {
-              "name": "404 Không có cảm biến",
-              "originalRequest": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "threshold"
-                  ]
-                },
-                "description": "Ngưỡng min/max của cảm biến. Chưa đặt thì cả hai là `null`."
-              },
-              "status": "Not Found",
-              "code": 404,
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1341,75 +1163,39 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"Sensor not found: nope\"\n}"
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
             }
           ]
         },
         {
-          "name": "Update threshold",
+          "name": "Latest light readings",
           "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "method": "GET",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
+              "raw": "{{baseUrl}}/sensors/light/latest",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "sensors",
-                "{{sensorCode}}",
-                "threshold"
+                "light",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "So diem tra ve (mac dinh 25)",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "25 lan doc anh sang gan nhat."
           },
           "response": [
             {
               "name": "200 OK",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "threshold"
-                  ]
-                },
-                "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
@@ -1419,42 +1205,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"sensorCode\": \"temp\",\n    \"minValue\": 20.0,\n    \"maxValue\": 40.0\n  }\n}"
+              "body": "{\"success\":true,\"data\":{\"values\":[70.0,71.0,72.0],\"times\":[\"10:00:00\",\"10:00:02\",\"10:00:04\"]}}"
             },
             {
-              "name": "400 min > max",
-              "originalRequest": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/sensors/{{sensorCode}}/threshold",
-                  "host": [
-                    "{{baseUrl}}"
-                  ],
-                  "path": [
-                    "sensors",
-                    "{{sensorCode}}",
-                    "threshold"
-                  ]
-                },
-                "description": "Đặt ngưỡng. Gửi `null` cho một phía để bỏ giới hạn phía đó; gửi cả hai `null` để xoá ngưỡng. `minValue` không được lớn hơn `maxValue`. Giá trị vượt ngưỡng sẽ ghi log cảnh báo ở backend.",
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"minValue\": 20.0,\n  \"maxValue\": 40.0\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                }
-              },
-              "status": "Bad Request",
-              "code": 400,
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -1462,7 +1218,108 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"success\": false,\n  \"message\": \"minValue must not be greater than maxValue\"\n}"
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Latest co2 readings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/co2/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "co2",
+                "latest"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "25",
+                  "description": "So diem tra ve (mac dinh 25)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "25 lan doc CO2 gan nhat."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":{\"values\":[620.0,635.0,650.0],\"times\":[\"10:00:00\",\"10:00:02\",\"10:00:04\"]}}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Monthly alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sensors/monthly-alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sensors",
+                "monthly-alerts"
+              ]
+            },
+            "description": "So lan vuot nguong theo tung ngay trong 30 ngay gan nhat, nhom theo sensor. Dung de ve bieu do AlertChart."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":[{\"date\":\"2026-10-06\",\"total\":0,\"temp\":0,\"humi\":0,\"light\":0,\"co2\":0},{\"date\":\"2026-10-07\",\"total\":7,\"temp\":5,\"humi\":2,\"light\":0,\"co2\":0}]}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
             }
           ]
         }
@@ -1478,7 +1335,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/sensor-data?search=16:15&from=2026-09-27T00:00:00+07:00&to=2026-09-27T23:59:59.999+07:00&page=1&size=10",
+              "raw": "{{baseUrl}}/sensor-data?page=1&size=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1487,50 +1344,44 @@
               ],
               "query": [
                 {
-                  "key": "search",
-                  "value": "16:15",
-                  "description": "Ngày giờ hoặc giờ trong ngày (giờ Việt Nam), giá trị, hoặc mã/tên cảm biến",
-                  "disabled": false
-                },
-                {
-                  "key": "typeIds",
-                  "value": "1,2",
-                  "description": "integer — ID loại cảm biến, nhiều giá trị ngăn cách bằng dấu phẩy. 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT. Bỏ trống = không lọc.",
+                  "key": "timeSearch",
+                  "value": "2026-10-20",
+                  "description": "Loc theo ngay/gio (LIKE prefix tren 'yyyy-MM-dd HH:mm:ss'), vi du '2026-10-20' hoac '17:30'",
                   "disabled": true
                 },
                 {
-                  "key": "from",
-                  "value": "2026-09-27T00:00:00+07:00",
-                  "description": "Từ thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
-                  "disabled": false
+                  "key": "valueSearch",
+                  "value": "65.0",
+                  "description": "Loc theo gia tri do khop chinh xac",
+                  "disabled": true
                 },
                 {
-                  "key": "to",
-                  "value": "2026-09-27T23:59:59.999+07:00",
-                  "description": "Đến thời điểm (ISO-8601, có múi giờ; tính cả mốc này)",
-                  "disabled": false
+                  "key": "typeIds",
+                  "value": "1",
+                  "description": "ID loai cam bien: 1=TEMPERATURE, 2=HUMIDITY, 3=LIGHT, 4=CO2. Lap param de truyen nhieu gia tri",
+                  "disabled": true
                 },
                 {
                   "key": "newestFirst",
                   "value": "true",
-                  "description": "Mặc định true",
+                  "description": "Mac dinh true",
                   "disabled": true
                 },
                 {
                   "key": "page",
                   "value": "1",
-                  "description": "Mặc định 1",
+                  "description": "Mac dinh 1",
                   "disabled": false
                 },
                 {
                   "key": "size",
                   "value": "10",
-                  "description": "Mặc định 10",
+                  "description": "Mac dinh 10",
                   "disabled": false
                 }
               ]
             },
-            "description": "Danh sách các lần đo, có lọc và phân trang (`page` bắt đầu từ 1). Mặc định mới nhất trước (sắp theo `measuredAt`, rồi `id`).\n\n`search` được hiểu theo thứ tự:\n1. **Ngày giờ (giờ Việt Nam, UTC+7)**: `2026-10-03` (cả ngày), `2026-10-03 17` (cả giờ), `2026-10-03 17:20` (cả phút), `2026-10-03 17:20:05` (đúng giây đó). Có thể dùng `T` thay dấu cách.\n2. **Giờ trong ngày (giờ Việt Nam)**: `17:20` (cả phút) hoặc `17:20:05` (đúng giây), trên mọi ngày. Kết hợp `from`/`to` của một ngày để tìm giờ đó trong ngày đó (cách trang Sensors làm).\n3. **Số**: khớp đúng giá trị đo, ví dụ `34.5`.\n4. **Còn lại**: tìm theo mã hoặc tên cảm biến, ví dụ `humi`.\n\nCó thể kết hợp với `from`/`to` (ISO-8601 UTC) để lọc theo khoảng thời gian."
+            "description": "Lich su toan bo lan doc cam bien voi phan trang. Loc theo thoi gian (timeSearch LIKE prefix), gia tri chinh xac (valueSearch), va loai cam bien (typeIds). Cac filter ket hop AND."
           },
           "response": [
             {
@@ -1674,6 +1525,117 @@
                 }
               ],
               "body": "{\n  \"success\": false,\n  \"message\": \"Unknown SensorType id: 99\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Thresholds",
+      "description": "Nguong canh bao cho tung cam bien. Khi reading_value > threshold, ban ghi duoc tinh la alert.",
+      "item": [
+        {
+          "name": "Get all thresholds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/thresholds",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "thresholds"
+              ]
+            },
+            "description": "Lay nguong hien tai cua tat ca sensor (temp, humi, light, co2)."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":[{\"sensorCode\":\"temp\",\"sensorLabel\":\"Temperature\",\"maxValue\":30.0},{\"sensorCode\":\"humi\",\"sensorLabel\":\"Humidity\",\"maxValue\":80.0},{\"sensorCode\":\"light\",\"sensorLabel\":\"Light\",\"maxValue\":90.0},{\"sensorCode\":\"co2\",\"sensorLabel\":\"CO2\",\"maxValue\":1000.0}]}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
+            }
+          ]
+        },
+        {
+          "name": "Update threshold",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/thresholds/{{sensorCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "thresholds",
+                "{{sensorCode}}"
+              ]
+            },
+            "description": "Cap nhat nguong cua mot sensor. sensorCode: temp, humi, light, co2.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"maxValue\": 35.0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":true,\"data\":{\"sensorCode\":\"temp\",\"sensorLabel\":\"Temperature\",\"maxValue\":35.0}}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\"success\":false,\"message\":\"Unauthorized\"}"
             }
           ]
         }

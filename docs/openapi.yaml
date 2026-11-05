@@ -30,6 +30,8 @@ tags:
     description: Trạng thái hiện tại và lịch sử biểu đồ của cảm biến
   - name: Sensor Data
     description: Lịch sử từng lần đọc cảm biến (trang Sensors)
+  - name: Thresholds
+    description: Ngưỡng cảnh báo cho từng cảm biến
   - name: Action History
     description: Lịch sử lệnh bật/tắt đèn (trang History)
 
@@ -299,6 +301,128 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseSensorChart'
 
+  /sensors/co2:
+    get:
+      tags: [Sensors]
+      summary: Trạng thái cảm biến CO2
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorResponse'
+
+  /sensors/co2/latest:
+    get:
+      tags: [Sensors]
+      summary: N lần đọc CO2 gần nhất (cho biểu đồ)
+      parameters:
+        - $ref: '#/components/parameters/limit'
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSensorChart'
+
+  /sensors/monthly-alerts:
+    get:
+      tags: [Sensors]
+      summary: Số lần vượt ngưỡng theo ngày trong 30 ngày gần nhất
+      description: |
+        Trả về mảng 30 phần tử (một ngày = một phần tử), mỗi phần tử chứa số lần vượt ngưỡng
+        (`reading_value > threshold`) của từng sensor và tổng cộng. Dùng để vẽ biểu đồ AlertChart.
+        Threshold được snapshot vào bản ghi lúc ghi, nên phản ánh đúng ngưỡng tại thời điểm xảy ra alert.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMonthlyAlerts'
+              example:
+                success: true
+                data:
+                  - date: "2026-10-06"
+                    total: 0
+                    temp: 0
+                    humi: 0
+                    light: 0
+                    co2: 0
+                  - date: "2026-10-07"
+                    total: 7
+                    temp: 5
+                    humi: 2
+                    light: 0
+                    co2: 0
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  # ─── THRESHOLDS ───────────────────────────────────────────────────────────────
+
+  /thresholds:
+    get:
+      tags: [Thresholds]
+      summary: Lấy ngưỡng hiện tại của tất cả sensor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseThresholdList'
+              example:
+                success: true
+                data:
+                  - sensorCode: temp
+                    sensorLabel: Temperature
+                    maxValue: 30.0
+                  - sensorCode: humi
+                    sensorLabel: Humidity
+                    maxValue: 80.0
+                  - sensorCode: light
+                    sensorLabel: Light
+                    maxValue: 90.0
+                  - sensorCode: co2
+                    sensorLabel: CO2
+                    maxValue: 1000.0
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /thresholds/{sensorCode}:
+    put:
+      tags: [Thresholds]
+      summary: Cập nhật ngưỡng của một sensor
+      parameters:
+        - name: sensorCode
+          in: path
+          required: true
+          description: Mã sensor — `temp`, `humi`, `light`, `co2`
+          schema:
+            type: string
+          example: temp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThresholdUpdateRequest'
+            example:
+              maxValue: 35.0
+      responses:
+        "200":
+          description: Cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseThreshold'
+        "404":
+          description: Không tìm thấy sensor với code đã cho
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
   # ─── SENSOR DATA ──────────────────────────────────────────────────────────────
 
   /sensor-data:
@@ -460,7 +584,7 @@ components:
 
     SensorType:
       type: string
-      enum: [TEMPERATURE, HUMIDITY, LIGHT]
+      enum: [TEMPERATURE, HUMIDITY, LIGHT, CO2]
 
     SensorStatus:
       type: string
@@ -671,6 +795,50 @@ components:
         totalPages:
           type: integer
 
+    ThresholdDto:
+      type: object
+      properties:
+        sensorCode:
+          type: string
+          example: temp
+        sensorLabel:
+          type: string
+          example: Temperature
+        maxValue:
+          type: number
+          example: 30.0
+
+    ThresholdUpdateRequest:
+      type: object
+      required: [maxValue]
+      properties:
+        maxValue:
+          type: number
+          example: 35.0
+
+    MonthlyAlertEntry:
+      type: object
+      description: Số lần vượt ngưỡng trong một ngày, nhóm theo sensor
+      properties:
+        date:
+          type: string
+          example: "2026-10-07"
+        total:
+          type: integer
+          example: 7
+        temp:
+          type: integer
+          example: 5
+        humi:
+          type: integer
+          example: 2
+        light:
+          type: integer
+          example: 0
+        co2:
+          type: integer
+          example: 0
+
     # ── Wrapped responses ──────────────────────────────────────────────────────
 
     ApiResponseLoginResponse:
@@ -749,6 +917,34 @@ components:
                   type: array
                   items:
                     $ref: '#/components/schemas/SensorReadingResponse'
+
+    ApiResponseThresholdList:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThresholdDto'
+
+    ApiResponseThreshold:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/ThresholdDto'
+
+    ApiResponseMonthlyAlerts:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonthlyAlertEntry'
 
     ApiResponseActionHistoryPage:
       type: object

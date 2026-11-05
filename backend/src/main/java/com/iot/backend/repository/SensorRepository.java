@@ -36,4 +36,9 @@ public interface SensorRepository extends JpaRepository<Sensor, Long> {
     void updateReadingMeta(@Param("id") Long id,
                            @Param("value") double value,
                            @Param("at") LocalDateTime at);
+
+    @Transactional
+    @Modifying
+    @Query(nativeQuery = true, value = "UPDATE sensors SET threshold = :threshold WHERE code = :code")
+    void updateThreshold(@Param("code") String code, @Param("threshold") double threshold);
 }

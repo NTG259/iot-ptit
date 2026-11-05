@@ -65,7 +65,7 @@ public class SensorController {
         return ApiResponse.ok(sensorService.getLatest("co2", limit));
     }
 
-    /** Per-sensor exceedance counts per day for the last 30 days. Returns [{date, total, temp, humi, light, co2}]. */
+    /** Trả về số lần vượt ngưỡng theo từng ngày trong 30 ngày gần nhất, nhóm theo sensor. Dùng để vẽ biểu đồ alert trên Dashboard. */
     @GetMapping("/monthly-alerts")
     public ApiResponse<List<Map<String, Object>>> monthlyAlerts() {
         return ApiResponse.ok(sensorDataService.getMonthlyAlerts());

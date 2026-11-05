@@ -29,7 +29,8 @@ public class SensorDataService {
     private final SensorRepository sensorRepository;
     private final SensorDataRepository sensorDataRepository;
 
-    // No @Transactional here: each repository call runs in its own short transaction.
+    // Nhận map {sensorCode → giá trị} từ MQTT handler, lưu từng bản ghi vào DB.
+    // Không dùng @Transactional để mỗi lần lưu chạy transaction riêng, tránh giữ lock kéo dài.
     public void saveReadings(Map<String, Double> readings) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.ofHours(7));
         readings.forEach((code, value) -> sensorRepository.findByCode(code).ifPresentOrElse(
@@ -37,6 +38,8 @@ public class SensorDataService {
                 () -> log.warn("Ignoring reading for unknown sensor code '{}'", code)));
     }
 
+    // Chuyển đổi giá trị thô trước khi lưu: cảm biến ánh sáng đổi từ ADC (0-1280) sang % độ sáng (0-100),
+    // các loại khác làm tròn 2 chữ số thập phân.
     private static double toStoredValue(SensorType type, double value) {
         if (type == SensorType.LIGHT) {
             return Math.max(0, 100 - Math.min(100, (int) Math.round((value / 1280.0) * 100)));
@@ -44,6 +47,7 @@ public class SensorDataService {
         return Math.round(value * 100.0) / 100.0;
     }
 
+    // Lưu một bản ghi SensorData: snapshot threshold hiện tại vào bản ghi để so sánh alert sau này.
     private void saveReading(Sensor sensor, Double value, LocalDateTime measuredAt) {
         double rounded = toStoredValue(sensor.getType(), value);
         SensorData data = new SensorData();
@@ -51,11 +55,13 @@ public class SensorDataService {
         data.setValue(rounded);
         data.setMeasuredAt(measuredAt);
         data.setMeasuredAtStr(measuredAt.format(VN_FMT));
+        data.setThreshold(sensor.getThreshold());
         sensorDataRepository.save(data);
-        // Use native UPDATE instead of JPA dirty tracking: releases row lock immediately.
+        // Dùng native UPDATE thay vì JPA dirty tracking để giải phóng row lock ngay lập tức.
         sensorRepository.updateReadingMeta(sensor.getId(), rounded, measuredAt);
     }
 
+    // Tìm kiếm lịch sử dữ liệu cảm biến với phân trang; hỗ trợ lọc theo thời gian (LIKE), giá trị, và loại sensor.
     @Transactional(readOnly = true)
     public PageResponse<SensorReadingResponse> search(String timeSearch, String valueSearch, List<Integer> typeIds,
                                                       boolean newestFirst, int page, int size) {
@@ -87,13 +93,17 @@ public class SensorDataService {
         return PageResponse.of(items, total, page, size);
     }
 
+    // Lấy dữ liệu alert 30 ngày gần nhất, pivot kết quả thành map {date, temp, humi, light, co2, total} cho từng ngày.
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getMonthlyAlerts() {
+        // startDate = 00:00:00 của ngày (hôm nay - 29 ngày), tính theo giờ Việt Nam (UTC+7)
         LocalDateTime startDate = LocalDateTime.now(ZoneOffset.ofHours(7)).minusDays(29).toLocalDate().atStartOfDay();
         var rows = sensorDataRepository.findAlertsByDayAndSensor(startDate);
 
         java.time.LocalDate today = LocalDateTime.now(ZoneOffset.ofHours(7)).toLocalDate();
         java.util.LinkedHashMap<String, java.util.Map<String, Object>> dayMap = new java.util.LinkedHashMap<>();
+        // Tạo khung 30 ngày liên tiếp (từ hôm nay - 29 đến hôm nay), mỗi ngày khởi tạo
+        // tất cả sensor = 0 để đảm bảo ngày không có alert vẫn xuất hiện trong kết quả.
         for (int i = 29; i >= 0; i--) {
             String d = today.minusDays(i).toString();
             java.util.Map<String, Object> entry = new java.util.HashMap<>();
@@ -105,6 +115,8 @@ public class SensorDataService {
             entry.put("co2",   0L);
             dayMap.put(d, entry);
         }
+        // Điền số liệu từ DB vào khung: tìm đúng ngày rồi ghi count vào đúng sensor,
+        // đồng thời cộng dồn vào "total" của ngày đó.
         rows.forEach(r -> {
             var entry = dayMap.get(r.getAlertDate());
             if (entry == null) return;
@@ -116,6 +128,7 @@ public class SensorDataService {
         return new java.util.ArrayList<>(dayMap.values());
     }
 
+    // Chuyển chuỗi sang Double; trả về null nếu không hợp lệ (dùng để bỏ qua filter giá trị khi input sai).
     private static Double parseDouble(String text) {
         try { return Double.valueOf(text); } catch (NumberFormatException e) { return null; }
     }

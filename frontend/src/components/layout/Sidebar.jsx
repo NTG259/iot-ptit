@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Avatar } from 'antd'
-import { LuLayoutDashboard, LuLogOut, LuNetwork, LuScrollText, LuSlidersHorizontal } from 'react-icons/lu'
+import { LuLayoutDashboard, LuLogOut, LuNetwork, LuScrollText, LuSlidersHorizontal, LuBell } from 'react-icons/lu'
 import { ROUTES } from '@/routes/paths'
 import { authService, session } from '@/services'
 import { getInitials } from '@/utils/user'
@@ -57,6 +57,9 @@ export default function Sidebar() {
         </NavItem>
         <NavItem to={ROUTES.THRESHOLDS} icon={LuSlidersHorizontal}>
           Thresholds
+        </NavItem>
+        <NavItem to={ROUTES.ALERTS} icon={LuBell}>
+          Alerts
         </NavItem>
       </nav>
 

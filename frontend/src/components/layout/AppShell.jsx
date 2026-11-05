@@ -7,7 +7,7 @@ import './AppShell.css'
  * tiêu đề/phụ đề trang và nội dung. Trang luôn vừa khít màn hình; chỉ panel nào chủ động
  * (bảng, biểu đồ) mới giãn ra chiếm phần chiều cao còn lại.
  */
-export default function AppShell({ breadcrumb, title, subtitle, children }) {
+export default function AppShell({ breadcrumb, title, subtitle, children, noscroll }) {
   const { stompConnected } = useStompStatus()
   const alertStatus = !stompConnected ? 'disconnected' : 'normal'
 
@@ -32,7 +32,7 @@ export default function AppShell({ breadcrumb, title, subtitle, children }) {
           </div>
         )}
 
-        <main className="app-shell__main">
+        <main className={`app-shell__main${noscroll ? ' app-shell__main--noscroll' : ''}`}>
           {title && (
             <div>
               <h1 className="app-shell__title">{title}</h1>
